@@ -372,20 +372,23 @@ def load_spriteset(entity_type, assets_base):
         return None
 
     try:
-        if entity_type in ('player', 'enemy_normal', 'enemy_fast'):
+        if entity_type in ('enemy_normal', 'enemy_fast'):
             size = (52, 52)
+            ss   = SpriteSet.from_roguelike_folder(folder, target_size=size)
+        elif entity_type == 'player':
+            size = (64, 64)
             ss   = SpriteSet.from_roguelike_folder(folder, target_size=size)
         elif entity_type == 'boss':
             ss = SpriteSet.from_sequence_folder(
                 folder,
                 prefix='Wraith_01',
-                target_size=(64, 64),
+                target_size=(68, 68),
             )
         elif entity_type == 'boss_final':
             ss = SpriteSet.from_sequence_folder(
                 folder,
                 prefix='Wraith_03',
-                target_size=(82, 82),
+                target_size=(76, 76),
             )
         else:
             return None

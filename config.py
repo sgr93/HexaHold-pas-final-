@@ -68,7 +68,7 @@ DANGER_WEIGHT = 3  # Coût additionnel d'une case dans la portée d'une tour
 # ----------------------------
 
 WALLS_ENABLED    = True
-WALLS_COUNT      = 8
+WALLS_COUNT      = 4
 WALLS_ZONE_START = (2, 4)
 WALLS_ZONE_END   = (COLS - 1, ROWS - 6)
 
