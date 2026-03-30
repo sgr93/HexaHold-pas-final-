@@ -14,13 +14,33 @@ from config import (
 
 # --- Initialisation pygame (unique point d'entrée) ---
 def init_pygame():
-    """Initialise pygame, crée la fenêtre et les polices."""
+    """Initialise pygame, crée la fenêtre adaptée à la résolution de l'écran."""
     pygame.init()
     pygame.display.set_caption(WINDOW_CAPTION)
-    _w = GRID_WIDTH + INTERFACE_WIDTH + 220   # place pour le panel gauche
-    _h = GRID_HEIGHT + 80
+
+    # Taille idéale du jeu (grille + panels gauche/droite + marges)
+    ideal_w = GRID_WIDTH + INTERFACE_WIDTH + 220   # panel gauche inclus
+    ideal_h = GRID_HEIGHT + 160                    # HUD haut + inventaire bas
+
+    # Résolution disponible de l'écran
+    info  = pygame.display.Info()
+    scr_w = info.current_w
+    scr_h = info.current_h
+
+    # Marge de sécurité pour la barre des tâches / décorations de fenêtre
+    MARGIN_W = 40
+    MARGIN_H = 80
+
+    # On s'adapte à l'écran sans dépasser la taille idéale
+    win_w = min(ideal_w, scr_w - MARGIN_W)
+    win_h = min(ideal_h, scr_h - MARGIN_H)
+
+    # Garantir un minimum raisonnable
+    win_w = max(win_w, 600)
+    win_h = max(win_h, 480)
+
     global screen, clock, font, big_font
-    screen   = pygame.display.set_mode((_w, _h), DISPLAY_FLAGS)
+    screen   = pygame.display.set_mode((win_w, win_h), DISPLAY_FLAGS)
     clock    = pygame.time.Clock()
     font     = pygame.font.SysFont(None, 22)
     big_font = pygame.font.SysFont(None, 48)

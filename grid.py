@@ -122,8 +122,9 @@ class Grid:
 
     def compute_integration_field(self):
         """
-        Calcule la distance minimale pondérée vers la base (END) pour chaque case.
-        Algorithme de Dijkstra — coût = 1 + danger_field[voisin].
+        Calcule la distance minimale vers la base (END) pour chaque case.
+        Algorithme de Dijkstra — coût = 1 (pas de pondération danger).
+        Les ennemis prennent le chemin le plus court sans esquiver les portées de tours.
         """
         for x in range(COLS):
             for y in range(ROWS):
@@ -136,7 +137,7 @@ class Grid:
         while open_list:
             cost, x, y = heapq.heappop(open_list)
             for nx, ny in self.neighbors(x, y):
-                new_cost = cost + 1 + self.danger_field[nx][ny]
+                new_cost = cost + 1  # coût uniforme — plus d'esquive des portées
                 if new_cost < self.integration_field[nx][ny]:
                     self.integration_field[nx][ny] = new_cost
                     heapq.heappush(open_list, (new_cost, nx, ny))
