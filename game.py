@@ -1,54 +1,73 @@
+
 """
-main.py
+game.py
 -------
-Point d'entree : boucle de jeu principale.
+Boucle de jeu principale.
 
+Gameplay :
+  - Vagues + boss (timers propres)
+  - Level-up banner (choix de tour ou buff, pause forcée)
+  - Inventaire vide au début, tours gagnées uniquement via level-up
+  - Choix de tour = +1 dans l'inventaire (badge x2, x3, ...)
+  - Regen HP progressive (hors combat)
+  - Intégration du menu principal avec niveaux de difficulté
 """
 
+import os
 import time
 import random
 import pygame
 
 from config import (
     COLS, ROWS, GRID_SIZE,
-    GRID_WIDTH, GRID_HEIGHT, INTERFACE_WIDTH,
+    GRID_WIDTH, GRID_HEIGHT,
     START, END,
     SPAWN_ZONE_X, SPAWN_ZONE_Y, SPAWN_ZONE_WIDTH, SPAWN_ZONE_HEIGHT,
     LEVEL_START, XP_START, XP_TO_NEXT_LVL_START, XP_GROWTH_FACTOR,
-    WAVE_NUMBER_START, MAX_WAVES, WAVE_DURATION, BOSS_DURATION,
-    ENEMY_SPAWN_INTERVAL_BASE, DANGER_WEIGHT,
-    WALLS_ENABLED, WALLS_COUNT, WALLS_ZONE_START, WALLS_ZONE_END,
+    XP_REWARD_NORMAL, XP_REWARD_BOSS,
+    WAVE_NUMBER_START, WAVE_DURATION, BOSS_DURATION,
+    DANGER_WEIGHT,
     BACKGROUND_COLOR, PAUSE_KEY,
+    DIFFICULTY_LEVELS, PLAYER_HP_REGEN,
+    MUSIC_PATH, MUSIC_TRACK_TITLE, MUSIC_TRACK_MENU, MUSIC_TRACK_GAME,
+    INV_BAR_HEIGHT,
+    ALL_TOWER_TYPES, TOWER_SLOT_COUNT, TOWER_MAX_LEVEL,
 )
 import render
 from render import GridCache
 from grid import Grid
 from entities import Player, Goal, Enemy, Tower, Trap
 from ui import (
-    main_menu, draw_hud, draw_ghost,
+    draw_hud, draw_ghost,
     draw_inventory,
     draw_pause_screen, draw_gameover_screen, draw_start_hint,
-    INV_BAR_HEIGHT, ITEM_LABELS,
+    draw_levelup_banner,
 )
 from walls import apply_map_walls
+import save_data as sd
 
 
 # ============================================================
-# FONCTIONS UTILITAIRES
+# FONCTIONS UTILITAIRES : PLACEMENT / TOURS
 # ============================================================
 
 def make_can_place(grid, start_cell, item_type=None):
     """
-    Retourne une closure can_place(cells) verifiant la legalite d'un placement.
-    FIX #3 : creee une seule fois par frame, partagee entre ghost et clic.
+    Retourne une fonction can_place(cells) qui vérifie :
+      - in_bounds
+      - walkable
+      - pas de piège déjà présent (pour trap)
+      - le chemin START -> END reste possible (flow field)
     """
     def can_place(cells):
+        # 1) Limites + walkable
         for x, y in cells:
             if not grid.in_bounds(x, y):
                 return False
             if not grid.walkable[x][y]:
                 return False
 
+        # 2) Cas spécial : pièges (pas de chevauchement)
         if item_type == "trap":
             occupied = set()
             for t in grid.towers_ref:
@@ -56,13 +75,16 @@ def make_can_place(grid, start_cell, item_type=None):
                     occupied.update(t.cells)
             return not any((x, y) in occupied for x, y in cells)
 
-        # Test de connectivite temporaire
+        # 3) Vérifier que le chemin reste valide
         blocked = []
         for x, y in cells:
             blocked.append((x, y, grid.walkable[x][y]))
             grid.walkable[x][y] = False
+
         grid.compute_integration_field()
         valid = grid.integration_field[start_cell[0]][start_cell[1]] != float("inf")
+
+        # 4) Restore
         for x, y, prev in blocked:
             grid.walkable[x][y] = prev
         grid.recompute()
@@ -71,49 +93,10 @@ def make_can_place(grid, start_cell, item_type=None):
     return can_place
 
 
-def place_tower_on_grid(grid, towers, cells, item_type, grid_cache):
-    """
-    Place ou ameliore une tour/piege sur la grille.
-
-    Contrairement a l'ancien systeme, cette fonction ne consomme PAS de token —
-    le token a deja ete consomme lors de l'ajout a l'inventaire.
-
-    Retourne True si le placement/upgrade a reussi, False sinon.
-    FIX #2 : un seul grid.recompute() apres ajout.
-    OPTIM-GRID : invalide le GridCache apres tout recompute.
-    """
-    for t in towers:
-        t_type = getattr(t, "tower_type", getattr(t, "trap_type", None))
-        match_type = (t_type == item_type) or (
-            item_type == "trap" and t_type == "spikes"
-        )
-        if match_type and any(cell in t.cells for cell in cells):
-            if t.level < 3:
-                t.level += 1
-                t.set_stats()
-                if item_type != "trap":
-                    grid.recompute()
-                    grid_cache.invalidate()
-                return True   # upgrade reussi
-            return False      # niveau max, echec
-
-    # Nouveau placement
-    if item_type == "trap":
-        towers.append(Trap(cells, trap_type="spikes"))
-        grid.recompute()
-        grid_cache.invalidate()
-    else:
-        for x, y in cells:
-            grid.walkable[x][y] = False
-        towers.append(Tower(cells, item_type))
-        grid.recompute()
-        grid_cache.invalidate()
-
-    return True
-
-
 def cells_for_item(item_type, gx, gy):
-    """Retourne la liste de cases occupees pour un item a la position (gx, gy)."""
+    """
+    Retourne la liste des cellules occupées par un type de tour donné.
+    """
     if item_type == "small":
         return [(gx, gy), (gx+1, gy), (gx, gy+1), (gx+1, gy+1)]
     elif item_type == "big":
@@ -123,11 +106,150 @@ def cells_for_item(item_type, gx, gy):
         ]
     elif item_type == "trap":
         return [(gx+i, gy+j) for i in range(2) for j in range(4)]
+    elif item_type in {"sniper", "rocket", "laser", "cannon"}:
+        return [
+            (gx, gy), (gx+1, gy),
+            (gx, gy+1), (gx+1, gy+1),
+        ]
+    elif item_type in {
+        "mortar", "beam", "tesla", "storm", "arcane", "crystal",
+        "flamethrower", "shock", "burst", "swarm", "mine", "poison", "frost"
+    }:
+        return [(gx, gy), (gx+1, gy), (gx, gy+1), (gx+1, gy+1)]
     return []
 
 
+def place_tower_on_grid(grid, towers, cells, item_type, grid_cache,
+                        damage_bonus=0, cooldown_bonus=0):
+    """
+    Place une tour ou un piège sur la grille, ou upgrade si déjà présent.
+    Retourne True si placement/upgrade effectué, False sinon.
+    """
+    # Upgrade si même type sur les mêmes cellules
+    for t in towers:
+        t_type = getattr(t, "tower_type", getattr(t, "trap_type", None))
+        match_type = (t_type == item_type) or (
+            item_type == "trap" and t_type == "spikes"
+        )
+        if match_type and any(cell in t.cells for cell in cells):
+            if t.level < TOWER_MAX_LEVEL:
+                t.level += 1
+                t.set_stats(damage_bonus=damage_bonus, cooldown_bonus=cooldown_bonus)
+                if item_type != "trap":
+                    grid.recompute()
+                    grid_cache.invalidate()
+                return True
+            return False
+
+    # Nouveau piège
+    if item_type == "trap":
+        trap = Trap(cells, trap_type="spikes")
+        trap.set_stats()
+        towers.append(trap)
+        grid.recompute()
+        grid_cache.invalidate()
+        return True
+
+    # Nouvelle tour
+    for x, y in cells:
+        grid.walkable[x][y] = False
+    tower = Tower(cells, item_type)
+    tower.set_stats(damage_bonus=damage_bonus, cooldown_bonus=cooldown_bonus)
+    towers.append(tower)
+    grid.recompute()
+    grid_cache.invalidate()
+    return True
+
+
+def apply_tower_bonuses(tower, damage_bonus, cooldown_bonus):
+    tower.set_stats(damage_bonus=damage_bonus, cooldown_bonus=cooldown_bonus)
+
+
+def apply_all_tower_bonuses(towers, damage_bonus, cooldown_bonus):
+    for tower in towers:
+        if hasattr(tower, "tower_type"):
+            apply_tower_bonuses(tower, damage_bonus, cooldown_bonus)
+
+
+# ============================================================
+# MUSIQUE
+# ============================================================
+
+def _find_music_file(track_name):
+    base = os.path.join(os.path.dirname(__file__), MUSIC_PATH, track_name)
+    if os.path.exists(base):
+        return base
+    stem, ext = os.path.splitext(track_name)
+    for candidate_ext in [".mp3", ".ogg", ".wav"]:
+        candidate = os.path.join(os.path.dirname(__file__), MUSIC_PATH, stem + candidate_ext)
+        if os.path.exists(candidate):
+            return candidate
+    return None
+
+
+def play_music(track_name, volume=0.8):
+    if not pygame.mixer.get_init():
+        return
+    track_path = _find_music_file(track_name)
+    if not track_path:
+        return
+    try:
+        pygame.mixer.music.stop()
+        pygame.mixer.music.load(track_path)
+        pygame.mixer.music.set_volume(volume)
+        pygame.mixer.music.play(-1)
+    except Exception:
+        pass
+
+
+def play_title_music(volume=0.8):
+    play_music(MUSIC_TRACK_TITLE, volume)
+
+
+def play_menu_music(volume=0.8):
+    play_music(MUSIC_TRACK_MENU, volume)
+
+
+def play_game_music(volume=0.8):
+    play_music(MUSIC_TRACK_GAME, volume)
+
+
+def pick_levelup_choices(available_towers, count=3):
+    """Retourne `count` options aléatoires parmi les tours disponibles."""
+    options = list(available_towers)
+    random.shuffle(options)
+    choices = []
+    for option in options:
+        if option not in choices:
+            choices.append(option)
+        if len(choices) == count:
+            break
+    return choices
+
+
+def pick_starting_tower_choices(loadout, count=3):
+    """Retourne `count` tours aléatoires parmi le loadout de départ."""
+    choices = list(loadout)
+    if len(choices) < count:
+        choices = list(loadout) + list(ALL_TOWER_TYPES)
+    random.shuffle(choices)
+    unique = []
+    for option in choices:
+        if option not in unique:
+            unique.append(option)
+        if len(unique) == count:
+            break
+    return unique
+
+
+# ============================================================
+# VAGUES / ETAT INITIAL
+# ============================================================
+
 def start_new_wave(state):
-    """Incremente la vague et reinitialise les compteurs associes."""
+    """
+    Prépare la vague suivante à partir d'un dict d'état partiel.
+    """
     state["wave_number"]              += 1
     state["last_wave_time"]            = time.time()
     state["last_enemy_spawn"]          = time.time()
@@ -139,11 +261,16 @@ def start_new_wave(state):
     state["boss_timer"]                = BOSS_DURATION
 
 
-def build_initial_state():
+def build_initial_state(difficulty=2, save=None):
     """
-    Cree et retourne l'etat initial complet du jeu.
-    Appele au demarrage et a chaque "Rejouer".
+    Crée l'état initial complet du jeu selon la difficulté choisie.
+    Inventaire vide au début, tours gagnées uniquement via level-up.
     """
+    diff_info      = DIFFICULTY_LEVELS.get(difficulty, DIFFICULTY_LEVELS[2])
+    max_waves      = diff_info["waves"]
+    spawn_interval = diff_info["spawn_interval"]
+    hp_mult        = diff_info["enemy_hp_mult"]
+
     towers      = []
     projectiles = []
     enemies     = []
@@ -157,7 +284,32 @@ def build_initial_state():
         START[1] * GRID_SIZE + GRID_SIZE // 2,
     )
 
-    # Map manuelle définie dans walls.py
+    # Bonus d'équipement
+    tower_equipment_bonus = 0
+    if save:
+        equipped = save.get("equipped", {})
+        inv      = save.get("inventory_equipment", [])
+        for slot, idx in equipped.items():
+            if idx is not None and 0 <= idx < len(inv):
+                item = inv[idx]
+                stat = item["stat"]
+                val  = item["value"]
+                if stat == "max_hp":
+                    player.max_hp += val
+                    player.hp     += val
+                elif stat == "attack_speed":
+                    player.attack_cooldown = max(5, player.attack_cooldown - val)
+                elif stat == "speed":
+                    player.speed += val
+                elif stat == "damage":
+                    player.damage += val
+                elif stat == "tower_bonus":
+                    tower_equipment_bonus += val
+
+    # Inventaire initial : vide au début du niveau
+    inventory = {}
+
+    # Murs de la carte
     apply_map_walls(grid)
     grid.recompute()
 
@@ -173,24 +325,17 @@ def build_initial_state():
         "game_over":                False,
         "game_win":                 False,
 
-        # Tokens de construction (utilises pour acheter dans le shop)
-        "build_tokens":             1,
+        # Inventaire tours / buffs
         "player_buff_tokens":       0,
-
-        # --- INVENTAIRE ---
-        # Dict { item_type: quantite_en_stock }
-        # Initialement vide. Les items sont ajoutes via le shop.
-        # Un clic sur un item du shop consomme 1 token et ajoute 1 exemplaire ici.
-        # Un clic sur un slot de l'inventaire selectionne l'item pour placement.
-        # Placer un item sur la grille decremente sa quantite dans l'inventaire.
-        "inventory":                {"small": 0, "big": 0, "trap": 0},
-
-        # Item actuellement selectionne dans l'inventaire (ou None)
+        "tower_damage_bonus":       0,
+        "tower_cooldown_bonus":     0,
+        "tower_equipment_bonus":    tower_equipment_bonus,
+        "inventory":                inventory,
         "selected_item":            None,
 
         # Vagues
         "wave_number":              WAVE_NUMBER_START,
-        "max_waves":                MAX_WAVES,
+        "max_waves":                max_waves,
         "wave_timer":               WAVE_DURATION,
         "last_wave_time":           time.time(),
         "boss_active":              False,
@@ -200,15 +345,32 @@ def build_initial_state():
         "max_enemies_this_wave":    5 + WAVE_NUMBER_START * 2,
         "mobs_killed_this_wave":    0,
         "last_enemy_spawn":         time.time(),
-        "enemy_spawn_interval":     ENEMY_SPAWN_INTERVAL_BASE,
+        "enemy_spawn_interval":     spawn_interval,
+        "enemy_hp_mult":            hp_mult,
 
-        # Entites
+        # Entités
         "towers":                   towers,
         "projectiles":              projectiles,
         "enemies":                  enemies,
         "grid":                     grid,
         "goal":                     goal,
         "player":                   player,
+
+        # Level-up banner
+        "levelup_pending":          False,
+        "levelup_choices":          [],  # rempli au premier level-up
+        "levelup_rects":            [],
+
+        # Regen HP
+        "regen_accumulator":        0.0,
+        "last_regen_time":          time.time(),
+
+        # Difficulté
+        "difficulty":               difficulty,
+        "coins_reward":             diff_info["coins_reward"],
+
+        # Référence save
+        "save":                     save,
     }
 
 
@@ -218,18 +380,61 @@ def build_initial_state():
 
 def main():
     render.init_pygame()
-    main_menu(render.screen, render.clock)
+
+    from menu_screen import run_menu, run_title_screen
+    from ui import draw_levelup_banner
+
+    current_save = sd.load()
+    play_title_music(current_save.get("music_volume", 0.8))
+
+    # Ecran titre
+    title_result, current_save = run_title_screen(render.screen, render.clock, current_save)
+    if title_result is None:
+        pygame.quit()
+        return
+
+    # Menu principal
+    play_menu_music(current_save.get("music_volume", 0.8))
+    result = run_menu(render.screen, render.clock, current_save)
+    if result is None or result[0] is None:
+        pygame.quit()
+        return
+    chosen_level, current_save = result
+
+    # Musique de jeu
+    play_game_music(current_save.get("music_volume", 0.8))
 
     grid_cache = GridCache()
-    gs         = build_initial_state()
+    gs         = build_initial_state(chosen_level, current_save)
     grid_cache.invalidate()
 
-    # FIX-PAUSE-TIMER : stocke le moment ou la pause commence
+    # Choix initial de tour au lancement du niveau
+    gs["levelup_pending"] = True
+    gs["levelup_choices"] = pick_starting_tower_choices(
+        (gs["save"].get("tower_loadout", []) or ALL_TOWER_TYPES)[:TOWER_SLOT_COUNT]
+    )
+
     _pause_start = None
+    running      = True
 
-    running = True
+    # Buffs possibles (exemple simple)
+    buff_defs = {
+        "Vitesse Joueur":   ("player_speed",),
+        "Dégâts Joueur":    ("player_damage",),
+        "Vit. Attaque":     ("player_cooldown",),
+        "HP +20":           ("player_hp",),
+        "Dégâts Tours":     ("tower_damage",),
+        "Vit. Tours":       ("tower_cooldown",),
+    }
+
+    # Types de tours connus (pour distinguer buff / tour)
+    loadout_towers = gs["save"].get("tower_loadout", []) or ALL_TOWER_TYPES
+    known_towers = set(loadout_towers[:TOWER_SLOT_COUNT])
+
     while running:
-
+        # ----------------------------------------------------
+        # EVENTS
+        # ----------------------------------------------------
         render.clock.tick(60)
         render.screen.fill(BACKGROUND_COLOR)
 
@@ -237,45 +442,50 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    # Echap deselectione l'item d'abord, quitte si rien de selectionne
                     if gs["selected_item"]:
                         gs["selected_item"] = None
-                    else:
+                    elif not gs["levelup_pending"]:
                         running = False
-                elif event.key == PAUSE_KEY and gs["game_started"] \
-                        and not gs["game_over"] and not gs["game_win"]:
+
+                elif (event.key == PAUSE_KEY
+                      and gs["game_started"]
+                      and not gs["game_over"]
+                      and not gs["game_win"]
+                      and not gs["levelup_pending"]):
+                    # Toggle pause
                     if not gs["paused"]:
-                        # FIX-4/5 : on note l'heure de debut de pause
-                        gs["paused"] = True
-                        _pause_start = time.time()
+                        gs["paused"]  = True
+                        _pause_start  = time.time()
                     else:
-                        gs["paused"] = False
-                        # Decale tous les timers de la duree totale de pause
+                        gs["paused"]  = False
                         if _pause_start is not None:
                             paused_duration = time.time() - _pause_start
                             gs["last_wave_time"]   += paused_duration
                             gs["last_enemy_spawn"] += paused_duration
+                            gs["last_regen_time"]  += paused_duration
                             if gs["boss_start_time"]:
                                 gs["boss_start_time"] += paused_duration
                             _pause_start = None
+
             elif event.type == pygame.VIDEORESIZE:
                 render.screen = pygame.display.set_mode(
                     (event.w, event.h), pygame.RESIZABLE
                 )
-                # FIX-11 : force le recalcul du cache de grille apres redim
                 grid_cache.invalidate()
+
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 mouse_clicked_left = True
 
+        # ----------------------------------------------------
+        # CALCUL DES OFFSETS / SOURIS
+        # ----------------------------------------------------
         win_w, win_h = render.screen.get_size()
 
-        # La grille est centree horizontalement dans la zone hors inventaire.
-        # La barre d'inventaire occupe INV_BAR_HEIGHT pixels en bas.
-        total_width = GRID_WIDTH + INTERFACE_WIDTH
+        total_width = GRID_WIDTH
         offset_x    = (win_w - total_width) // 2
-        # L'espace vertical disponible hors inventaire
         usable_h    = win_h - INV_BAR_HEIGHT
         offset_y    = max(40, (usable_h - GRID_HEIGHT) // 2)
 
@@ -283,7 +493,7 @@ def main():
         gx = (mx - offset_x) // GRID_SIZE
         gy = (my - offset_y) // GRID_SIZE
 
-        # Raccourcis locaux
+        # Raccourcis d'état
         gs_grid        = gs["grid"]
         gs_towers      = gs["towers"]
         gs_enemies     = gs["enemies"]
@@ -292,45 +502,59 @@ def main():
         gs_player      = gs["player"]
         gs_inv         = gs["inventory"]
 
-        # FIX #5 : game_over cumulatif
+        available_towers = {t: qty for t, qty in gs_inv.items() if qty > 0}
+
+        # ----------------------------------------------------
+        # GAME OVER / WIN CHECK
+        # ----------------------------------------------------
         if not gs["game_over"]:
             gs["game_over"] = gs_goal.hp <= 0
         if not gs["game_over"] and not gs_player.alive:
             gs["game_over"] = True
 
-        # ===================================================
-        # GESTION DES VAGUES
-        # ===================================================
+        # ----------------------------------------------------
+        # GESTION DES VAGUES / BOSS
+        # ----------------------------------------------------
         current_time = time.time()
 
         if not gs["game_started"]:
             gs["last_wave_time"]   = current_time
             gs["last_enemy_spawn"] = current_time
+            gs["last_regen_time"]  = current_time
 
-        if not gs["paused"] and not gs["game_over"] and not gs["game_win"]:
+        is_frozen = gs["paused"] or gs["game_over"] or gs["game_win"] or gs["levelup_pending"]
 
+        if not is_frozen:
+            # Timer de vague
             if not gs["boss_active"]:
                 gs["wave_timer"] = max(0, WAVE_DURATION - (current_time - gs["last_wave_time"]))
 
+            # Spawn interval dynamique
             if gs["game_started"] and gs["wave_number"] <= gs["max_waves"]:
-                gs["enemy_spawn_interval"] = max(0.2, 1.2 - 0.1 * (gs["wave_number"] - 1))
+                gs["enemy_spawn_interval"] = max(
+                    0.2,
+                    DIFFICULTY_LEVELS[gs["difficulty"]]["spawn_interval"]
+                    - 0.05 * (gs["wave_number"] - 1)
+                )
 
+            # Spawn d'ennemis normaux
             if (gs["game_started"]
                     and not gs["boss_active"]
                     and gs["enemies_spawned_this_wave"] < gs["max_enemies_this_wave"]
                     and current_time - gs["last_enemy_spawn"] >= gs["enemy_spawn_interval"]):
                 is_fast = random.random() < 0.15
-                hp      = 15 + (gs["wave_number"] - 1) * 4
+                base_hp = 15 + (gs["wave_number"] - 1) * 4
+                hp      = int(base_hp * gs["enemy_hp_mult"])
                 gs_enemies.append(Enemy(hp=hp, speed=1.6 if is_fast else 1.0, is_fast=is_fast))
                 gs["enemies_spawned_this_wave"] += 1
                 gs["last_enemy_spawn"]           = current_time
 
-            # FIX #8 : calcules une seule fois
-            # Exclut les ennemis en cours d'animation de mort (_dying)
+            # Etat des ennemis
             alive_enemies  = [e for e in gs_enemies if not e.is_dead and not e._dying]
             has_boss       = any(e.is_boss       for e in alive_enemies)
             has_final_boss = any(e.is_final_boss for e in alive_enemies)
 
+            # Passage en mode boss
             if (not gs["boss_active"]
                     and gs["enemies_spawned_this_wave"] >= gs["max_enemies_this_wave"]
                     and not alive_enemies):
@@ -338,21 +562,23 @@ def main():
                 gs["boss_start_time"] = current_time
                 is_final = gs["wave_number"] == gs["max_waves"]
                 if is_final:
-                    boss_hp = 500 + 100 * (gs["wave_number"] - 1)
+                    boss_hp = int((500 + 100 * (gs["wave_number"] - 1)) * gs["enemy_hp_mult"])
                     gs_enemies.append(Enemy(hp=boss_hp, speed=0.6, radius=50,
                                             is_boss=True, is_final_boss=True))
                 else:
-                    boss_hp = 150 + 50 * gs["wave_number"]
+                    boss_hp = int((150 + 50 * gs["wave_number"]) * gs["enemy_hp_mult"])
                     gs_enemies.append(Enemy(hp=boss_hp, speed=0.3, radius=25, is_boss=True))
                 alive_enemies  = [e for e in gs_enemies if not e.is_dead and not e._dying]
                 has_boss       = any(e.is_boss       for e in alive_enemies)
                 has_final_boss = any(e.is_final_boss for e in alive_enemies)
 
+            # Timer boss
             if gs["boss_active"]:
                 gs["boss_timer"] = max(0, BOSS_DURATION - (current_time - gs["boss_start_time"]))
                 if gs["boss_timer"] <= 0 and has_boss:
                     gs["game_over"] = True
 
+            # Fin de boss
             if gs["boss_active"] and not has_boss:
                 gs["boss_active"] = False
                 if gs["wave_number"] == gs["max_waves"]:
@@ -372,82 +598,96 @@ def main():
                     start_new_wave(sl)
                     gs.update(sl)
 
+            # Conditions de fin
             if gs["wave_number"] > gs["max_waves"] and not gs_enemies:
                 gs["game_win"] = True
             if not gs["boss_active"] and gs["wave_timer"] <= 0 and gs_enemies:
                 gs["game_over"] = True
 
-        # ===================================================
-        # UPDATE
-        # ===================================================
-        if gs["game_started"] and not gs["game_over"] and not gs["paused"]:
+        # ----------------------------------------------------
+        # UPDATE ENTITES
+        # ----------------------------------------------------
+        if gs["game_started"] and not gs["game_over"] and not is_frozen:
             keys_pressed = pygame.key.get_pressed()
             gs_player.update(keys_pressed, gs_enemies, gs_projectiles, False)
 
+            # Regen HP joueur (hors combat)
+            can_regen = not gs["boss_active"] and not gs_enemies
+            if can_regen:
+                regen_dt = current_time - gs["last_regen_time"]
+                gs["last_regen_time"] = current_time
+                gs["regen_accumulator"] += PLAYER_HP_REGEN * regen_dt
+                if gs["regen_accumulator"] >= 1.0:
+                    heal = int(gs["regen_accumulator"])
+                    gs_player.hp = min(gs_player.max_hp, gs_player.hp + heal)
+                    gs["regen_accumulator"] -= heal
+            else:
+                gs["last_regen_time"] = current_time
+
+            # Ennemis
             for e in gs_enemies[:]:
                 e.update(gs_grid, gs_goal, player=gs_player)
 
-                # HP epuise mais pas encore marque : declenche l'anim de mort
                 if not e.is_dead and not e._dying and e.hp <= 0:
                     e.mark_dead()
 
-                # Suppression : seulement quand is_dead=True
-                # (apres la fin de l'animation death si sprite present)
-                # FIX-1/10 : on distribue XP/tokens UNE SEULE FOIS au moment
-                # de la suppression effective de la liste (is_dead=True)
                 if e.is_dead:
                     if e.is_final_boss:
                         gs["game_win"] = True
-                    gs["xp"] += 7 if e.is_boss else 3
+                    gs["xp"] += XP_REWARD_BOSS if e.is_boss else XP_REWARD_NORMAL
                     if not e.is_boss:
                         gs["mobs_killed_this_wave"] += 1
                     else:
                         gs["player_buff_tokens"] += 1
                     gs_enemies.remove(e)
 
+            # Tours
             for t in gs_towers:
                 t.update(gs_enemies, gs_projectiles)
+
+            # Projectiles
             for p in gs_projectiles:
                 p.update()
-
-            # FIX #9 : nettoyage in-place
             i = len(gs_projectiles) - 1
             while i >= 0:
                 if not gs_projectiles[i].alive:
                     gs_projectiles.pop(i)
                 i -= 1
+
         elif gs["game_over"] or gs["game_win"]:
-            # FIX-12 : vider les projectiles en vol quand la partie est terminee
             gs_projectiles.clear()
 
-        # ===================================================
-        # LEVEL UP
-        # ===================================================
-        while gs["xp"] >= gs["xp_to_next_level"]:
-            gs["xp"]             -= gs["xp_to_next_level"]
-            gs["level"]          += 1
-            gs["xp_to_next_level"] = int(gs["xp_to_next_level"] * XP_GROWTH_FACTOR)
-            gs["build_tokens"]   += 1
+        # ----------------------------------------------------
+        # LEVEL UP → déclenche la bannière
+        # ----------------------------------------------------
+        while gs["xp"] >= gs["xp_to_next_level"] and not gs["levelup_pending"]:
+            gs["xp"]               -= gs["xp_to_next_level"]
+            gs["level"]            += 1
+            gs["xp_to_next_level"]  = int(gs["xp_to_next_level"] * XP_GROWTH_FACTOR)
+            gs["levelup_pending"]   = True
 
-        # ===================================================
-        # RENDU
-        # ===================================================
+            gs["levelup_choices"] = pick_levelup_choices(known_towers, count=3)
 
-        # OPTIM-GRID : 1 blit au lieu de 252 draw calls
+            if not gs["paused"]:
+                _pause_start = time.time()
+
+        # ----------------------------------------------------
+        # RENDU GRILLE + ENTITES
+        # ----------------------------------------------------
         grid_cache.draw(render.screen, gs_grid, offset_x, offset_y)
 
-        # Spawn zone (FIX-2 : affichee uniquement avant le demarrage du jeu)
+        # Zone de spawn visible tant que le jeu n'a pas commencé
         if not gs["game_started"]:
             spawn_surf = pygame.Surface((SPAWN_ZONE_WIDTH, SPAWN_ZONE_HEIGHT), pygame.SRCALPHA)
             spawn_surf.fill((255, 255, 0, 60))
             render.screen.blit(spawn_surf, (offset_x + SPAWN_ZONE_X, offset_y + SPAWN_ZONE_Y))
 
-        # Pieges (sous ennemis)
+        # Pièges
         for t in gs_towers:
             if hasattr(t, "trap_type"):
                 t.draw(render.screen, offset_x, offset_y)
 
-        # Ennemis + barre boss final
+        # Ennemis + barre de vie boss final
         for e in gs_enemies:
             if e.is_final_boss:
                 bw2, bh2 = 400, 30
@@ -460,16 +700,19 @@ def main():
                 render.screen.blit(bt, ((win_w - bt.get_width()) // 2, by2 - 40))
             e.draw(render.screen, offset_x, offset_y)
 
+        # Goal
         gs_goal.draw(render.screen, offset_x, offset_y)
 
-        # Tours (au-dessus ennemis)
+        # Tours
         for t in gs_towers:
             if hasattr(t, "tower_type"):
                 t.draw(render.screen, offset_x, offset_y)
 
+        # Projectiles
         for p in gs_projectiles:
             p.draw(render.screen, offset_x, offset_y)
 
+        # Joueur
         gs_player.draw(render.screen, offset_x, offset_y)
 
         # HUD
@@ -486,9 +729,9 @@ def main():
         if not gs["game_started"]:
             draw_start_hint(render.screen, render.font, offset_x, offset_y)
 
-        # ===================================================
-        # PANEL GAUCHE : buffs joueur
-        # ===================================================
+        # ----------------------------------------------------
+        # PANEL GAUCHE : BUFFS JOUEUR (jetons de boss)
+        # ----------------------------------------------------
         left_base_x = max(10, offset_x - 210)
         left_base_y = offset_y + 190
 
@@ -498,10 +741,11 @@ def main():
         render.screen.blit(pts_p, (left_base_x + 10, left_base_y))
         left_base_y += 35
 
-        buff_items  = {
-            "Joueur (Vitesse)":  ("speed",    "player"),
-            "Joueur (Degats)":   ("damage",   "player"),
-            "Joueur (Attaque)":  ("cooldown", "player"),
+        buff_items = {
+            "Joueur (Vitesse)":          ("speed",    "player"),
+            "Joueur (Dégâts)":           ("damage",   "player"),
+            "Joueur (Vit. Attaque)":     ("cooldown", "player"),
+            "Joueur (HP +20)":           ("hp",       "player"),
         }
         rects_buffs = {}
 
@@ -517,103 +761,90 @@ def main():
             rects_buffs[buff_name] = (btn_rect, buff_key, buff_type)
             left_base_y += 45
 
-        # ===================================================
-        # PANEL DROIT : boutique
-        # Le shop vend des items qui vont dans l'INVENTAIRE.
-        # Chaque achat consomme 1 token et incremente inventory[item].
-        # ===================================================
-        base_x = offset_x + GRID_WIDTH
-        base_y = offset_y + 100
+        # ----------------------------------------------------
+        # INVENTAIRE BAS
+        # ----------------------------------------------------
+        if not available_towers:
+            hint_lbl = render.font.render("Choisissez vos tours via les level-up.", True, (180, 180, 180))
+            render.screen.blit(hint_lbl, (offset_x + 10, offset_y + GRID_HEIGHT + 10))
 
-        pts_txt = render.font.render(
-            f"Jetons : {gs['build_tokens']}", True, (255, 255, 0)
-        )
-        render.screen.blit(pts_txt, (base_x + 10, base_y))
-        base_y += 30
-
-        # Titre boutique
-        shop_title = render.font.render("--- BOUTIQUE ---", True, (200, 200, 200))
-        render.screen.blit(shop_title, (base_x + 10, base_y))
-        base_y += 25
-
-        hint_lbl = render.font.render("(ajoute a l'inventaire)", True, (140, 140, 140))
-        render.screen.blit(hint_lbl, (base_x + 10, base_y))
-        base_y += 20
-
-        shop_items  = {"TOURS": ["small", "big"], "PIEGES": ["trap"]}
-        rects_shop  = {}
-
-        for category, items in shop_items.items():
-            cat_lbl = render.font.render(f"-- {category} --", True, (180, 180, 180))
-            render.screen.blit(cat_lbl, (base_x + 10, base_y))
-            base_y += 22
-            for item in items:
-                btn_rect  = pygame.Rect(base_x + 10, base_y, 180, 40)
-                can_buy   = gs["build_tokens"] > 0
-                # Couleur : plus claire si on peut acheter
-                col       = (70, 100, 70) if can_buy else (50, 50, 80)
-                pygame.draw.rect(render.screen, col, btn_rect, border_radius=5)
-                b_col     = (180, 255, 120) if can_buy else (100, 100, 100)
-                pygame.draw.rect(render.screen, b_col, btn_rect, 2, border_radius=5)
-
-                lbl_text = ITEM_LABELS.get(item, item.capitalize())
-                lbl      = render.font.render(lbl_text, True, (255, 255, 255))
-                render.screen.blit(lbl, (btn_rect.x + 10, btn_rect.y + 10))
-
-                # Affiche la quantite deja en inventaire dans le coin du bouton
-                qty = gs_inv.get(item, 0)
-                if qty > 0:
-                    qty_font = pygame.font.SysFont(None, 18)
-                    qty_lbl  = qty_font.render(f"x{qty}", True, (255, 220, 80))
-                    render.screen.blit(qty_lbl, (btn_rect.right - qty_lbl.get_width() - 4,
-                                                  btn_rect.y + 4))
-
-                rects_shop[item] = btn_rect
-                base_y += 45
-            base_y += 8
-
-        # ===================================================
-        # INVENTAIRE BAS-ECRAN
-        # ===================================================
         inv_rects = draw_inventory(
             render.screen, render.font,
-            gs_inv, gs["selected_item"],
+            available_towers, gs["selected_item"],
             win_w, win_h
         )
 
-        # ===================================================
+        # ----------------------------------------------------
         # ZONES DE CLIC
-        # ===================================================
+        # ----------------------------------------------------
         in_buff_area = mx < offset_x
-        in_shop_area = mx >= offset_x + GRID_WIDTH
+        in_shop_area = False
         in_inv_area  = my >= win_h - INV_BAR_HEIGHT
         in_grid_area = (not in_buff_area and not in_shop_area and not in_inv_area
                         and offset_x <= mx < offset_x + GRID_WIDTH
                         and offset_y <= my < offset_y + GRID_HEIGHT)
 
-        if mouse_clicked_left and not gs["game_over"] and not gs["game_win"] and not gs["paused"]:
+        # ----------------------------------------------------
+        # LEVEL-UP BANNER (par-dessus tout)
+        # ----------------------------------------------------
+        if gs["levelup_pending"]:
+            chosen = draw_levelup_banner(
+                render.screen,
+                render.big_font,
+                render.font,
+                gs["levelup_choices"],
+                (mx, my),
+                mouse_clicked_left,
+            )
+            if chosen:
+                if chosen in known_towers:
+                    gs_inv[chosen] = gs_inv.get(chosen, 0) + 1
+                elif chosen in buff_defs:
+                    key = buff_defs[chosen][0]
+                    if key == "player_speed":
+                        gs_player.speed += 0.3
+                    elif key == "player_damage":
+                        gs_player.damage += 2
+                    elif key == "player_cooldown":
+                        gs_player.attack_cooldown = max(5, gs_player.attack_cooldown - 2)
+                    elif key == "player_hp":
+                        gs_player.max_hp += 20
+                        gs_player.hp = min(gs_player.max_hp, gs_player.hp + 20)
+                    elif key == "tower_damage":
+                        gs["tower_damage_bonus"] += 1
+                        apply_all_tower_bonuses(gs_towers, gs["tower_damage_bonus"] + gs["tower_equipment_bonus"], gs["tower_cooldown_bonus"])
+                    elif key == "tower_cooldown":
+                        gs["tower_cooldown_bonus"] += 1
+                        apply_all_tower_bonuses(gs_towers, gs["tower_damage_bonus"] + gs["tower_equipment_bonus"], gs["tower_cooldown_bonus"])
 
-            # --- Clic dans le shop : acheter → ajouter a l'inventaire ---
-            if in_shop_area:
-                for item, rect in rects_shop.items():
-                    if rect.collidepoint(mx, my) and gs["build_tokens"] > 0:
-                        gs_inv[item]      = gs_inv.get(item, 0) + 1
-                        gs["build_tokens"] -= 1
-                        # Auto-selectionne l'item achete si rien n'est selectionne
-                        if gs["selected_item"] is None:
-                            gs["selected_item"] = item
+                gs["levelup_pending"] = False
+                # Recalage des timers après pause forcée
+                if _pause_start is not None:
+                    paused_duration = time.time() - _pause_start
+                    gs["last_wave_time"]   += paused_duration
+                    gs["last_enemy_spawn"] += paused_duration
+                    gs["last_regen_time"]  += paused_duration
+                    if gs["boss_start_time"]:
+                        gs["boss_start_time"] += paused_duration
+                    _pause_start = None
 
-            # --- Clic dans l'inventaire : selectionner / deselectionner ---
-            elif in_inv_area:
+        # ----------------------------------------------------
+        # CLICS HORS LEVEL-UP
+        # ----------------------------------------------------
+        if (mouse_clicked_left
+                and not gs["game_over"]
+                and not gs["game_win"]
+                and not gs["paused"]
+                and not gs["levelup_pending"]):
+
+            # Clic inventaire
+            if in_inv_area:
                 for item_type, rect in inv_rects.items():
                     if rect.collidepoint(mx, my):
-                        if gs["selected_item"] == item_type:
-                            gs["selected_item"] = None   # deselectionne
-                        else:
-                            gs["selected_item"] = item_type
+                        gs["selected_item"] = None if gs["selected_item"] == item_type else item_type
                         break
 
-            # --- Clic buffs joueur ---
+            # Clic buffs (jetons de boss)
             elif in_buff_area:
                 for buff_name, (rect, buff_key, buff_type) in rects_buffs.items():
                     if rect.collidepoint(mx, my):
@@ -625,18 +856,21 @@ def main():
                                 gs_player.damage += 2
                             elif buff_key == "cooldown":
                                 gs_player.attack_cooldown = max(5, gs_player.attack_cooldown - 2)
+                            elif buff_key == "hp":
+                                gs_player.max_hp += 20
+                                gs_player.hp      = min(gs_player.max_hp, gs_player.hp + 20)
 
-        # ===================================================
-        # GHOST + PLACEMENT SUR LA GRILLE
-        # ===================================================
+        # ----------------------------------------------------
+        # GHOST + PLACEMENT
+        # ----------------------------------------------------
         sel = gs["selected_item"]
-
-        # L'item selectionne doit exister en stock dans l'inventaire
-        if sel and gs_inv.get(sel, 0) > 0 and not gs["game_over"] and not gs["paused"]:
+        if (sel and sel in available_towers
+                and not gs["game_over"]
+                and not gs["paused"]
+                and not gs["levelup_pending"]):
             cells = cells_for_item(sel, gx, gy)
 
             if cells:
-                # FIX #3 : instance unique par frame
                 can_place_fn = make_can_place(gs_grid, START, sel)
 
                 is_upgrade = any(
@@ -648,53 +882,35 @@ def main():
                     for t in gs_towers
                 )
 
-                # Ghost (seulement si la souris est sur la grille)
-                if in_grid_area or (offset_x <= mx < offset_x + GRID_WIDTH
-                                    and offset_y <= my < offset_y + GRID_HEIGHT):
+                if in_grid_area:
                     draw_ghost(
                         render.screen, cells, gx, gy, sel, gs_towers,
                         can_place_fn, offset_x, offset_y,
                     )
 
-                # Clic sur la grille : tenter le placement
                 if (mouse_clicked_left
                         and in_grid_area
                         and not in_inv_area
                         and (is_upgrade or can_place_fn(cells))):
 
-                    placed = place_tower_on_grid(gs_grid, gs_towers, cells, sel, grid_cache)
+                    placed = place_tower_on_grid(
+                        gs_grid, gs_towers, cells, sel, grid_cache,
+                        damage_bonus=(gs['tower_damage_bonus'] + gs.get('tower_equipment_bonus', 0)),
+                        cooldown_bonus=gs['tower_cooldown_bonus'],
+                    )
                     if placed:
-                        # Decremente le stock de l'inventaire
-                        gs_inv[sel] -= 1
                         gs["game_started"] = True
-                        # Deselectionne si le stock est epuise
-                        if gs_inv[sel] <= 0:
-                            gs["selected_item"] = None
+                        if sel in gs["inventory"]:
+                            gs["inventory"][sel] -= 1
+                            if gs["inventory"][sel] <= 0:
+                                del gs["inventory"][sel]
+                                if gs["selected_item"] == sel:
+                                    gs["selected_item"] = None
 
-        # ===================================================
-        # ECRAN DE PAUSE
-        # ===================================================
-        if gs["paused"]:
+        if gs["paused"] and not gs["game_over"] and not gs["game_win"]:
             draw_pause_screen(render.screen, render.big_font, render.font)
-
-        # ===================================================
-        # ECRAN DE FIN
-        # ===================================================
-        if gs["game_over"] or (gs["game_win"] and not gs_enemies):
-            restart = draw_gameover_screen(
-                render.screen, render.big_font, render.font,
-                win=gs["game_win"],
-                mouse_pos=(mx, my),
-                clicked=mouse_clicked_left,
-            )
-            if restart:
-                gs = build_initial_state()
-                grid_cache.invalidate()
 
         pygame.display.flip()
 
     pygame.quit()
 
-
-if __name__ == "__main__":
-    main()

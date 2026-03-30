@@ -1,8 +1,7 @@
 """
 entities.py
 -----------
-Definit toutes les entites du jeu : Player, Goal, Enemy, Tower, Trap, Projectile, sprites
-
+Définit toutes les entités du jeu : Player, Goal, Enemy, Tower, Trap, Projectile.
 """
 
 import math
@@ -12,17 +11,19 @@ from config import (
     GRID_SIZE, COLS, ROWS,
     SPAWN_ZONE_X, SPAWN_ZONE_Y, SPAWN_ZONE_WIDTH, SPAWN_ZONE_HEIGHT,
     START, END, PLAYER_HP,
+    TOWER_DAMAGE_MULT, TOWER_COOLDOWN_MULT, TOWER_RANGE_MULT,
+    TRAP_DAMAGE_MULT, TRAP_COOLDOWN_MULT,
 )
 import sprites as spr
+import os
 
 # Chemin de base vers les assets (relatif au fichier main.py)
-import os
 _ASSETS_BASE = os.path.join(os.path.dirname(__file__), "assets", "sprites")
 
 
 def _direction_from_delta(dx, dy):
     """
-    Convertit un vecteur deplacement en direction pour le SpriteSet.
+    Convertit un vecteur déplacement en direction pour le SpriteSet.
     Retourne : 'down', 'up', 'left', 'right'
     """
     if abs(dx) > abs(dy):
@@ -36,8 +37,8 @@ def _direction_from_delta(dx, dy):
 
 class Player:
     """
-    Joueur controle au clavier.
-    SPRITE-1 : anime via SpriteSet roguelike Char1.
+    Joueur contrôlé au clavier.
+    Animé via SpriteSet roguelike Char1 (si présent).
     """
 
     def __init__(self, x, y):
@@ -46,33 +47,33 @@ class Player:
         self.speed  = 3
         self.radius = 12
 
-        self.damage          = 5
-        self.range           = 80
-        self.attack_cooldown = 30
-        self.attack_timer    = 0
+        self.damage            = 5
+        self.range             = 80
+        self.attack_cooldown   = 30
+        self.attack_timer      = 0
         self.attack_anim_timer = 0
 
         self.hp     = PLAYER_HP
         self.max_hp = PLAYER_HP
         self.alive  = True
 
-        # Etat d'animation interne
-        self._anim_state    = 'idle'
-        self._anim_dir      = 'down'
-        self._hurt_timer    = 0    # frames de clignotement apres degats
+        self._anim_state = 'idle'
+        self._anim_dir   = 'down'
+        self._hurt_timer = 0
 
-        # SPRITE-1 : charge le spriteset (None si assets absents)
         self.spriteset = spr.load_spriteset('player', _ASSETS_BASE)
         if self.spriteset:
             self.spriteset.set_state('idle', 'down')
 
-    # --- Limites ---
     @property
     def _x_min(self): return self.radius
+
     @property
     def _x_max(self): return COLS * GRID_SIZE - self.radius
+
     @property
     def _y_min(self): return self.radius
+
     @property
     def _y_max(self): return ROWS * GRID_SIZE - self.radius
 
@@ -83,28 +84,34 @@ class Player:
             return
 
         prev_x, prev_y = self.x, self.y
-        moving = False
+        moving   = False
+        attacking = False
 
+        # Mouvement désactivé si on est en mode placement de tour
         if not waiting_for_tower:
             if keys_pressed[pygame.K_LEFT]:
-                self.x -= self.speed; moving = True
+                self.x -= self.speed
+                moving = True
             if keys_pressed[pygame.K_RIGHT]:
-                self.x += self.speed; moving = True
+                self.x += self.speed
+                moving = True
             if keys_pressed[pygame.K_UP]:
-                self.y -= self.speed; moving = True
+                self.y -= self.speed
+                moving = True
             if keys_pressed[pygame.K_DOWN]:
-                self.y += self.speed; moving = True
+                self.y += self.speed
+                moving = True
 
             self.x = max(self._x_min, min(self._x_max, self.x))
             self.y = max(self._y_min, min(self._y_max, self.y))
 
         # Attaque automatique
-        attacking = False
         if self.attack_timer > 0:
             self.attack_timer -= 1
         else:
             target = min(
-                (e for e in enemies if not e.is_dead
+                (e for e in enemies
+                 if not e.is_dead
                  and math.hypot(self.x - e.x, self.y - e.y) <= self.range),
                 key=lambda e: math.hypot(self.x - e.x, self.y - e.y),
                 default=None,
@@ -122,7 +129,7 @@ class Player:
         if self._hurt_timer > 0:
             self._hurt_timer -= 1
 
-        # --- Choix de l'etat d'animation ---
+        # Animation
         if self.spriteset:
             dx = self.x - prev_x
             dy = self.y - prev_y
@@ -165,18 +172,16 @@ class Player:
         px = int(self.x) + offset_x
         py = int(self.y) + offset_y
 
-        # Clignotement rouge si blesse
+        # Clignotement si blessé
         if self._hurt_timer > 0 and self._hurt_timer % 4 < 2:
-            pass  # skip le dessin = effet flash
+            pass
 
         if self.spriteset:
             frame = self.spriteset.get_frame()
             if frame:
-                # Centre le sprite sur la position du joueur
                 fw, fh = frame.get_size()
                 screen.blit(frame, (px - fw // 2, py - fh // 2))
         else:
-            # SPRITE-4 : fallback cercle vert
             pygame.draw.circle(screen, (0, 255, 0), (px, py), self.radius)
             pygame.draw.circle(screen, (0, 255, 0), (px, py), self.range, 1)
             if self.attack_anim_timer > 0:
@@ -184,7 +189,7 @@ class Player:
                 pygame.draw.rect(screen, (255, 255, 0),
                                  pygame.Rect(px - sq//2, py - sq//2, sq, sq))
 
-        # Barre de vie (toujours affichee)
+        # Barre de vie
         bar_w, bar_h = 30, 4
         bx = px - bar_w // 2
         by = py - self.radius - 8
@@ -198,7 +203,7 @@ class Player:
 # ============================================================
 
 class Goal:
-    """Base a defendre. HP → 0 = Game Over."""
+    """Base à défendre. HP → 0 = Game Over."""
 
     def __init__(self, x, y):
         self.x      = x * GRID_SIZE + GRID_SIZE // 2
@@ -222,48 +227,42 @@ class Goal:
 class Enemy:
     """
     Ennemi suivant le Flow Field.
-    SPRITE-2/3 : anime avec le SpriteSet correspondant au type.
-    Etat d'animation drive par l'etat du jeu (walk, attack, hurt, death).
+    Animé via SpriteSet selon le type (normal, fast, boss, final boss).
     """
 
     def __init__(self, hp=20, speed=0.5, radius=10,
                  is_boss=False, is_fast=False, is_final_boss=False):
-        self.hp          = hp
-        self.max_hp      = hp
-        self.speed       = speed
-        self.radius      = radius
-        self.is_boss     = is_boss
-        self.is_fast     = is_fast
+        self.hp            = hp
+        self.max_hp        = hp
+        self.speed         = speed
+        self.radius        = radius
+        self.is_boss       = is_boss
+        self.is_fast       = is_fast
         self.is_final_boss = is_final_boss
-        self.is_dead     = False
+        self.is_dead       = False
 
-        self.reached_grid   = False
-        self.attack_cooldown = 60
-        self.attack_timer   = 0
-        self.player_attack_cooldown = 45
-        self.player_attack_timer    = 0
+        self.reached_grid            = False
+        self.attack_cooldown         = 60
+        self.attack_timer            = 0
+        self.player_attack_cooldown  = 45
+        self.player_attack_timer     = 0
 
-        # Spawn : colonne d'entrée aléatoire sur la rangée du haut
         entry_col = random.randint(0, COLS - 1)
         self.entry_col = entry_col
 
-        # Position de spawn au-dessus de la grille dans la colonne choisie
         self.x = float(entry_col * GRID_SIZE + GRID_SIZE // 2)
         self.y = float(SPAWN_ZONE_Y + random.randint(0, SPAWN_ZONE_HEIGHT - 1))
 
         self.seed = random.randint(0, 1_000_000)
 
-        # Cible d'entrée : case (entry_col, 0), première rangée de la grille
         self.target_x = float(entry_col * GRID_SIZE + GRID_SIZE // 2)
         self.target_y = float(GRID_SIZE // 2)
 
-        # Animation interne
         self._anim_state = 'walk'
         self._anim_dir   = 'down'
         self._hurt_timer = 0
-        self._dying      = False   # True = animation mort en cours, pas encore supprime
+        self._dying      = False
 
-        # SPRITE-2/3 : choix du type d'asset
         if is_final_boss:
             asset_type = 'boss_final'
         elif is_boss:
@@ -293,7 +292,6 @@ class Enemy:
                     return
 
     def _set_anim(self, state, direction=None):
-        """Change l'etat d'animation si besoin."""
         direction = direction or self._anim_dir
         if self.spriteset and (state != self._anim_state or direction != self._anim_dir):
             self._anim_state = state
@@ -304,7 +302,6 @@ class Enemy:
         if self.is_dead:
             return
 
-        # Si en train de mourir, on attend la fin de l'anim avant de signaler
         if self._dying:
             if self.spriteset:
                 self.spriteset.update()
@@ -317,7 +314,7 @@ class Enemy:
         prev_x, prev_y = self.x, self.y
         attacking = False
 
-        # === PHASE 1 : aller vers la grille ===
+        # Phase 1 : rejoindre la grille
         if not self.reached_grid:
             dx   = self.target_x - self.x
             dy   = self.target_y - self.y
@@ -327,9 +324,8 @@ class Enemy:
                 self.y += dy / dist * self.speed
             if abs(self.x - self.target_x) < 2 and abs(self.y - self.target_y) < 2:
                 self.reached_grid = True
-
-        # === PHASE 2 : suivre le flow field ===
         else:
+            # Phase 2 : suivre le flow field
             self.push_out_of_block(grid)
             gx, gy = self.get_cell()
             if grid.in_bounds(gx, gy):
@@ -345,7 +341,7 @@ class Enemy:
                 self.x += dx * self.speed
                 self.y += dy * self.speed
 
-        # === ATTAQUE BASE ===
+        # Attaque de la base
         dist_goal = math.hypot(self.x - goal.x, self.y - goal.y)
         if dist_goal <= self.radius + goal.radius:
             attacking = True
@@ -355,7 +351,7 @@ class Enemy:
         if self.attack_timer > 0:
             self.attack_timer -= 1
 
-        # === ATTAQUE JOUEUR (AMELIO-3) ===
+        # Attaque du joueur
         if player and player.alive:
             dist_p = math.hypot(self.x - player.x, self.y - player.y)
             if dist_p <= self.radius + player.radius:
@@ -366,7 +362,7 @@ class Enemy:
             if self.player_attack_timer > 0:
                 self.player_attack_timer -= 1
 
-        # === DIRECTION D'ANIMATION ===
+        # Animation
         if self.spriteset:
             ddx = self.x - prev_x
             ddy = self.y - prev_y
@@ -375,7 +371,6 @@ class Enemy:
 
             if self._hurt_timer > 0:
                 self._hurt_timer -= 1
-                # On garde l'etat hurt quelques frames
                 if self._anim_state != 'hurt':
                     self._set_anim('hurt')
             elif attacking:
@@ -386,21 +381,12 @@ class Enemy:
             self.spriteset.update()
 
     def receive_damage(self, amount):
-        """
-        Inflige des degats et declenche l'animation hurt.
-        Separe de mark_dead pour permettre l'anim hurt avant la mort.
-        """
         self.hp -= amount
         self._hurt_timer = 6
         if self.spriteset:
             self._set_anim('hurt', self._anim_dir)
 
     def mark_dead(self):
-        """
-        Marque l'ennemi comme mourant.
-        L'animation death est jouee ; is_dead passe a True quand elle se termine.
-        Si pas de sprite, is_dead = True immediatement.
-        """
         self.hp = 0
         if self.spriteset:
             self._dying = True
@@ -415,9 +401,8 @@ class Enemy:
         ex = int(self.x) + offset_x
         ey = int(self.y) + offset_y
 
-        # Clignotement rouge si blesse
         if self._hurt_timer > 0 and self._hurt_timer % 4 < 2:
-            pass  # skip frame = flash
+            pass
 
         if self.spriteset:
             frame = self.spriteset.get_frame()
@@ -425,7 +410,6 @@ class Enemy:
                 fw, fh = frame.get_size()
                 screen.blit(frame, (ex - fw // 2, ey - fh // 2))
         else:
-            # SPRITE-4 : fallback cercle colore
             if self.is_final_boss:
                 color = (255, 80, 0)
             elif self.is_boss:
@@ -436,7 +420,6 @@ class Enemy:
                 color = (200, 50, 50)
             pygame.draw.circle(screen, color, (ex, ey), self.radius)
 
-        # Barre de vie (toujours)
         pygame.draw.rect(screen, (200, 0, 0), (ex - 10, ey - 15, 20, 3))
         cur_w = int(20 * max(0, self.hp) / max(1, self.max_hp))
         pygame.draw.rect(screen, (0, 200, 0), (ex - 10, ey - 15, cur_w, 3))
@@ -447,7 +430,30 @@ class Enemy:
 # ============================================================
 
 class Tower:
-    """Tour placee sur la grille, tir automatique. Pas de sprite (geometrique)."""
+    """Tour placée sur la grille, tir automatique."""
+
+    TYPE_COLORS = {
+        "small":        (0, 150, 200),
+        "big":          (0, 100, 180),
+        "sniper":       (230, 180, 60),
+        "mortar":       (180, 90,  50),
+        "frost":        (120, 200, 255),
+        "poison":       (80, 180, 80),
+        "beam":         (180, 60, 220),
+        "tesla":        (120, 180, 250),
+        "rocket":       (200, 100, 40),
+        "storm":        (90, 130, 240),
+        "arcane":       (150, 60, 220),
+        "crystal":      (80, 220, 220),
+        "swarm":        (220, 140, 50),
+        "burst":        (200, 70, 70),
+        "cannon":       (140, 90, 30),
+        "flamethrower": (220, 120, 40),
+        "shock":        (255, 180, 60),
+        "mine":         (120, 80, 50),
+        "laser":        (180, 60, 180),
+        "trap":         (100, 100, 100),
+    }
 
     def __init__(self, cells, tower_type, level=1):
         self.cells      = cells
@@ -458,15 +464,94 @@ class Tower:
         self.y = sum(c[1] for c in cells) / len(cells) * GRID_SIZE + GRID_SIZE / 2
         self.set_stats()
 
-    def set_stats(self):
+    def set_stats(self, damage_bonus=0, cooldown_bonus=0):
         if self.tower_type == "small":
-            self.damage   = 10 * self.level
-            self.range    = 3 * GRID_SIZE + (self.level - 1) * 10
-            self.cooldown = max(30 - (self.level - 1) * 5, 5)
+            self.damage   = 5 * self.level + damage_bonus
+            self.range    = 3 * GRID_SIZE + (self.level - 1) * 8
+            self.cooldown = max(38 - (self.level - 1) * 4 - cooldown_bonus, 8)
+        elif self.tower_type == "big":
+            self.damage   = 8 * self.level + damage_bonus
+            self.range    = 5 * GRID_SIZE + (self.level - 1) * 12
+            self.cooldown = max(72 - (self.level - 1) * 9 - cooldown_bonus, 14)
+        elif self.tower_type == "sniper":
+            self.damage   = 10 * self.level + damage_bonus
+            self.range    = 7 * GRID_SIZE + (self.level - 1) * 10
+            self.cooldown = max(110 - (self.level - 1) * 12 - cooldown_bonus, 15)
+        elif self.tower_type == "mortar":
+            self.damage   = 9 * self.level + damage_bonus
+            self.range    = 6 * GRID_SIZE + (self.level - 1) * 10
+            self.cooldown = max(90 - (self.level - 1) * 11 - cooldown_bonus, 14)
+        elif self.tower_type == "frost":
+            self.damage   = 4 * self.level + damage_bonus
+            self.range    = 4 * GRID_SIZE + (self.level - 1) * 7
+            self.cooldown = max(78 - (self.level - 1) * 9 - cooldown_bonus, 12)
+        elif self.tower_type == "poison":
+            self.damage   = 5 * self.level + damage_bonus
+            self.range    = 4 * GRID_SIZE + (self.level - 1) * 7
+            self.cooldown = max(52 - (self.level - 1) * 7 - cooldown_bonus, 12)
+        elif self.tower_type == "beam":
+            self.damage   = 6 * self.level + damage_bonus
+            self.range    = 5 * GRID_SIZE + (self.level - 1) * 9
+            self.cooldown = max(24 - (self.level - 1) * 4 - cooldown_bonus, 8)
+        elif self.tower_type == "tesla":
+            self.damage   = 7 * self.level + damage_bonus
+            self.range    = 5 * GRID_SIZE + (self.level - 1) * 7
+            self.cooldown = max(58 - (self.level - 1) * 8 - cooldown_bonus, 12)
+        elif self.tower_type == "rocket":
+            self.damage   = 12 * self.level + damage_bonus
+            self.range    = 5 * GRID_SIZE + (self.level - 1) * 10
+            self.cooldown = max(115 - (self.level - 1) * 13 - cooldown_bonus, 16)
+        elif self.tower_type == "storm":
+            self.damage   = 4 * self.level + damage_bonus
+            self.range    = 5 * GRID_SIZE + (self.level - 1) * 7
+            self.cooldown = max(26 - (self.level - 1) * 3 - cooldown_bonus, 7)
+        elif self.tower_type == "arcane":
+            self.damage   = 8 * self.level + damage_bonus
+            self.range    = 5 * GRID_SIZE + (self.level - 1) * 8
+            self.cooldown = max(68 - (self.level - 1) * 9 - cooldown_bonus, 12)
+        elif self.tower_type == "crystal":
+            self.damage   = 5 * self.level + damage_bonus
+            self.range    = 4 * GRID_SIZE + (self.level - 1) * 7
+            self.cooldown = max(42 - (self.level - 1) * 5 - cooldown_bonus, 10)
+        elif self.tower_type == "swarm":
+            self.damage   = 3 * self.level + damage_bonus
+            self.range    = 3 * GRID_SIZE + (self.level - 1) * 4
+            self.cooldown = max(14 - (self.level - 1) * 2 - cooldown_bonus, 5)
+        elif self.tower_type == "burst":
+            self.damage   = 12 * self.level + damage_bonus
+            self.range    = 4 * GRID_SIZE + (self.level - 1) * 7
+            self.cooldown = max(130 - (self.level - 1) * 18 - cooldown_bonus, 22)
+        elif self.tower_type == "cannon":
+            self.damage   = 9 * self.level + damage_bonus
+            self.range    = 5 * GRID_SIZE + (self.level - 1) * 8
+            self.cooldown = max(82 - (self.level - 1) * 10 - cooldown_bonus, 14)
+        elif self.tower_type == "flamethrower":
+            self.damage   = 6 * self.level + damage_bonus
+            self.range    = 3 * GRID_SIZE + (self.level - 1) * 5
+            self.cooldown = max(30 - (self.level - 1) * 4 - cooldown_bonus, 8)
+        elif self.tower_type == "shock":
+            self.damage   = 7 * self.level + damage_bonus
+            self.range    = 5 * GRID_SIZE + (self.level - 1) * 7
+            self.cooldown = max(62 - (self.level - 1) * 8 - cooldown_bonus, 12)
+        elif self.tower_type == "mine":
+            self.damage   = 10 * self.level + damage_bonus
+            self.range    = 2 * GRID_SIZE + (self.level - 1) * 4
+            self.cooldown = max(160 - (self.level - 1) * 22 - cooldown_bonus, 24)
+        elif self.tower_type == "laser":
+            self.damage   = 12 * self.level + damage_bonus
+            self.range    = 6 * GRID_SIZE + (self.level - 1) * 9
+            self.cooldown = max(102 - (self.level - 1) * 13 - cooldown_bonus, 14)
         else:
-            self.damage   = 6 * self.level
-            self.range    = 5 * GRID_SIZE + (self.level - 1) * 15
-            self.cooldown = max(60 - (self.level - 1) * 10, 10)
+            self.damage   = 4 * self.level + damage_bonus
+            self.range    = 4 * GRID_SIZE + (self.level - 1) * 7
+            self.cooldown = max(44 - (self.level - 1) * 7 - cooldown_bonus, 10)
+
+        # Nerf global : tours moins dominantes (moins de dégâts, moins de portée,
+        # cooldown plus long). Les bonus (equip/upgrade) restent pris en compte
+        # avant application de ces multiplicateurs.
+        self.damage = max(1, int(self.damage * TOWER_DAMAGE_MULT))
+        self.range = max(1, int(self.range * TOWER_RANGE_MULT))
+        self.cooldown = max(1, int(self.cooldown * TOWER_COOLDOWN_MULT))
 
     def update(self, enemies, projectiles):
         if self.timer > 0:
@@ -481,12 +566,26 @@ class Tower:
                 break
 
     def draw(self, screen, offset_x, offset_y):
+        color = self.TYPE_COLORS.get(self.tower_type, (120, 120, 120))
+        glow  = (max(color[0] - 40, 0), max(color[1] - 40, 0), max(color[2] - 40, 0))
+
         for cx, cy in self.cells:
             rect = pygame.Rect(offset_x + cx*GRID_SIZE, offset_y + cy*GRID_SIZE,
                                GRID_SIZE, GRID_SIZE)
-            pygame.draw.rect(screen, (0, 150, 200), rect)
-        pygame.draw.circle(screen, (0, 200, 0),
-                           (int(self.x)+offset_x, int(self.y)+offset_y), self.range, 1)
+            pygame.draw.rect(screen, glow, rect)
+            inner = rect.inflate(-6, -6)
+            pygame.draw.rect(screen, color, inner)
+
+        radius = int(self.range)
+        pygame.draw.circle(screen, color, (int(self.x)+offset_x, int(self.y)+offset_y), radius, 1)
+        if self.level > 1:
+            pygame.draw.circle(screen, (255, 255, 255),
+                               (int(self.x)+offset_x, int(self.y)+offset_y),
+                               radius - 10, 1)
+            lvl_font = pygame.font.SysFont(None, 18)
+            lbl = lvl_font.render(f"L{self.level}", True, (255, 255, 255))
+            screen.blit(lbl, (int(self.x)+offset_x - lbl.get_width() // 2,
+                              int(self.y)+offset_y - lbl.get_height() // 2))
 
 
 # ============================================================
@@ -494,7 +593,7 @@ class Tower:
 # ============================================================
 
 class Trap:
-    """Piege sur la grille. FIX-GRID-1 : invisible au pathfinding."""
+    """Piège sur la grille (invisible pour le pathfinding)."""
 
     def __init__(self, cells, trap_type="spikes", level=1):
         self.cells     = cells
@@ -513,6 +612,10 @@ class Trap:
             self.damage   = 10 * self.level
             self.cooldown = max(50 - (self.level - 1) * 10, 15)
 
+        # Nerf global des pièges (un peu moins qu'on ne touche aux tours).
+        self.damage = max(1, int(self.damage * TRAP_DAMAGE_MULT))
+        self.cooldown = max(1, int(self.cooldown * TRAP_COOLDOWN_MULT))
+
     def update(self, enemies, projectiles):
         if self.timer > 0:
             self.timer -= 1
@@ -524,7 +627,7 @@ class Trap:
                 continue
             ex, ey = e.get_cell()
             if (ex, ey) in trap_cells:
-                e.receive_damage(self.damage)   # utilise receive_damage pour l'anim
+                e.receive_damage(self.damage)
                 if e.hp <= 0:
                     e.mark_dead()
                 triggered = True
@@ -537,9 +640,16 @@ class Trap:
             rect = pygame.Rect(offset_x + cx*GRID_SIZE, offset_y + cy*GRID_SIZE,
                                GRID_SIZE, GRID_SIZE)
             pygame.draw.rect(screen, color, rect)
-            inner = pygame.Rect(offset_x + cx*GRID_SIZE + 4, offset_y + cy*GRID_SIZE + 4,
+            inner = pygame.Rect(offset_x + cx*GRID_SIZE + 4,
+                                offset_y + cy*GRID_SIZE + 4,
                                 GRID_SIZE - 8, GRID_SIZE - 8)
             pygame.draw.rect(screen, (80, 80, 80), inner)
+        if self.level > 1:
+            lvl_font = pygame.font.SysFont(None, 16)
+            lbl = lvl_font.render(f"L{self.level}", True, (255, 255, 255))
+            sx = offset_x + self.cells[0][0] * GRID_SIZE
+            sy = offset_y + self.cells[0][1] * GRID_SIZE
+            screen.blit(lbl, (sx + 4, sy + 2))
 
 
 # ============================================================
@@ -548,8 +658,8 @@ class Trap:
 
 class Projectile:
     """
-    Projectile tire par le joueur ou une tour.
-    FIX-ENT-4 : utilise is_dead et _dying pour eviter les degats en double.
+    Projectile tiré par le joueur ou une tour.
+    Utilise is_dead et _dying pour éviter les dégâts en double.
     """
 
     def __init__(self, x, y, target, damage, speed=5):
@@ -561,7 +671,6 @@ class Projectile:
         self.alive  = True
 
     def update(self):
-        # Cible morte ou en train de mourir → on abandonne
         if not self.alive or self.target.is_dead or self.target._dying:
             self.alive = False
             return

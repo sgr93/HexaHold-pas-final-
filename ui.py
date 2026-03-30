@@ -1,13 +1,13 @@
 """
 ui.py
 -----
-Fonctions de rendu de l'interface : menu principal, HUD, ghost de placement,
-inventaire bas-écran, écran de pause, écran Game Over.
-
+Fonctions de rendu de l'interface : HUD, ghost, inventaire, pause, game over,
+et LEVEL-UP BANNER (choix de tour en pause).
 """
 
+import random
 import pygame
-from config import GRID_WIDTH, GRID_HEIGHT, GRID_SIZE, COLS, ROWS
+from config import ALL_TOWER_TYPES, GRID_WIDTH, GRID_HEIGHT, GRID_SIZE, COLS, ROWS
 
 # ============================================================
 # CONSTANTES D'INVENTAIRE
@@ -22,40 +22,79 @@ INV_SEL_COLOR    = (255, 220, 80)
 INV_EMPTY_COLOR  = (70, 45, 20)
 
 ITEM_LABELS = {
-    "small": "Tour S",
-    "big":   "Tour B",
-    "trap":  "Piege",
+    "small":        "Tour Rapide",
+    "big":          "Tour Lourde",
+    "sniper":       "Sniper",
+    "mortar":       "Mortier",
+    "frost":        "Gèleuse",
+    "poison":       "Venimeuse",
+    "beam":         "Laser",
+    "tesla":        "Tesla",
+    "rocket":       "Roquette",
+    "storm":        "Tempête",
+    "arcane":       "Arcane",
+    "crystal":      "Cristal",
+    "swarm":        "Essaim",
+    "burst":        "Fusée",
+    "cannon":       "Canon",
+    "flamethrower": "Flammes",
+    "shock":        "Éclair",
+    "mine":         "Mine",
+    "laser":        "Laser lourd",
+    "trap":         "Piège",
+    "tower_damage": "Boost Dégâts",
+    "tower_cooldown": "Boost Vitesse",
 }
 ITEM_COLORS = {
-    "small": (0, 150, 200),
-    "big":   (0, 100, 180),
-    "trap":  (100, 100, 100),
+    "small":        (0, 150, 200),
+    "big":          (0, 100, 180),
+    "sniper":       (230, 180, 60),
+    "mortar":       (180, 90, 50),
+    "frost":        (120, 200, 255),
+    "poison":       (80, 180, 80),
+    "beam":         (180, 60, 220),
+    "tesla":        (120, 180, 250),
+    "rocket":       (200, 100, 40),
+    "storm":        (90, 130, 240),
+    "arcane":       (150, 60, 220),
+    "crystal":      (80, 220, 220),
+    "swarm":        (220, 140, 50),
+    "burst":        (200, 70, 70),
+    "cannon":       (140, 90, 30),
+    "flamethrower": (220, 120, 40),
+    "shock":        (255, 180, 60),
+    "mine":         (120, 80, 50),
+    "laser":        (180, 60, 180),
+    "trap":         (100, 100, 100),
+    "tower_damage": (240, 120, 40),
+    "tower_cooldown": (90, 200, 180),
 }
 
-
-# ============================================================
-# MENU PRINCIPAL
-# ============================================================
-
-def main_menu(screen, clock):
-    font     = pygame.font.SysFont(None, 64)
-    sub_font = pygame.font.SysFont(None, 32)
-    running  = True
-    while running:
-        screen.fill((20, 20, 30))
-        w, h = screen.get_size()
-        title = font.render("HEXAHOLD", True, (255, 220, 80))
-        screen.blit(title, ((w - title.get_width()) // 2, h // 3))
-        sub = sub_font.render("Cliquez ou appuyez sur Entree pour jouer", True, (180, 180, 180))
-        screen.blit(sub, ((w - sub.get_width()) // 2, h // 2))
-        pygame.display.flip()
-        clock.tick(60)
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                raise SystemExit
-            if event.type in (pygame.KEYDOWN, pygame.MOUSEBUTTONDOWN):
-                running = False
+TOWER_CHOICES = ALL_TOWER_TYPES
+TOWER_DESCS   = {
+    "small":        "Tour rapide\nDégâts corrects\nPortée courte",
+    "big":          "Tour lourde\nDégâts puissants\nPortée moyenne",
+    "sniper":       "Tir longue portée\nCritique précis\nDommages élevés",
+    "mortar":       "Mortier\nImpact AoE\nPlacement stratégique",
+    "frost":        "Gèleuse\nRalentit les ennemis\nContrôle de zone",
+    "poison":       "Venimeuse\nDégâts sur le temps\nAffaiblit la cible",
+    "beam":         "Laser continu\nDégâts rapides\nPénétration",
+    "tesla":        "Tesla\nChocs électriques\nChaines ennemis",
+    "rocket":       "Roquette\nExplosion AoE\nPortée moyenne",
+    "storm":        "Tempête\nFoudre aléatoire\nZone étendue",
+    "arcane":       "Arcane\nMagie pure\nDommages bruts",
+    "crystal":      "Cristal\nZone gelée\nRenforce le champ",
+    "swarm":        "Essaim\nTir rapide\nFaible dégâts",
+    "burst":        "Fusée\nSalve lourde\nCooldown long",
+    "cannon":       "Canon\nDégâts lourds\nImpact de zone",
+    "flamethrower": "Flammes\nZone de feu\nDégâts continus",
+    "shock":        "Éclair\nDégâts électriques\nLenteur ciblée",
+    "mine":         "Mine\nDétonation surprise\nDégâts massifs",
+    "laser":        "Laser lourd\nPortée maximale\nTir précis",
+    "trap":         "Piège\nDégâts au contact\nDéfense statique",
+    "tower_damage": "Augmente les dégâts\nDe toutes les tours\nIdéal pour burst",
+    "tower_cooldown": "Réduit le cooldown\nDes tours\nForte cadence de tir",
+}
 
 
 # ============================================================
@@ -72,7 +111,7 @@ def draw_hud(screen, font, big_font, level, xp, xp_to_next,
     screen.blit(lvl_txt, (offset_x, info_y))
 
     wave_txt = font.render(
-        f"Vague {wave_number}/{max_waves}  Tues:{mobs_killed}/{max_enemies}",
+        f"Vague {wave_number}/{max_waves}  Tués:{mobs_killed}/{max_enemies}",
         True, (255, 255, 180)
     )
     screen.blit(wave_txt, (offset_x + GRID_WIDTH // 2 - wave_txt.get_width() // 2, info_y))
@@ -112,7 +151,6 @@ def draw_ghost(screen, cells, gx, gy, item_type, towers, can_place_fn, offset_x,
     color = (0, 255, 0, 80) if valid else (255, 0, 0, 80)
     ghost_surf = pygame.Surface((GRID_WIDTH, GRID_HEIGHT), pygame.SRCALPHA)
     for cx, cy in cells:
-        # FIX-8 : on ne dessine que les cases dans les limites de la grille
         if 0 <= cx < COLS and 0 <= cy < ROWS:
             pygame.draw.rect(ghost_surf, color,
                              pygame.Rect(cx * GRID_SIZE, cy * GRID_SIZE, GRID_SIZE, GRID_SIZE))
@@ -120,7 +158,6 @@ def draw_ghost(screen, cells, gx, gy, item_type, towers, can_place_fn, offset_x,
     if is_upgrade:
         f2 = pygame.font.SysFont(None, 20)
         lbl = f2.render("UPGRADE", True, (255, 255, 100))
-        # Ne calcule le centre que sur les cases valides
         valid_cells = [(cx, cy) for cx, cy in cells if 0 <= cx < COLS and 0 <= cy < ROWS]
         if valid_cells:
             mx_ = sum(c[0] for c in valid_cells) / len(valid_cells) * GRID_SIZE + offset_x
@@ -133,28 +170,11 @@ def draw_ghost(screen, cells, gx, gy, item_type, towers, can_place_fn, offset_x,
 # ============================================================
 
 def draw_inventory(screen, font, inventory, selected_item, win_w, win_h):
-    """
-    Dessine la barre d'inventaire en bas de l'ecran.
-
-    inventory     : dict { item_type: quantite }  ex. {"small": 2, "trap": 1}
-    selected_item : item_type actuellement selectionne (ou None)
-
-    Retourne un dict { item_type: pygame.Rect } pour la detection de clics.
-
-    Visuellement :
-    - Fond marron sur toute la largeur
-    - Slots centres avec icone coloree et label
-    - Slot selectionne : contour jaune epais + fond plus clair
-    - Quantite > 1 : badge rouge en bas-droite du slot
-    - Inventaire vide : message d'aide centre
-    """
-    # Fond marron
     bar_rect = pygame.Rect(0, win_h - INV_BAR_HEIGHT, win_w, INV_BAR_HEIGHT)
     pygame.draw.rect(screen, INV_BG_COLOR, bar_rect)
     pygame.draw.line(screen, INV_BORDER_COLOR,
                      (0, win_h - INV_BAR_HEIGHT), (win_w, win_h - INV_BAR_HEIGHT), 2)
 
-    # Label "Inventaire" a gauche
     inv_lbl = font.render("Inventaire", True, (220, 190, 130))
     screen.blit(inv_lbl, (12, win_h - INV_BAR_HEIGHT + 8))
 
@@ -169,7 +189,6 @@ def draw_inventory(screen, font, inventory, selected_item, win_w, win_h):
         ))
         return rects
 
-    # Centrage des slots
     total_w = len(present) * INV_SLOT_SIZE + (len(present) - 1) * INV_SLOT_GAP
     start_x = (win_w - total_w) // 2
     slot_y  = win_h - INV_BAR_HEIGHT + (INV_BAR_HEIGHT - INV_SLOT_SIZE) // 2
@@ -181,17 +200,14 @@ def draw_inventory(screen, font, inventory, selected_item, win_w, win_h):
         slot_rect = pygame.Rect(sx, slot_y, INV_SLOT_SIZE, INV_SLOT_SIZE)
         is_sel    = (item_type == selected_item)
 
-        # Fond du slot (plus clair si selectionne)
         base_col = ITEM_COLORS.get(item_type, (80, 80, 80))
         slot_col = tuple(min(255, c + 45) for c in base_col) if is_sel else base_col
         pygame.draw.rect(screen, slot_col, slot_rect, border_radius=6)
 
-        # Bordure
         b_color = INV_SEL_COLOR if is_sel else INV_BORDER_COLOR
         b_width = 3 if is_sel else 1
         pygame.draw.rect(screen, b_color, slot_rect, b_width, border_radius=6)
 
-        # Label centre
         lbl_text = ITEM_LABELS.get(item_type, item_type)
         lbl      = font.render(lbl_text, True, (255, 255, 255))
         screen.blit(lbl, (
@@ -199,7 +215,6 @@ def draw_inventory(screen, font, inventory, selected_item, win_w, win_h):
             slot_y + (INV_SLOT_SIZE - lbl.get_height()) // 2,
         ))
 
-        # Badge quantite (si > 1)
         if qty > 1:
             b_txt  = badge_font.render(str(qty), True, (255, 255, 255))
             b_w    = b_txt.get_width() + 6
@@ -253,7 +268,22 @@ def draw_gameover_screen(screen, big_font, font, win, mouse_pos, clicked):
     lbl = font.render("Rejouer", True, (255, 255, 255))
     screen.blit(lbl, (btn_x + (btn_w - lbl.get_width()) // 2,
                        btn_y + (btn_h - lbl.get_height()) // 2))
-    return clicked and hovered
+
+    # Bouton Menu Principal
+    menu_btn = pygame.Rect((w - btn_w) // 2, h // 2 + 70, btn_w, btn_h)
+    mhov     = menu_btn.collidepoint(mouse_pos)
+    pygame.draw.rect(screen, (60, 80, 160) if mhov else (40, 55, 110), menu_btn, border_radius=8)
+    pygame.draw.rect(screen, (150, 180, 255), menu_btn, 2, border_radius=8)
+    mlbl = font.render("Menu Principal", True, (255, 255, 255))
+    screen.blit(mlbl, (menu_btn.x + (menu_btn.w - mlbl.get_width()) // 2,
+                        menu_btn.y + (menu_btn.h - mlbl.get_height()) // 2))
+
+    if clicked:
+        if hovered:
+            return "restart"
+        if mhov:
+            return "menu"
+    return None
 
 
 # ============================================================
@@ -261,8 +291,94 @@ def draw_gameover_screen(screen, big_font, font, win, mouse_pos, clicked):
 # ============================================================
 
 def draw_start_hint(screen, font, offset_x, offset_y):
-    hint = font.render("Placez une tour pour demarrer", True, (220, 220, 100))
+    hint = font.render("Placez une tour pour démarrer", True, (220, 220, 100))
     screen.blit(hint, (
         offset_x + (GRID_WIDTH  - hint.get_width())  // 2,
         offset_y + (GRID_HEIGHT - hint.get_height()) // 2,
     ))
+
+
+# ============================================================
+# LEVEL-UP BANNER  (choix de 3 tours à ajouter à l'inventaire)
+# ============================================================
+
+def pick_three_towers():
+    """Retourne 3 types de tours (avec répétition possible si nécessaire)."""
+    pool = list(ALL_TOWER_TYPES) * 2
+    random.shuffle(pool)
+    seen = []
+    for t in pool:
+        if t not in seen:
+            seen.append(t)
+        if len(seen) == 3:
+            break
+    while len(seen) < 3:
+        seen.append(random.choice(ALL_TOWER_TYPES))
+    return seen[:3]
+
+
+def draw_levelup_banner(screen, big_font, font, choices, mouse_pos, clicked):
+    """
+    Affiche la bannière de level-up avec overlay gris + 3 cartes de tours.
+    Retourne le type de tour choisi (str) ou None si pas encore choisi.
+    """
+    w, h = screen.get_size()
+
+    # Overlay gris semi-transparent
+    overlay = pygame.Surface((w, h), pygame.SRCALPHA)
+    overlay.fill((20, 20, 30, 190))
+    screen.blit(overlay, (0, 0))
+
+    # Titre
+    title_surf = big_font.render("✦  CHOIX DE TOUR  ✦", True, (255, 220, 60))
+    screen.blit(title_surf, (w // 2 - title_surf.get_width() // 2, h // 5 - 20))
+
+    sub = font.render("Choisissez la tour que vous voulez ajouter à votre inventaire", True, (200, 200, 200))
+    screen.blit(sub, (w // 2 - sub.get_width() // 2, h // 5 + 32))
+
+    # Cartes
+    card_w, card_h = 160, 200
+    gap            = 30
+    total_w        = 3 * card_w + 2 * gap
+    start_x        = (w - total_w) // 2
+    card_y         = h // 2 - card_h // 2
+
+    chosen = None
+    mx, my = mouse_pos
+
+    for i, tower_type in enumerate(choices):
+        cx   = start_x + i * (card_w + gap)
+        rect = pygame.Rect(cx, card_y, card_w, card_h)
+        hov  = rect.collidepoint(mx, my)
+
+        base = ITEM_COLORS.get(tower_type, (80, 80, 80))
+        col  = tuple(min(255, c + 40) for c in base) if hov else base
+        pygame.draw.rect(screen, col, rect, border_radius=14)
+        bdr  = (255, 220, 60) if hov else (150, 150, 180)
+        pygame.draw.rect(screen, bdr, rect, 3 if hov else 1, border_radius=14)
+
+        # Icône (cercle)
+        icon_r = 36
+        pygame.draw.circle(screen, (255, 255, 255, 180),
+                           (cx + card_w // 2, card_y + 60), icon_r, 0)
+        pygame.draw.circle(screen, bdr, (cx + card_w // 2, card_y + 60), icon_r, 2)
+        ilbl = big_font.render(tower_type[0].upper(), True, col)
+        screen.blit(ilbl, (cx + card_w // 2 - ilbl.get_width() // 2,
+                            card_y + 60 - ilbl.get_height() // 2))
+
+        # Nom
+        nlbl = font.render(ITEM_LABELS.get(tower_type, tower_type), True, (255, 255, 255))
+        screen.blit(nlbl, (cx + (card_w - nlbl.get_width()) // 2, card_y + 108))
+
+        # Description
+        desc_font = pygame.font.SysFont(None, 18)
+        desc_lines = TOWER_DESCS.get(tower_type, "").split("\n")
+        for li, line in enumerate(desc_lines):
+            dl = desc_font.render(line, True, (200, 220, 255))
+            screen.blit(dl, (cx + (card_w - dl.get_width()) // 2,
+                              card_y + 136 + li * 18))
+
+        if clicked and hov:
+            chosen = tower_type
+
+    return chosen

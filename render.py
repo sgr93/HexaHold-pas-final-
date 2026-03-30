@@ -16,6 +16,10 @@ from config import (
 def init_pygame():
     """Initialise pygame, crée la fenêtre adaptée à la résolution de l'écran."""
     pygame.init()
+    try:
+        pygame.mixer.init()
+    except Exception:
+        pass
     pygame.display.set_caption(WINDOW_CAPTION)
 
     # Taille idéale du jeu (grille + panels gauche/droite + marges)
