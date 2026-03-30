@@ -243,16 +243,19 @@ class Enemy:
         self.player_attack_cooldown = 45
         self.player_attack_timer    = 0
 
-        # Spawn
-        self.x = float(random.randint(SPAWN_ZONE_X, SPAWN_ZONE_X + SPAWN_ZONE_WIDTH - 1))
-        self.y = float(random.randint(SPAWN_ZONE_Y, SPAWN_ZONE_Y + SPAWN_ZONE_HEIGHT - 1))
+        # Spawn : colonne d'entrée aléatoire sur la rangée du haut
+        entry_col = random.randint(0, COLS - 1)
+        self.entry_col = entry_col
 
-        self.seed     = random.randint(0, 1_000_000)
-        self.offset_x = random.uniform(-0.4, 0.4) * GRID_SIZE
-        self.offset_y = random.uniform(-0.4, 0.4) * GRID_SIZE
+        # Position de spawn au-dessus de la grille dans la colonne choisie
+        self.x = float(entry_col * GRID_SIZE + GRID_SIZE // 2)
+        self.y = float(SPAWN_ZONE_Y + random.randint(0, SPAWN_ZONE_HEIGHT - 1))
 
-        self.target_x = START[0] * GRID_SIZE + GRID_SIZE // 2 + self.offset_x
-        self.target_y = START[1] * GRID_SIZE + GRID_SIZE // 2 + self.offset_y
+        self.seed = random.randint(0, 1_000_000)
+
+        # Cible d'entrée : case (entry_col, 0), première rangée de la grille
+        self.target_x = float(entry_col * GRID_SIZE + GRID_SIZE // 2)
+        self.target_y = float(GRID_SIZE // 2)
 
         # Animation interne
         self._anim_state = 'walk'

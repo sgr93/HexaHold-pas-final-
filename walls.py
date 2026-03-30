@@ -1,85 +1,120 @@
 """
 walls.py
 --------
-Génère des murs aléatoires 2×2 dans une zone définie de la grille.
-Utilisé au démarrage pour créer des obstacles variés.
+Définition MANUELLE de la map : tu places toi-même les murs ici.
 
+Comment modifier la map :
+--------------------------
+La grille fait COLS=14 colonnes (x) et ROWS=18 lignes (y).
+  - (0, 0)   = coin haut-gauche
+  - (13, 17) = coin bas-droit
+
+Chaque entrée dans MAP_WALLS est une case bloquée : (x, y)
+Utilise la fonction rect(x, y, w, h) pour des blocs rectangulaires.
+
+Ajoute ou supprime des lignes dans MAP_WALLS pour sculpter ta map.
+La vérification de chemin garantit qu'un passage reste toujours possible.
 """
 
-import random
-import heapq
-from config import COLS, ROWS, START, END
+from config import COLS, ROWS, END
 
 
-def _path_exists(grid):
-    """Retourne True si un chemin praticable existe entre START et END."""
-    sx, sy = START
+# ============================================================
+# UTILITAIRE : rectangle de cases
+# ============================================================
+
+def rect(x, y, w, h):
+    """Génère toutes les cases d'un rectangle de w×h cases à partir de (x, y)."""
+    return [(x + dx, y + dy) for dx in range(w) for dy in range(h)]
+
+
+# ============================================================
+# DÉFINITION DE LA MAP  ← MODIFIE ICI
+# ============================================================
+#
+# Grille 14 colonnes × 18 lignes :
+#   Colonne :  0  1  2  3  4  5  6  7  8  9 10 11 12 13
+#   Ligne 0  : ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·   ← entrées ennemis
+#   Ligne 17 : ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·   ← base à défendre
+
+MAP_WALLS = [
+    # --- Obstacles haut ---
+    *rect(2,  4, 2, 2),
+    *rect(6,  3, 2, 2),
+    *rect(10, 4, 2, 2),
+
+    # --- Obstacles milieu ---
+    *rect(3,  8, 2, 2),
+    *rect(9,  8, 2, 2),
+
+    # --- Obstacles bas ---
+    *rect(1,  13, 2, 2),
+    *rect(5,  12, 2, 2),
+    *rect(10, 13, 2, 2),
+]
+
+
+# ============================================================
+# PLACEMENT DES MURS SUR LA GRILLE
+# ============================================================
+
+def _path_exists_from_row0(grid):
+    """
+    Vérifie qu'un chemin existe depuis AU MOINS UNE case libre de la
+    rangée 0 jusqu'à END. Garantit que la map reste jouable.
+    """
     ex, ey = END
-    if not grid.walkable[sx][sy] or not grid.walkable[ex][ey]:
+    if not grid.walkable[ex][ey]:
         return False
+
     visited = [[False] * ROWS for _ in range(COLS)]
-    queue = [(sx, sy)]
-    visited[sx][sy] = True
+    queue   = []
+
+    for x in range(COLS):
+        if grid.walkable[x][0]:
+            queue.append((x, 0))
+            visited[x][0] = True
+
     while queue:
         x, y = queue.pop()
         if x == ex and y == ey:
             return True
         for dx, dy in ((0, 1), (1, 0), (0, -1), (-1, 0)):
             nx, ny = x + dx, y + dy
-            if 0 <= nx < COLS and 0 <= ny < ROWS and not visited[nx][ny] and grid.walkable[nx][ny]:
+            if (0 <= nx < COLS and 0 <= ny < ROWS
+                    and not visited[nx][ny] and grid.walkable[nx][ny]):
                 visited[nx][ny] = True
                 queue.append((nx, ny))
     return False
 
 
-def spawn_random_walls(grid, num_walls, zone_start=(0, 0), zone_end=(COLS - 2, ROWS - 2)):
+def apply_map_walls(grid):
     """
-    Place `num_walls` blocs 2×2 aléatoires dans la grille.
-
-    Paramètres :
-        grid        : objet Grid (modifié en place)
-        num_walls   : nombre de blocs à tenter de placer
-        zone_start  : coin haut-gauche de la zone autorisée (cases)
-        zone_end    : coin bas-droit de la zone autorisée (cases)
-
-    FIX #4 : zone_end est clampé à (COLS-2, ROWS-2) pour garantir que
-        le bloc 2×2 tient entièrement dans la grille, même si l'appelant
-        passe une borne trop grande.
-    FIX-WALL-PATH : chaque mur placé est vérifié pour ne pas bloquer le chemin
-        START→END. Si c'est le cas, il est immédiatement retiré.
-
-    Si le nombre de tentatives est épuisé avant d'avoir placé tous les blocs,
-    un avertissement est affiché mais le jeu continue normalement.
+    Applique MAP_WALLS sur la grille.
+    Si une case coupe tous les chemins, elle est ignorée avec un avertissement.
     """
-    # Clamp : garantit que le bloc 2×2 ne déborde jamais hors grille
-    zone_end = (min(zone_end[0], COLS - 2), min(zone_end[1], ROWS - 2))
+    skipped = 0
+    for (x, y) in MAP_WALLS:
+        if not (0 <= x < COLS and 0 <= y < ROWS):
+            print(f"[walls] ({x},{y}) hors grille — ignorée.")
+            skipped += 1
+            continue
+        if not grid.walkable[x][y]:
+            continue
+        grid.walkable[x][y] = False
+        if not _path_exists_from_row0(grid):
+            grid.walkable[x][y] = True
+            print(f"[walls] ({x},{y}) retirée — bloquerait tous les chemins.")
+            skipped += 1
 
-    placed       = 0
-    max_attempts = num_walls * 20
-    attempts     = 0
+    total = len(MAP_WALLS)
+    if skipped:
+        print(f"[walls] {skipped}/{total} case(s) ignorée(s).")
+    else:
+        print(f"[walls] {total} cases appliquées.")
 
-    while placed < num_walls and attempts < max_attempts:
-        attempts += 1
-        x = random.randint(zone_start[0], zone_end[0])
-        y = random.randint(zone_start[1], zone_end[1])
 
-        # Vérifie que les 4 cases du bloc sont libres
-        if (grid.walkable[x][y]     and grid.walkable[x + 1][y] and
-                grid.walkable[x][y + 1] and grid.walkable[x + 1][y + 1]):
-            # Place temporairement le bloc
-            grid.walkable[x][y]         = False
-            grid.walkable[x + 1][y]     = False
-            grid.walkable[x][y + 1]     = False
-            grid.walkable[x + 1][y + 1] = False
-            # FIX-WALL-PATH : annule si le chemin est coupe
-            if _path_exists(grid):
-                placed += 1
-            else:
-                grid.walkable[x][y]         = True
-                grid.walkable[x + 1][y]     = True
-                grid.walkable[x][y + 1]     = True
-                grid.walkable[x + 1][y + 1] = True
-
-    if placed < num_walls:
-        print(f"[walls] Attention : seulement {placed}/{num_walls} blocs placés "
-              f"(tentatives épuisées après {attempts}).")
+# Compatibilité avec l'ancien nom utilisé dans game.py
+def spawn_random_walls(grid, *args, **kwargs):
+    """Alias conservé pour compatibilité — appelle apply_map_walls."""
+    apply_map_walls(grid)
