@@ -368,6 +368,7 @@ def build_initial_state(difficulty=2, save=None):
         # Difficulté
         "difficulty":               difficulty,
         "coins_reward":             diff_info["coins_reward"],
+        "reward_collected":          False,
 
         # Référence save
         "save":                     save,
@@ -512,6 +513,11 @@ def main():
         if not gs["game_over"] and not gs_player.alive:
             gs["game_over"] = True
 
+        if gs["game_win"] and not gs.get("reward_collected"):
+            gs["save"]["coins"] = gs["save"].get("coins", 0) + gs["coins_reward"]
+            gs["reward_collected"] = True
+            sd.save(gs["save"])
+
         # ----------------------------------------------------
         # GESTION DES VAGUES / BOSS
         # ----------------------------------------------------
@@ -609,7 +615,7 @@ def main():
         # ----------------------------------------------------
         if gs["game_started"] and not gs["game_over"] and not is_frozen:
             keys_pressed = pygame.key.get_pressed()
-            gs_player.update(keys_pressed, gs_enemies, gs_projectiles, False)
+            gs_player.update(keys_pressed, gs_enemies, gs_projectiles, False, gs_grid)
 
             # Regen HP joueur (hors combat)
             can_regen = not gs["boss_active"] and not gs_enemies
@@ -909,6 +915,42 @@ def main():
 
         if gs["paused"] and not gs["game_over"] and not gs["game_win"]:
             draw_pause_screen(render.screen, render.big_font, render.font)
+
+        if gs["game_over"] or gs["game_win"]:
+            action = draw_gameover_screen(
+                render.screen,
+                render.big_font,
+                render.font,
+                gs["game_win"],
+                (mx, my),
+                mouse_clicked_left,
+                gs["coins_reward"] if gs["game_win"] else 0,
+            )
+            if action == "restart":
+                gs = build_initial_state(chosen_level, current_save)
+                grid_cache.invalidate()
+                gs["levelup_pending"] = True
+                gs["levelup_choices"] = pick_starting_tower_choices(
+                    (gs["save"].get("tower_loadout", []) or ALL_TOWER_TYPES)[:TOWER_SLOT_COUNT]
+                )
+                _pause_start = None
+                continue
+            elif action == "menu":
+                play_menu_music(current_save.get("music_volume", 0.8))
+                result = run_menu(render.screen, render.clock, current_save)
+                if result is None or result[0] is None:
+                    running = False
+                    continue
+                chosen_level, current_save = result
+                play_game_music(current_save.get("music_volume", 0.8))
+                gs = build_initial_state(chosen_level, current_save)
+                grid_cache.invalidate()
+                gs["levelup_pending"] = True
+                gs["levelup_choices"] = pick_starting_tower_choices(
+                    (gs["save"].get("tower_loadout", []) or ALL_TOWER_TYPES)[:TOWER_SLOT_COUNT]
+                )
+                _pause_start = None
+                continue
 
         pygame.display.flip()
 

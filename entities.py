@@ -77,7 +77,26 @@ class Player:
     @property
     def _y_max(self): return ROWS * GRID_SIZE - self.radius
 
-    def update(self, keys_pressed, enemies, projectiles, waiting_for_tower):
+    def _can_move_to(self, x, y, walkable):
+        min_cx = max(0, int((x - self.radius) // GRID_SIZE))
+        max_cx = min(COLS - 1, int((x + self.radius) // GRID_SIZE))
+        min_cy = max(0, int((y - self.radius) // GRID_SIZE))
+        max_cy = min(ROWS - 1, int((y + self.radius) // GRID_SIZE))
+
+        for cx in range(min_cx, max_cx + 1):
+            for cy in range(min_cy, max_cy + 1):
+                if not walkable[cx][cy]:
+                    rect_x = cx * GRID_SIZE
+                    rect_y = cy * GRID_SIZE
+                    nearest_x = max(rect_x, min(x, rect_x + GRID_SIZE))
+                    nearest_y = max(rect_y, min(y, rect_y + GRID_SIZE))
+                    dx = x - nearest_x
+                    dy = y - nearest_y
+                    if dx * dx + dy * dy < self.radius * self.radius:
+                        return False
+        return True
+
+    def update(self, keys_pressed, enemies, projectiles, waiting_for_tower, grid=None):
         if not self.alive:
             if self.spriteset:
                 self.spriteset.update()
@@ -89,21 +108,34 @@ class Player:
 
         # Mouvement désactivé si on est en mode placement de tour
         if not waiting_for_tower:
+            dx = 0.0
+            dy = 0.0
             if keys_pressed[pygame.K_LEFT]:
-                self.x -= self.speed
+                dx -= self.speed
                 moving = True
             if keys_pressed[pygame.K_RIGHT]:
-                self.x += self.speed
+                dx += self.speed
                 moving = True
             if keys_pressed[pygame.K_UP]:
-                self.y -= self.speed
+                dy -= self.speed
                 moving = True
             if keys_pressed[pygame.K_DOWN]:
-                self.y += self.speed
+                dy += self.speed
                 moving = True
 
-            self.x = max(self._x_min, min(self._x_max, self.x))
-            self.y = max(self._y_min, min(self._y_max, self.y))
+            if dx != 0 and grid is not None:
+                new_x = max(self._x_min, min(self._x_max, self.x + dx))
+                if self._can_move_to(new_x, self.y, grid.walkable):
+                    self.x = new_x
+            else:
+                self.x = max(self._x_min, min(self._x_max, self.x + dx))
+
+            if dy != 0 and grid is not None:
+                new_y = max(self._y_min, min(self._y_max, self.y + dy))
+                if self._can_move_to(self.x, new_y, grid.walkable):
+                    self.y = new_y
+            else:
+                self.y = max(self._y_min, min(self._y_max, self.y + dy))
 
         # Attaque automatique
         if self.attack_timer > 0:

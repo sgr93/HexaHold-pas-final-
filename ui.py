@@ -248,32 +248,37 @@ def draw_pause_screen(screen, big_font, font):
 # ECRAN GAME OVER / VICTOIRE
 # ============================================================
 
-def draw_gameover_screen(screen, big_font, font, win, mouse_pos, clicked):
+def draw_gameover_screen(screen, big_font, font, win, mouse_pos, clicked, reward_coins=0):
     w, h = screen.get_size()
     overlay = pygame.Surface((w, h), pygame.SRCALPHA)
     overlay.fill((0, 0, 0, 160))
     screen.blit(overlay, (0, 0))
 
-    msg, color = ("VICTOIRE !", (80, 255, 80)) if win else ("GAME OVER", (255, 60, 60))
+    msg, color = ("VICTOIRE !", (80, 255, 80)) if win else ("DÉFAITE", (255, 60, 60))
     title = big_font.render(msg, True, color)
-    screen.blit(title, ((w - title.get_width()) // 2, h // 2 - 80))
+    screen.blit(title, ((w - title.get_width()) // 2, h // 2 - 100))
 
-    btn_w, btn_h = 200, 50
-    btn_x, btn_y = (w - btn_w) // 2, h // 2
+    if win:
+        subtitle = font.render(f"+{reward_coins} pièces gagnées", True, (240, 220, 140))
+    else:
+        subtitle = font.render("Essayez encore !", True, (240, 220, 140))
+    screen.blit(subtitle, ((w - subtitle.get_width()) // 2, h // 2 - 40))
+
+    btn_w, btn_h = 220, 52
+    btn_x, btn_y = (w - btn_w) // 2, h // 2 + 20
     btn_rect  = pygame.Rect(btn_x, btn_y, btn_w, btn_h)
     hovered   = btn_rect.collidepoint(mouse_pos)
     btn_color = (100, 180, 100) if hovered else (60, 120, 60)
-    pygame.draw.rect(screen, btn_color, btn_rect, border_radius=8)
-    pygame.draw.rect(screen, (200, 255, 200), btn_rect, 2, border_radius=8)
+    pygame.draw.rect(screen, btn_color, btn_rect, border_radius=10)
+    pygame.draw.rect(screen, (200, 255, 200), btn_rect, 2, border_radius=10)
     lbl = font.render("Rejouer", True, (255, 255, 255))
     screen.blit(lbl, (btn_x + (btn_w - lbl.get_width()) // 2,
                        btn_y + (btn_h - lbl.get_height()) // 2))
 
-    # Bouton Menu Principal
-    menu_btn = pygame.Rect((w - btn_w) // 2, h // 2 + 70, btn_w, btn_h)
+    menu_btn = pygame.Rect((w - btn_w) // 2, h // 2 + 90, btn_w, btn_h)
     mhov     = menu_btn.collidepoint(mouse_pos)
-    pygame.draw.rect(screen, (60, 80, 160) if mhov else (40, 55, 110), menu_btn, border_radius=8)
-    pygame.draw.rect(screen, (150, 180, 255), menu_btn, 2, border_radius=8)
+    pygame.draw.rect(screen, (60, 80, 160) if mhov else (40, 55, 110), menu_btn, border_radius=10)
+    pygame.draw.rect(screen, (150, 180, 255), menu_btn, 2, border_radius=10)
     mlbl = font.render("Menu Principal", True, (255, 255, 255))
     screen.blit(mlbl, (menu_btn.x + (menu_btn.w - mlbl.get_width()) // 2,
                         menu_btn.y + (menu_btn.h - mlbl.get_height()) // 2))
