@@ -1,0 +1,19 @@
+{
+  "coins": 150,
+  "inventory_equipment": [],
+  "equipped": {
+    "casque": null,
+    "armure": null,
+    "pantalon": null,
+    "arme": null,
+    "tour": null
+  },
+  "tower_loadout": [
+    "small",
+    "big",
+    "sniper"
+  ],
+  "music_volume": 0.8,
+  "sound_volume": 0.8,
+  "fullscreen": false
+}

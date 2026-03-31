@@ -61,6 +61,11 @@ SLOT_LABELS = {
     "tour":     "Tour",
 }
 
+# État global du menu
+_menu_state = {
+    "skilltree_cat": 0,
+}
+
 
 def _draw_rounded_rect(surf, color, rect, radius=10, border=0, border_color=None):
     pygame.draw.rect(surf, color, rect, border_radius=radius)
@@ -650,45 +655,153 @@ def run_menu(screen, clock, save=None):
             screen.blit(selected_info, (right_panel.x + 14, right_panel.y + right_panel.h - 24))
 
         # ────────────────────────────────────────────────────────────────────
-        # TAB 3 : SKILL TREE (placeholder)
+        # TAB 3 : SKILL TREE (NOUVEAU SYSTÈME)
         # ────────────────────────────────────────────────────────────────────
         elif active_tab == 3:
-            panel = pygame.Rect(w // 2 - 300, content_y + 20, 600, content_h - 30)
-            _draw_rounded_rect(screen, C_PANEL, panel, radius=12)
-
-            st = font_med.render("Arbre de Compétences", True, C_ACCENT)
-            screen.blit(st, (panel.x + (panel.w - st.get_width()) // 2, panel.y + 18))
-
-            note = font_sm.render("(Fonctionnalité à venir — en cours de développement)", True, C_SUBTEXT)
-            screen.blit(note, (panel.x + (panel.w - note.get_width()) // 2, panel.y + 62))
-
-            # Quelques nœuds décoratifs
-            nodes = [
-                {"name": "Force",      "x": panel.x + 100, "y": panel.y + 140, "unlocked": True },
-                {"name": "Rapidité",   "x": panel.x + 300, "y": panel.y + 140, "unlocked": True },
-                {"name": "Résistance", "x": panel.x + 500, "y": panel.y + 140, "unlocked": False},
-                {"name": "Maîtrise",   "x": panel.x + 200, "y": panel.y + 240, "unlocked": False},
-                {"name": "Puissance",  "x": panel.x + 400, "y": panel.y + 240, "unlocked": False},
-                {"name": "Légende",    "x": panel.x + 300, "y": panel.y + 340, "unlocked": False},
-            ]
-            # Connexions
-            edges = [(0,1),(1,2),(0,3),(1,3),(1,4),(2,4),(3,5),(4,5)]
-            for a, b in edges:
-                pygame.draw.line(screen, C_BTN_BOR,
-                                 (nodes[a]["x"], nodes[a]["y"]),
-                                 (nodes[b]["x"], nodes[b]["y"]), 2)
-            for nd in nodes:
-                col  = C_ACCENT if nd["unlocked"] else C_BTN
-                bord = C_GREEN  if nd["unlocked"] else C_SUBTEXT
-                pygame.draw.circle(screen, col, (nd["x"], nd["y"]), 28)
-                pygame.draw.circle(screen, bord, (nd["x"], nd["y"]), 28, 2)
-                nlbl = font_xs.render(nd["name"], True, C_TEXT)
-                screen.blit(nlbl, (nd["x"] - nlbl.get_width() // 2, nd["y"] - nlbl.get_height() // 2))
-
-            info_lbl = font_xs.render("(Les compétences s'achèteront avec des points de skill obtenus en jouant)",
-                                       True, C_SUBTEXT)
-            screen.blit(info_lbl, (panel.x + (panel.w - info_lbl.get_width()) // 2,
-                                    panel.y + panel.h - 30))
+            from save_data import SKILLS, can_unlock_skill, unlock_skill
+            
+            # Affichage du titre et des points de skill
+            title = font_med.render("Arbre de Compétences", True, C_ACCENT)
+            screen.blit(title, (w // 2 - title.get_width() // 2, content_y + 10))
+            
+            skill_pts_text = f"Points disponibles: {save.get('skill_points', 0)}"
+            sp_label = font_med.render(skill_pts_text, True, C_GREEN)
+            screen.blit(sp_label, (w // 2 - sp_label.get_width() // 2, content_y + 40))
+            
+            # Catégories de compétences
+            cats = ["force", "speed", "resist", "tower", "power", "legend"]
+            cat_names = {
+                "force": "💪 FORCE",
+                "speed": "⚡ RAPIDITÉ",
+                "resist": "🛡️ RÉSISTANCE",
+                "tower": "🗼 TOURS",
+                "power": "✨ PUISSANCE",
+                "legend": "👑 LÉGENDAIRE"
+            }
+            
+            cat_colors = {
+                "force": (220, 60, 60),
+                "speed": (100, 200, 255),
+                "resist": (100, 200, 150),
+                "tower": (200, 160, 60),
+                "power": (200, 100, 255),
+                "legend": (255, 215, 0)
+            }
+            
+            # Onglets catégories
+            tab_w = (w - 40) // len(cats)
+            cat_tab_y = content_y + 80
+            cat_tab_h = 35
+            
+            for ci, cat in enumerate(cats):
+                tab_x = 20 + ci * tab_w
+                tab_rect = pygame.Rect(tab_x, cat_tab_y, tab_w - 5, cat_tab_h)
+                is_active = (ci == _menu_state["skilltree_cat"])
+                tab_col = cat_colors[cat] if is_active else (45, 48, 65)
+                _draw_rounded_rect(screen, tab_col, tab_rect, radius=8, border=2,
+                                 border_color=cat_colors[cat] if is_active else C_BTN_BOR)
+                cat_text = font_sm.render(cat_names[cat], True, C_TEXT)
+                screen.blit(cat_text, (tab_rect.x + (tab_rect.w - cat_text.get_width()) // 2,
+                                       tab_rect.y + (tab_rect.h - cat_text.get_height()) // 2))
+                
+                if clicked and tab_rect.collidepoint(mx, my):
+                    _menu_state["skilltree_cat"] = ci
+            
+            # Zone de compétences
+            skills_area_y = cat_tab_y + cat_tab_h + 15
+            
+            current_cat = cats[_menu_state["skilltree_cat"]]
+            cat_skills = [(sid, SKILLS[sid]) for sid in SKILLS.keys() 
+                         if SKILLS[sid]["category"] == current_cat]
+            
+            # Affichage des compétences
+            skill_row_h = 70
+            skill_gap = 5
+            
+            for skill_idx, (skill_id, skill) in enumerate(cat_skills):
+                sy = skills_area_y + skill_idx * (skill_row_h + skill_gap)
+                if sy + skill_row_h > content_y + content_h:
+                    break
+                
+                skill_rect = pygame.Rect(30, sy, w - 60, skill_row_h)
+                
+                # Déterminer si verrouillée/déverrouillée
+                is_unlocked = save.get("skills_unlocked", {}).get(skill_id, False)
+                can_unlock, err_msg = can_unlock_skill(save, skill_id)
+                
+                # Couleur de fond
+                if is_unlocked:
+                    skill_col = (40, 60, 40)
+                    border_col = C_GREEN
+                elif can_unlock:
+                    skill_col = (60, 55, 40)
+                    border_col = (200, 180, 80)
+                else:
+                    skill_col = (45, 40, 50)
+                    border_col = C_SUBTEXT
+                
+                _draw_rounded_rect(screen, skill_col, skill_rect, radius=10, border=2, border_color=border_col)
+                
+                # Niveau skill (affichage)
+                level_text = f"Niveau {skill['level']}"
+                lv = font_xs.render(level_text, True, C_ACCENT)
+                screen.blit(lv, (skill_rect.x + 10, skill_rect.y + 4))
+                
+                # Nom de la compétence
+                skil_name = font_sm.render(skill["name"], True, cat_colors[current_cat])
+                screen.blit(skil_name, (skill_rect.x + 10, skill_rect.y + 18))
+                
+                # Description
+                desc = font_xs.render(skill["description"], True, C_SUBTEXT)
+                screen.blit(desc, (skill_rect.x + 10, skill_rect.y + 38))
+                
+                # Coût
+                cost_text = f"Coût: {skill['cost']} pts"
+                cost_col = C_GREEN if save.get("skill_points", 0) >= skill["cost"] else C_RED
+                cost_lbl = font_xs.render(cost_text, True, cost_col)
+                screen.blit(cost_lbl, (skill_rect.x + 10, skill_rect.y + 52))
+                
+                # Statut
+                if is_unlocked:
+                    status_text = "✓ ACQUISE"
+                    status_col = C_GREEN
+                elif can_unlock:
+                    status_text = "DISPONIBLE"
+                    status_col = (200, 180, 80)
+                else:
+                    status_text = "BLOQUÉE"
+                    status_col = C_RED
+                
+                status_lbl = font_xs.render(status_text, True, status_col)
+                screen.blit(status_lbl, (skill_rect.right - 120, skill_rect.y + 50))
+                
+                # Affichage des prérequis si bloquée
+                if not is_unlocked and skill.get("requires"):
+                    req_text = "Requis: "
+                    for req_id in skill["requires"]:
+                        is_req_unlocked = save.get("skills_unlocked", {}).get(req_id, False)
+                        req_status = "✓" if is_req_unlocked else "✗"
+                        req_text += f"{req_status} "
+                    
+                    req_lbl = font_xs.render(req_text, True, C_SUBTEXT)
+                    screen.blit(req_lbl, (skill_rect.right - 120, skill_rect.y + 35))
+                
+                # Bouton d'achat
+                if not is_unlocked:
+                    buy_btn = pygame.Rect(skill_rect.right - 100, skill_rect.y + 15, 90, 50)
+                    btn_col = (80, 100, 60) if can_unlock else (60, 60, 60)
+                    hov = buy_btn.collidepoint(mx, my)
+                    if hov and can_unlock:
+                        btn_col = (100, 130, 80)
+                    
+                    _draw_rounded_rect(screen, btn_col, buy_btn, radius=8, border=2, border_color=border_col)
+                    btn_text = font_xs.render("Acheter", True, C_TEXT if can_unlock else C_SUBTEXT)
+                    screen.blit(btn_text, (buy_btn.x + (buy_btn.w - btn_text.get_width()) // 2,
+                                          buy_btn.y + (buy_btn.h - btn_text.get_height()) // 2))
+                    
+                    if clicked and buy_btn.collidepoint(mx, my) and can_unlock:
+                        unlock_skill(save, skill_id)
+                        sd.save(save)
 
         pygame.display.flip()
         clock.tick(60)
