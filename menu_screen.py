@@ -61,10 +61,7 @@ SLOT_LABELS = {
     "tour":     "Tour",
 }
 
-# État global du menu
-_menu_state = {
-    "skilltree_cat": 0,
-}
+# État global du menu (plus utilisé depuis la refonte skilltree radial)
 
 
 def _draw_rounded_rect(surf, color, rect, radius=10, border=0, border_color=None):
@@ -655,153 +652,297 @@ def run_menu(screen, clock, save=None):
             screen.blit(selected_info, (right_panel.x + 14, right_panel.y + right_panel.h - 24))
 
         # ────────────────────────────────────────────────────────────────────
-        # TAB 3 : SKILL TREE (NOUVEAU SYSTÈME)
+        # TAB 3 : SKILL TREE (ARBRE RADIAL)
         # ────────────────────────────────────────────────────────────────────
         elif active_tab == 3:
+            import math
             from save_data import SKILLS, can_unlock_skill, unlock_skill
             
-            # Affichage du titre et des points de skill
-            title = font_med.render("Arbre de Compétences", True, C_ACCENT)
-            screen.blit(title, (w // 2 - title.get_width() // 2, content_y + 10))
+            # Panneau de fond
+            tree_panel = pygame.Rect(10, content_y, w - 20, content_h)
+            _draw_rounded_rect(screen, C_PANEL, tree_panel, radius=14)
             
-            skill_pts_text = f"Points disponibles: {save.get('skill_points', 0)}"
-            sp_label = font_med.render(skill_pts_text, True, C_GREEN)
-            screen.blit(sp_label, (w // 2 - sp_label.get_width() // 2, content_y + 40))
+            # Titre et points de skill
+            tree_title = font_med.render("Arbre de Compétences", True, C_ACCENT)
+            screen.blit(tree_title, (w // 2 - tree_title.get_width() // 2, content_y + 8))
             
-            # Catégories de compétences
-            cats = ["force", "speed", "resist", "tower", "power", "legend"]
+            skill_pts_text = f"⭐ {save.get('skill_points', 0)} pts"
+            sp_label = font_sm.render(skill_pts_text, True, C_GREEN)
+            screen.blit(sp_label, (w // 2 - sp_label.get_width() // 2, content_y + 36))
+            
+            # ── Configuration des 5 branches ──
+            cats = ["force", "speed", "resist", "tower", "power"]
             cat_names = {
-                "force": "💪 FORCE",
-                "speed": "⚡ RAPIDITÉ",
-                "resist": "🛡️ RÉSISTANCE",
-                "tower": "🗼 TOURS",
-                "power": "✨ PUISSANCE",
-                "legend": "👑 LÉGENDAIRE"
+                "force": "FORCE",
+                "speed": "RAPIDITÉ",
+                "resist": "RÉSISTANCE",
+                "tower": "TOURS",
+                "power": "PUISSANCE",
             }
-            
+            cat_icons = {
+                "force": "💪",
+                "speed": "⚡",
+                "resist": "🛡",
+                "tower": "🗼",
+                "power": "✨",
+            }
             cat_colors = {
                 "force": (220, 60, 60),
                 "speed": (100, 200, 255),
                 "resist": (100, 200, 150),
                 "tower": (200, 160, 60),
                 "power": (200, 100, 255),
-                "legend": (255, 215, 0)
             }
             
-            # Onglets catégories
-            tab_w = (w - 40) // len(cats)
-            cat_tab_y = content_y + 80
-            cat_tab_h = 35
+            # Centre de l'arbre (le personnage)
+            cx = w // 2
+            cy = content_y + content_h // 2 + 20
             
-            for ci, cat in enumerate(cats):
-                tab_x = 20 + ci * tab_w
-                tab_rect = pygame.Rect(tab_x, cat_tab_y, tab_w - 5, cat_tab_h)
-                is_active = (ci == _menu_state["skilltree_cat"])
-                tab_col = cat_colors[cat] if is_active else (45, 48, 65)
-                _draw_rounded_rect(screen, tab_col, tab_rect, radius=8, border=2,
-                                 border_color=cat_colors[cat] if is_active else C_BTN_BOR)
-                cat_text = font_sm.render(cat_names[cat], True, C_TEXT)
-                screen.blit(cat_text, (tab_rect.x + (tab_rect.w - cat_text.get_width()) // 2,
-                                       tab_rect.y + (tab_rect.h - cat_text.get_height()) // 2))
+            # Dessin du personnage central
+            pygame.draw.circle(screen, (180, 180, 200), (cx, cy), 28)
+            pygame.draw.circle(screen, C_ACCENT, (cx, cy), 28, 3)
+            char_lbl = font_sm.render("🧑", True, C_TEXT)
+            screen.blit(char_lbl, (cx - char_lbl.get_width() // 2, cy - char_lbl.get_height() // 2))
+            
+            # ── Calcul des positions des nœuds ──
+            # 5 branches réparties uniformément : angles en partant du haut
+            # -90° = haut, puis 72° entre chaque branche
+            branch_angles = {}
+            for bi, cat in enumerate(cats):
+                angle_deg = -90 + bi * 72  # 360 / 5 = 72°
+                branch_angles[cat] = math.radians(angle_deg)
+            
+            # Distance du centre pour chaque niveau de skill
+            available_radius = min(content_h // 2 - 60, (w - 80) // 2 - 30)
+            level_distances = {
+                1: available_radius * 0.3,
+                2: available_radius * 0.55,
+                3: available_radius * 0.78,
+                4: available_radius * 0.98,
+            }
+            
+            node_radius = 22
+            hovered_skill = None
+            
+            # Collecter toutes les positions des nœuds
+            skill_positions = {}  # skill_id -> (x, y)
+            
+            # Positionner les skills des 5 branches principales
+            for cat in cats:
+                base_angle = branch_angles[cat]
+                cat_skills = [(sid, SKILLS[sid]) for sid in SKILLS.keys()
+                              if SKILLS[sid]["category"] == cat]
                 
-                if clicked and tab_rect.collidepoint(mx, my):
-                    _menu_state["skilltree_cat"] = ci
-            
-            # Zone de compétences
-            skills_area_y = cat_tab_y + cat_tab_h + 15
-            
-            current_cat = cats[_menu_state["skilltree_cat"]]
-            cat_skills = [(sid, SKILLS[sid]) for sid in SKILLS.keys() 
-                         if SKILLS[sid]["category"] == current_cat]
-            
-            # Affichage des compétences
-            skill_row_h = 70
-            skill_gap = 5
-            
-            for skill_idx, (skill_id, skill) in enumerate(cat_skills):
-                sy = skills_area_y + skill_idx * (skill_row_h + skill_gap)
-                if sy + skill_row_h > content_y + content_h:
-                    break
+                # Trier par niveau
+                cat_skills.sort(key=lambda x: x[1]["level"])
                 
-                skill_rect = pygame.Rect(30, sy, w - 60, skill_row_h)
+                # Grouper par niveau pour gérer les branches qui se divisent
+                levels = {}
+                for sid, skill in cat_skills:
+                    lv = skill["level"]
+                    if lv not in levels:
+                        levels[lv] = []
+                    levels[lv].append((sid, skill))
                 
-                # Déterminer si verrouillée/déverrouillée
-                is_unlocked = save.get("skills_unlocked", {}).get(skill_id, False)
-                can_unlock, err_msg = can_unlock_skill(save, skill_id)
+                for lv, skills_at_level in levels.items():
+                    dist = level_distances.get(lv, available_radius * 0.3 * lv)
+                    n = len(skills_at_level)
+                    # Spread within the branch
+                    spread_angle = 0.25 if n > 1 else 0
+                    for si, (sid, skill) in enumerate(skills_at_level):
+                        if n == 1:
+                            angle = base_angle
+                        else:
+                            offset = (si - (n - 1) / 2) * spread_angle
+                            angle = base_angle + offset
+                        sx = int(cx + math.cos(angle) * dist)
+                        sy = int(cy + math.sin(angle) * dist)
+                        skill_positions[sid] = (sx, sy)
+            
+            # Positionner les skills HYBRIDES (entre 2 branches)
+            hybrid_skills = [(sid, SKILLS[sid]) for sid in SKILLS.keys()
+                             if SKILLS[sid]["category"] == "hybrid"]
+            for sid, skill in hybrid_skills:
+                branches = skill.get("branches", [])
+                if len(branches) == 2 and branches[0] in branch_angles and branches[1] in branch_angles:
+                    a1 = branch_angles[branches[0]]
+                    a2 = branch_angles[branches[1]]
+                    # Calcul de l'angle moyen (gestion du wraparound)
+                    diff = a2 - a1
+                    if diff > math.pi:
+                        diff -= 2 * math.pi
+                    elif diff < -math.pi:
+                        diff += 2 * math.pi
+                    mid_angle = a1 + diff / 2
+                    dist = available_radius * 0.55
+                    sx = int(cx + math.cos(mid_angle) * dist)
+                    sy = int(cy + math.sin(mid_angle) * dist)
+                    skill_positions[sid] = (sx, sy)
+            
+            # ── Dessiner les lignes de connexion ──
+            def _get_skill_color(sk):
+                """Get the display color for a skill (handles hybrid blend)."""
+                cat = sk["category"]
+                if cat == "hybrid":
+                    br = sk.get("branches", [])
+                    if len(br) == 2:
+                        c1 = cat_colors.get(br[0], C_SUBTEXT)
+                        c2 = cat_colors.get(br[1], C_SUBTEXT)
+                        return ((c1[0]+c2[0])//2, (c1[1]+c2[1])//2, (c1[2]+c2[2])//2)
+                return cat_colors.get(cat, C_SUBTEXT)
+            
+            for sid, skill in SKILLS.items():
+                if sid not in skill_positions:
+                    continue
+                sx, sy = skill_positions[sid]
                 
-                # Couleur de fond
-                if is_unlocked:
-                    skill_col = (40, 60, 40)
-                    border_col = C_GREEN
-                elif can_unlock:
-                    skill_col = (60, 55, 40)
-                    border_col = (200, 180, 80)
+                is_unlocked = save.get("skills_unlocked", {}).get(sid, False)
+                line_col = _get_skill_color(skill)
+                
+                # Ligne vers les prérequis
+                requires = skill.get("requires", [])
+                if not requires:
+                    # Connecté au centre (personnage)
+                    if is_unlocked:
+                        alpha_col = line_col
+                    else:
+                        alpha_col = (line_col[0] // 3, line_col[1] // 3, line_col[2] // 3)
+                    pygame.draw.line(screen, alpha_col, (cx, cy), (sx, sy), 2)
                 else:
-                    skill_col = (45, 40, 50)
-                    border_col = C_SUBTEXT
+                    for req_id in requires:
+                        if req_id in skill_positions:
+                            rx, ry = skill_positions[req_id]
+                            req_unlocked = save.get("skills_unlocked", {}).get(req_id, False)
+                            if is_unlocked and req_unlocked:
+                                alpha_col = line_col
+                            elif req_unlocked:
+                                alpha_col = (line_col[0] // 2, line_col[1] // 2, line_col[2] // 2)
+                            else:
+                                alpha_col = (line_col[0] // 4, line_col[1] // 4, line_col[2] // 4)
+                            pygame.draw.line(screen, alpha_col, (rx, ry), (sx, sy), 2)
+            
+            # ── Dessiner les labels de branche ──
+            for cat in cats:
+                angle = branch_angles[cat]
+                label_dist = available_radius + 20
+                lx = int(cx + math.cos(angle) * label_dist)
+                ly = int(cy + math.sin(angle) * label_dist)
+                clbl = font_xs.render(f"{cat_icons[cat]} {cat_names[cat]}", True, cat_colors[cat])
+                screen.blit(clbl, (lx - clbl.get_width() // 2, ly - clbl.get_height() // 2))
+            
+            # ── Dessiner les nœuds de compétences ──
+            for sid, skill in SKILLS.items():
+                if sid not in skill_positions:
+                    continue
+                sx, sy = skill_positions[sid]
                 
-                _draw_rounded_rect(screen, skill_col, skill_rect, radius=10, border=2, border_color=border_col)
+                is_unlocked = save.get("skills_unlocked", {}).get(sid, False)
+                can_buy, err_msg = can_unlock_skill(save, sid)
+                base_col = _get_skill_color(skill)
                 
-                # Niveau skill (affichage)
-                level_text = f"Niveau {skill['level']}"
-                lv = font_xs.render(level_text, True, C_ACCENT)
-                screen.blit(lv, (skill_rect.x + 10, skill_rect.y + 4))
+                # Vérifier survol
+                dist_to_mouse = math.sqrt((mx - sx) ** 2 + (my - sy) ** 2)
+                is_hovered = dist_to_mouse <= node_radius + 4
                 
-                # Nom de la compétence
-                skil_name = font_sm.render(skill["name"], True, cat_colors[current_cat])
-                screen.blit(skil_name, (skill_rect.x + 10, skill_rect.y + 18))
+                if is_hovered:
+                    hovered_skill = (sid, skill, sx, sy)
                 
-                # Description
-                desc = font_xs.render(skill["description"], True, C_SUBTEXT)
-                screen.blit(desc, (skill_rect.x + 10, skill_rect.y + 38))
-                
-                # Coût
-                cost_text = f"Coût: {skill['cost']} pts"
-                cost_col = C_GREEN if save.get("skill_points", 0) >= skill["cost"] else C_RED
-                cost_lbl = font_xs.render(cost_text, True, cost_col)
-                screen.blit(cost_lbl, (skill_rect.x + 10, skill_rect.y + 52))
-                
-                # Statut
+                # Couleur du nœud
                 if is_unlocked:
-                    status_text = "✓ ACQUISE"
-                    status_col = C_GREEN
-                elif can_unlock:
-                    status_text = "DISPONIBLE"
-                    status_col = (200, 180, 80)
+                    node_col = base_col
+                    border_c = (min(base_col[0] + 60, 255), min(base_col[1] + 60, 255), min(base_col[2] + 60, 255))
+                elif can_buy:
+                    node_col = (base_col[0] // 2, base_col[1] // 2, base_col[2] // 2)
+                    border_c = (200, 180, 80)
                 else:
-                    status_text = "BLOQUÉE"
-                    status_col = C_RED
+                    node_col = (40, 40, 50)
+                    border_c = (70, 70, 80)
                 
-                status_lbl = font_xs.render(status_text, True, status_col)
-                screen.blit(status_lbl, (skill_rect.right - 120, skill_rect.y + 50))
+                # Effet hover
+                if is_hovered:
+                    pygame.draw.circle(screen, (255, 255, 255, 80), (sx, sy), node_radius + 6, 2)
                 
-                # Affichage des prérequis si bloquée
-                if not is_unlocked and skill.get("requires"):
-                    req_text = "Requis: "
-                    for req_id in skill["requires"]:
-                        is_req_unlocked = save.get("skills_unlocked", {}).get(req_id, False)
-                        req_status = "✓" if is_req_unlocked else "✗"
-                        req_text += f"{req_status} "
-                    
-                    req_lbl = font_xs.render(req_text, True, C_SUBTEXT)
-                    screen.blit(req_lbl, (skill_rect.right - 120, skill_rect.y + 35))
+                # Cercle du nœud
+                pygame.draw.circle(screen, node_col, (sx, sy), node_radius)
+                pygame.draw.circle(screen, border_c, (sx, sy), node_radius, 3)
                 
-                # Bouton d'achat
-                if not is_unlocked:
-                    buy_btn = pygame.Rect(skill_rect.right - 100, skill_rect.y + 15, 90, 50)
-                    btn_col = (80, 100, 60) if can_unlock else (60, 60, 60)
-                    hov = buy_btn.collidepoint(mx, my)
-                    if hov and can_unlock:
-                        btn_col = (100, 130, 80)
+                # Icône / texte dans le nœud
+                if is_unlocked:
+                    icon_text = "✓"
+                    icon_col = (255, 255, 255)
+                else:
+                    icon_text = str(skill["cost"])
+                    icon_col = C_TEXT if can_buy else C_SUBTEXT
+                
+                icon_lbl = font_sm.render(icon_text, True, icon_col)
+                screen.blit(icon_lbl, (sx - icon_lbl.get_width() // 2, sy - icon_lbl.get_height() // 2))
+                
+                # Clic pour acheter
+                if clicked and is_hovered and not is_unlocked and can_buy:
+                    unlock_skill(save, sid)
+                    sd.save(save)
+            
+            # ── Tooltip au survol ──
+            if hovered_skill:
+                hsid, hskill, hx, hy = hovered_skill
+                h_unlocked = save.get("skills_unlocked", {}).get(hsid, False)
+                h_can, h_err = can_unlock_skill(save, hsid)
+                h_col = _get_skill_color(hskill)
+                
+                # Construction du tooltip
+                tt_lines = [
+                    hskill["name"],
+                    hskill["description"],
+                    f"Coût: {hskill['cost']} pts",
+                ]
+                if h_unlocked:
+                    tt_lines.append("✓ ACQUISE")
+                elif h_can:
+                    tt_lines.append("Cliquez pour acheter")
+                else:
+                    tt_lines.append(f"⛔ {h_err}")
+                
+                # Prérequis
+                if hskill.get("requires"):
+                    req_names = []
+                    for rid in hskill["requires"]:
+                        r = SKILLS.get(rid)
+                        if r:
+                            is_r_done = save.get("skills_unlocked", {}).get(rid, False)
+                            prefix = "✓" if is_r_done else "✗"
+                            req_names.append(f"{prefix} {r['name']}")
+                    if req_names:
+                        tt_lines.append("Requis: " + ", ".join(req_names))
+                
+                # Dimensions du tooltip
+                tt_font = font_xs
+                tt_padding = 10
+                tt_line_h = 18
+                tt_w = max(tt_font.size(line)[0] for line in tt_lines) + tt_padding * 2
+                tt_h = len(tt_lines) * tt_line_h + tt_padding * 2
+                
+                # Position du tooltip (éviter de sortir de l'écran)
+                tt_x = min(hx + node_radius + 10, w - tt_w - 10)
+                tt_y = min(hy - tt_h // 2, h - tt_h - 10)
+                tt_x = max(10, tt_x)
+                tt_y = max(content_y + 5, tt_y)
+                
+                tt_rect = pygame.Rect(tt_x, tt_y, tt_w, tt_h)
+                _draw_rounded_rect(screen, (20, 22, 35), tt_rect, radius=8, border=2,
+                                   border_color=h_col)
+                
+                for li, line in enumerate(tt_lines):
+                    if li == 0:
+                        col = h_col
+                    elif li == len(tt_lines) - 1 and not h_unlocked:
+                        col = C_GREEN if h_can else C_RED
+                    elif "✓ ACQUISE" in line:
+                        col = C_GREEN
+                    else:
+                        col = C_SUBTEXT
                     
-                    _draw_rounded_rect(screen, btn_col, buy_btn, radius=8, border=2, border_color=border_col)
-                    btn_text = font_xs.render("Acheter", True, C_TEXT if can_unlock else C_SUBTEXT)
-                    screen.blit(btn_text, (buy_btn.x + (buy_btn.w - btn_text.get_width()) // 2,
-                                          buy_btn.y + (buy_btn.h - btn_text.get_height()) // 2))
-                    
-                    if clicked and buy_btn.collidepoint(mx, my) and can_unlock:
-                        unlock_skill(save, skill_id)
-                        sd.save(save)
+                    lt = tt_font.render(line, True, col)
+                    screen.blit(lt, (tt_x + tt_padding, tt_y + tt_padding + li * tt_line_h))
 
         pygame.display.flip()
         clock.tick(60)

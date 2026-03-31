@@ -203,25 +203,58 @@ SKILLS = {
         "description": "XP +20%, Pièces +20%"
     },
 
-    # ─── Branche LÉGENDAIRE (Ultime) ───
-    "legend_1": {
-        "name": "Puissance Légendaire",
-        "category": "legend",
-        "level": 5,
-        "cost": 5,
-        "requires": ["force_4", "speed_4", "resist_4"],
-        "bonus": {"player_damage": 10, "player_speed": 3, "max_hp": 50},
-        "description": "Dégâts +10, Vitesse +3, Vie +50"
+    # ─── Compétences HYBRIDES (entre 2 branches) ───
+    "hybrid_force_speed": {
+        "name": "Frappe Éclair",
+        "category": "hybrid",
+        "branches": ["force", "speed"],
+        "level": 3,
+        "cost": 3,
+        "requires": ["force_2", "speed_1"],
+        "bonus": {"player_damage": 3, "attack_speed": 3},
+        "description": "+3 Dégâts, +3 Vitesse attaque"
     },
-    "legend_2": {
-        "name": "Maître des Tours",
-        "category": "legend",
-        "level": 5,
-        "cost": 5,
-        "requires": ["tower_4", "power_3"],
-        "bonus": {"tower_damage": 0.25, "tower_range": 0.25, "xp_gain": 0.3, "coin_gain": 0.3},
-        "description": "Dégâts tour +25%, Portée +25%, XP/Pièces +30%"
+    "hybrid_speed_resist": {
+        "name": "Évasion Blindée",
+        "category": "hybrid",
+        "branches": ["speed", "resist"],
+        "level": 3,
+        "cost": 3,
+        "requires": ["speed_2", "resist_1"],
+        "bonus": {"dodge_chance": 0.1, "max_hp": 15},
+        "description": "+10% Esquive, +15 Vie max"
     },
+    "hybrid_resist_tower": {
+        "name": "Fortification",
+        "category": "hybrid",
+        "branches": ["resist", "tower"],
+        "level": 3,
+        "cost": 3,
+        "requires": ["resist_2", "tower_1"],
+        "bonus": {"defense": 0.08, "tower_damage": 0.1},
+        "description": "-8% Dégâts reçus, +10% Dégâts tours"
+    },
+    "hybrid_tower_power": {
+        "name": "Investissement",
+        "category": "hybrid",
+        "branches": ["tower", "power"],
+        "level": 3,
+        "cost": 2,
+        "requires": ["tower_1", "power_1"],
+        "bonus": {"tower_range": 0.08, "coin_gain": 0.15},
+        "description": "+8% Portée tours, +15% Pièces"
+    },
+    "hybrid_power_force": {
+        "name": "Rage Intérieure",
+        "category": "hybrid",
+        "branches": ["power", "force"],
+        "level": 3,
+        "cost": 3,
+        "requires": ["power_1", "force_1"],
+        "bonus": {"xp_gain": 0.15, "player_damage": 4, "crit_chance": 0.05},
+        "description": "+15% XP, +4 Dégâts, +5% Crit"
+    },
+
 }
 
 _DEFAULT = {
