@@ -2,6 +2,7 @@
 entities.py
 -----------
 Définit toutes les entités du jeu : Player, Goal, Enemy, Tower, Trap, Projectile.
+
 """
 
 import math
@@ -83,6 +84,7 @@ class Player:
         min_cy = max(0, int((y - self.radius) // GRID_SIZE))
         max_cy = min(ROWS - 1, int((y + self.radius) // GRID_SIZE))
 
+        r_sq = self.radius * self.radius  # BUG-E1 : comparaison carrée directe
         for cx in range(min_cx, max_cx + 1):
             for cy in range(min_cy, max_cy + 1):
                 if not walkable[cx][cy]:
@@ -92,7 +94,7 @@ class Player:
                     nearest_y = max(rect_y, min(y, rect_y + GRID_SIZE))
                     dx = x - nearest_x
                     dy = y - nearest_y
-                    if dx * dx + dy * dy < self.radius * self.radius:
+                    if dx * dx + dy * dy < r_sq:
                         return False
         return True
 
@@ -203,10 +205,6 @@ class Player:
 
         px = int(self.x) + offset_x
         py = int(self.y) + offset_y
-
-        # Clignotement si blessé
-        if self._hurt_timer > 0 and self._hurt_timer % 4 < 2:
-            pass
 
         if self.spriteset:
             frame = self.spriteset.get_frame()
@@ -433,9 +431,6 @@ class Enemy:
         ex = int(self.x) + offset_x
         ey = int(self.y) + offset_y
 
-        if self._hurt_timer > 0 and self._hurt_timer % 4 < 2:
-            pass
-
         if self.spriteset:
             frame = self.spriteset.get_frame()
             if frame:
@@ -486,6 +481,15 @@ class Tower:
         "laser":        (180, 60, 180),
         "trap":         (100, 100, 100),
     }
+
+    # OPTIM-E1 : cache de font de classe (évite pygame.font.SysFont à chaque draw)
+    _level_font = None
+
+    @classmethod
+    def _get_level_font(cls):
+        if cls._level_font is None:
+            cls._level_font = pygame.font.SysFont(None, 18)
+        return cls._level_font
 
     def __init__(self, cells, tower_type, level=1):
         self.cells      = cells
@@ -578,11 +582,8 @@ class Tower:
             self.range    = 4 * GRID_SIZE + (self.level - 1) * 7
             self.cooldown = max(44 - (self.level - 1) * 7 - cooldown_bonus, 10)
 
-        # Nerf global : tours moins dominantes (moins de dégâts, moins de portée,
-        # cooldown plus long). Les bonus (equip/upgrade) restent pris en compte
-        # avant application de ces multiplicateurs.
-        self.damage = max(1, int(self.damage * TOWER_DAMAGE_MULT))
-        self.range = max(1, int(self.range * TOWER_RANGE_MULT))
+        self.damage   = max(1, int(self.damage * TOWER_DAMAGE_MULT))
+        self.range    = max(1, int(self.range * TOWER_RANGE_MULT))
         self.cooldown = max(1, int(self.cooldown * TOWER_COOLDOWN_MULT))
 
     def update(self, enemies, projectiles):
@@ -614,7 +615,8 @@ class Tower:
             pygame.draw.circle(screen, (255, 255, 255),
                                (int(self.x)+offset_x, int(self.y)+offset_y),
                                radius - 10, 1)
-            lvl_font = pygame.font.SysFont(None, 18)
+            # OPTIM-E1 : font mis en cache
+            lvl_font = Tower._get_level_font()
             lbl = lvl_font.render(f"L{self.level}", True, (255, 255, 255))
             screen.blit(lbl, (int(self.x)+offset_x - lbl.get_width() // 2,
                               int(self.y)+offset_y - lbl.get_height() // 2))
@@ -627,6 +629,15 @@ class Tower:
 class Trap:
     """Piège sur la grille (invisible pour le pathfinding)."""
 
+    # OPTIM-E2 : cache de font de classe
+    _level_font = None
+
+    @classmethod
+    def _get_level_font(cls):
+        if cls._level_font is None:
+            cls._level_font = pygame.font.SysFont(None, 16)
+        return cls._level_font
+
     def __init__(self, cells, trap_type="spikes", level=1):
         self.cells     = cells
         self.trap_type = trap_type
@@ -636,16 +647,16 @@ class Trap:
         self.y = sum(c[1] for c in cells) / len(cells) * GRID_SIZE + GRID_SIZE / 2
         self.set_stats()
 
-    def set_stats(self):
+    def set_stats(self, damage_bonus=0, cooldown_bonus=0):
+        # BUG-E2 fix : accepte les mêmes paramètres que Tower.set_stats
         if self.trap_type == "spikes":
-            self.damage   = 5 + (self.level - 1) * 10
-            self.cooldown = max(60 - (self.level - 1) * 15, 20)
+            self.damage   = 5 + (self.level - 1) * 10 + damage_bonus
+            self.cooldown = max(60 - (self.level - 1) * 15 - cooldown_bonus, 20)
         else:
-            self.damage   = 10 * self.level
-            self.cooldown = max(50 - (self.level - 1) * 10, 15)
+            self.damage   = 10 * self.level + damage_bonus
+            self.cooldown = max(50 - (self.level - 1) * 10 - cooldown_bonus, 15)
 
-        # Nerf global des pièges (un peu moins qu'on ne touche aux tours).
-        self.damage = max(1, int(self.damage * TRAP_DAMAGE_MULT))
+        self.damage   = max(1, int(self.damage * TRAP_DAMAGE_MULT))
         self.cooldown = max(1, int(self.cooldown * TRAP_COOLDOWN_MULT))
 
     def update(self, enemies, projectiles):
@@ -677,7 +688,8 @@ class Trap:
                                 GRID_SIZE - 8, GRID_SIZE - 8)
             pygame.draw.rect(screen, (80, 80, 80), inner)
         if self.level > 1:
-            lvl_font = pygame.font.SysFont(None, 16)
+            # OPTIM-E2 : font mis en cache
+            lvl_font = Trap._get_level_font()
             lbl = lvl_font.render(f"L{self.level}", True, (255, 255, 255))
             sx = offset_x + self.cells[0][0] * GRID_SIZE
             sy = offset_y + self.cells[0][1] * GRID_SIZE
@@ -691,7 +703,6 @@ class Trap:
 class Projectile:
     """
     Projectile tiré par le joueur ou une tour.
-    Utilise is_dead et _dying pour éviter les dégâts en double.
     """
 
     def __init__(self, x, y, target, damage, speed=5):

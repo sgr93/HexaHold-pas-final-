@@ -1,16 +1,7 @@
-
 """
 game.py
 -------
-Boucle de jeu principale.
-
-Gameplay :
-  - Vagues + boss (timers propres)
-  - Level-up banner (choix de tour ou buff, pause forcée)
-  - Inventaire vide au début, tours gagnées uniquement via level-up
-  - Choix de tour = +1 dans l'inventaire (badge x2, x3, ...)
-  - Regen HP progressive (hors combat)
-  - Intégration du menu principal avec niveaux de difficulté
+Boucle de jeu principale
 """
 
 import os
@@ -77,16 +68,22 @@ def make_can_place(grid, start_cell, item_type=None):
 
         # 3) Vérifier que le chemin reste valide
         blocked = []
+        actually_changed = False
         for x, y in cells:
-            blocked.append((x, y, grid.walkable[x][y]))
-            grid.walkable[x][y] = False
+            if grid.walkable[x][y]:
+                grid.walkable[x][y] = False
+                blocked.append((x, y))
+                actually_changed = True
+
+        if not actually_changed:
+            return False
 
         grid.compute_integration_field()
         valid = grid.integration_field[start_cell[0]][start_cell[1]] != float("inf")
 
         # 4) Restore
-        for x, y, prev in blocked:
-            grid.walkable[x][y] = prev
+        for x, y in blocked:
+            grid.walkable[x][y] = True
         grid.recompute()
         return valid
 
@@ -358,7 +355,7 @@ def build_initial_state(difficulty=2, save=None):
 
         # Level-up banner
         "levelup_pending":          False,
-        "levelup_choices":          [],  # rempli au premier level-up
+        "levelup_choices":          [],
         "levelup_rects":            [],
 
         # Regen HP
@@ -378,6 +375,11 @@ def build_initial_state(difficulty=2, save=None):
 # ============================================================
 # BOUCLE PRINCIPALE
 # ============================================================
+
+def _make_known_towers(save):
+    loadout = save.get("tower_loadout", []) or ALL_TOWER_TYPES
+    return set(loadout[:TOWER_SLOT_COUNT])
+
 
 def main():
     render.init_pygame()
@@ -418,7 +420,7 @@ def main():
     _pause_start = None
     running      = True
 
-    # Buffs possibles (exemple simple)
+    # Buffs possibles
     buff_defs = {
         "Vitesse Joueur":   ("player_speed",),
         "Dégâts Joueur":    ("player_damage",),
@@ -428,9 +430,7 @@ def main():
         "Vit. Tours":       ("tower_cooldown",),
     }
 
-    # Types de tours connus (pour distinguer buff / tour)
-    loadout_towers = gs["save"].get("tower_loadout", []) or ALL_TOWER_TYPES
-    known_towers = set(loadout_towers[:TOWER_SLOT_COUNT])
+    known_towers = _make_known_towers(current_save)
 
     while running:
         # ----------------------------------------------------
@@ -467,7 +467,7 @@ def main():
                             gs["last_wave_time"]   += paused_duration
                             gs["last_enemy_spawn"] += paused_duration
                             gs["last_regen_time"]  += paused_duration
-                            if gs["boss_start_time"]:
+                            if gs["boss_start_time"] > 0:
                                 gs["boss_start_time"] += paused_duration
                             _pause_start = None
 
@@ -604,8 +604,7 @@ def main():
                     start_new_wave(sl)
                     gs.update(sl)
 
-            # Conditions de fin
-            if gs["wave_number"] > gs["max_waves"] and not gs_enemies:
+            if gs["wave_number"] > gs["max_waves"] and not alive_enemies:
                 gs["game_win"] = True
             if not gs["boss_active"] and gs["wave_timer"] <= 0 and gs_enemies:
                 gs["game_over"] = True
@@ -651,11 +650,9 @@ def main():
             for t in gs_towers:
                 t.update(gs_enemies, gs_projectiles)
 
-            # Projectiles
-            for p in gs_projectiles:
-                p.update()
             i = len(gs_projectiles) - 1
             while i >= 0:
+                gs_projectiles[i].update()
                 if not gs_projectiles[i].alive:
                     gs_projectiles.pop(i)
                 i -= 1
@@ -830,7 +827,7 @@ def main():
                     gs["last_wave_time"]   += paused_duration
                     gs["last_enemy_spawn"] += paused_duration
                     gs["last_regen_time"]  += paused_duration
-                    if gs["boss_start_time"]:
+                    if gs["boss_start_time"] > 0:
                         gs["boss_start_time"] += paused_duration
                     _pause_start = None
 
@@ -933,6 +930,8 @@ def main():
                 gs["levelup_choices"] = pick_starting_tower_choices(
                     (gs["save"].get("tower_loadout", []) or ALL_TOWER_TYPES)[:TOWER_SLOT_COUNT]
                 )
+
+                known_towers = _make_known_towers(current_save)
                 _pause_start = None
                 continue
             elif action == "menu":
@@ -949,10 +948,11 @@ def main():
                 gs["levelup_choices"] = pick_starting_tower_choices(
                     (gs["save"].get("tower_loadout", []) or ALL_TOWER_TYPES)[:TOWER_SLOT_COUNT]
                 )
+
+                known_towers = _make_known_towers(current_save)
                 _pause_start = None
                 continue
 
         pygame.display.flip()
 
     pygame.quit()
-
