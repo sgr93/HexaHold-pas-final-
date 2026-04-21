@@ -18,7 +18,7 @@ from config import (
     XP_REWARD_NORMAL, XP_REWARD_BOSS,
     WAVE_NUMBER_START, WAVE_DURATION, BOSS_DURATION,
     DANGER_WEIGHT,
-    BACKGROUND_COLOR, PAUSE_KEY,
+    BACKGROUND_COLOR,
     DIFFICULTY_LEVELS, PLAYER_HP_REGEN,
     MUSIC_PATH, MUSIC_TRACK_TITLE, MUSIC_TRACK_MENU, MUSIC_TRACK_GAME,
     INV_BAR_HEIGHT,
@@ -27,13 +27,14 @@ from config import (
 import render
 from render import GridCache
 from grid import Grid
-from entities import Player, Goal, Enemy, Tower, Trap
+from entities import Player, Goal, Enemy, Tower, Trap, Projectile
 from ui import (
     draw_hud, draw_ghost,
     draw_inventory,
     draw_pause_screen, draw_gameover_screen, draw_start_hint,
     draw_levelup_banner,
     draw_toasts,
+    draw_pause_button,
 )
 from walls import apply_map_walls
 import save_data as sd
@@ -407,6 +408,10 @@ def main():
     render.load_wall_image()
     Tower.load_sprites()
     Trap.load_sprites()
+    # Préchargement des sprites de projectiles (silencieux si fichiers absents)
+    from config import ALL_TOWER_TYPES
+    for _pt in ALL_TOWER_TYPES + ["player"]:
+        Projectile._load_sprite(_pt)
 
     from menu_screen import run_menu, run_title_screen
     from ui import draw_levelup_banner
@@ -474,25 +479,7 @@ def main():
                     elif not gs["levelup_pending"]:
                         running = False
 
-                elif (event.key == PAUSE_KEY
-                      and gs["game_started"]
-                      and not gs["game_over"]
-                      and not gs["game_win"]
-                      and not gs["levelup_pending"]):
-                    # Toggle pause
-                    if not gs["paused"]:
-                        gs["paused"]  = True
-                        _pause_start  = time.time()
-                    else:
-                        gs["paused"]  = False
-                        if _pause_start is not None:
-                            paused_duration = time.time() - _pause_start
-                            gs["last_wave_time"]   += paused_duration
-                            gs["last_enemy_spawn"] += paused_duration
-                            gs["last_regen_time"]  += paused_duration
-                            if gs["boss_start_time"] > 0:
-                                gs["boss_start_time"] += paused_duration
-                            _pause_start = None
+
 
             elif event.type == pygame.VIDEORESIZE:
                 render.screen = pygame.display.set_mode(
@@ -760,6 +747,24 @@ def main():
             player_hp=gs_player.hp, player_max_hp=gs_player.max_hp,
         )
 
+        # Bouton pause (icône cliquable)
+        if gs["game_started"] and not gs["game_over"] and not gs["game_win"] and not gs["levelup_pending"]:
+            pause_btn_rect = draw_pause_button(render.screen, offset_x, offset_y, mx, my)
+            if mouse_clicked_left and pause_btn_rect.collidepoint(mx, my):
+                if not gs["paused"]:
+                    gs["paused"] = True
+                    _pause_start = time.time()
+                else:
+                    gs["paused"] = False
+                    if _pause_start is not None:
+                        paused_duration = time.time() - _pause_start
+                        gs["last_wave_time"]   += paused_duration
+                        gs["last_enemy_spawn"] += paused_duration
+                        gs["last_regen_time"]  += paused_duration
+                        if gs["boss_start_time"] > 0:
+                            gs["boss_start_time"] += paused_duration
+                        _pause_start = None
+
         if not gs["game_started"]:
             draw_start_hint(render.screen, render.font, offset_x, offset_y)
 
@@ -941,7 +946,45 @@ def main():
                         gs["toasts"].append({"text": "Impossible de poser ici", "ttl": 120, "max_ttl": 120, "color": (240, 120, 120)})
 
         if gs["paused"] and not gs["game_over"] and not gs["game_win"]:
-            draw_pause_screen(render.screen, render.big_font, render.font)
+            pause_action = draw_pause_screen(
+                render.screen, render.big_font, render.font,
+                mouse_pos=(mx, my), clicked=mouse_clicked_left
+            )
+            if pause_action == "resume":
+                gs["paused"] = False
+                if _pause_start is not None:
+                    paused_duration = time.time() - _pause_start
+                    gs["last_wave_time"]   += paused_duration
+                    gs["last_enemy_spawn"] += paused_duration
+                    gs["last_regen_time"]  += paused_duration
+                    if gs["boss_start_time"] > 0:
+                        gs["boss_start_time"] += paused_duration
+                    _pause_start = None
+            elif pause_action == "restart":
+                gs["paused"] = False
+                _pause_start = None
+                gs = build_initial_state(chosen_level, current_save)
+                grid_cache.invalidate()
+                gs["levelup_pending"] = True
+                loadout = (gs.get("save") or {}).get("tower_loadout", []) or ALL_TOWER_TYPES
+                gs["levelup_choices"] = pick_starting_tower_choices(loadout[:TOWER_SLOT_COUNT])
+                known_towers = _make_known_towers(current_save)
+            elif pause_action == "menu":
+                gs["paused"] = False
+                _pause_start = None
+                play_menu_music(current_save.get("music_volume", 0.8))
+                result = run_menu(render.screen, render.clock, current_save)
+                if result is None or result[0] is None:
+                    running = False
+                    continue
+                chosen_level, current_save = result
+                play_game_music(current_save.get("music_volume", 0.8))
+                gs = build_initial_state(chosen_level, current_save)
+                grid_cache.invalidate()
+                gs["levelup_pending"] = True
+                loadout = (gs.get("save") or {}).get("tower_loadout", []) or ALL_TOWER_TYPES
+                gs["levelup_choices"] = pick_starting_tower_choices(loadout[:TOWER_SLOT_COUNT])
+                known_towers = _make_known_towers(current_save)
         draw_toasts(render.screen, gs.get("toasts", []))
 
         if gs["game_over"] or gs["game_win"]:

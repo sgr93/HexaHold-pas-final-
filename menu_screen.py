@@ -11,7 +11,7 @@ import os
 import pygame
 import save_data as sd
 from config import (
-    DIFFICULTY_LEVELS, CHEST_COSTS, RARITIES, RARITY_COLORS,
+    DIFFICULTY_LEVELS, CHEST_COSTS, RARITIES, RARITY_COLORS, RARITY_WEIGHTS,
     EQUIPMENT_SLOTS, EQUIPMENT_STATS, ALL_TOWER_TYPES, TOWER_SLOT_COUNT,
 )
 from ui import ITEM_LABELS, ITEM_COLORS
@@ -403,6 +403,7 @@ def run_menu(screen, clock, save=None):
     last_item_obtained = None
     gacha_msg          = ""
     gacha_msg_timer    = 0
+    gacha_info_popup   = None   # None ou ctype du coffre dont on affiche les taux
 
     # État équipement
     selected_inv_idx       = None    # index dans save["inventory_equipment"]
@@ -517,6 +518,7 @@ def run_menu(screen, clock, save=None):
             chest_btn_w = (panel.w - 80) // 3
             chest_y     = panel.y + 50
             chest_btn_rects = {}
+            info_btn_rects  = {}   # boutons ⓘ par ctype
             for ci, (ctype, cinfo) in enumerate(CHEST_INFO.items()):
                 cx   = panel.x + 30 + ci * (chest_btn_w + 20)
                 cbtn = pygame.Rect(cx, chest_y, chest_btn_w, 110)
@@ -541,12 +543,30 @@ def run_menu(screen, clock, save=None):
                     nl = font_xs.render("Insuffisant", True, C_RED)
                     screen.blit(nl, (cbtn.x + (cbtn.w - nl.get_width()) // 2, cbtn.y + 75))
 
-                if clicked and hov and can:
+                # ── Bouton ⓘ en haut à droite du coffre ──
+                info_r = 10
+                info_cx = cbtn.right - info_r - 5
+                info_cy = cbtn.top   + info_r + 5
+                info_btn = pygame.Rect(info_cx - info_r, info_cy - info_r,
+                                       info_r * 2, info_r * 2)
+                info_btn_rects[ctype] = info_btn
+                info_hov = info_btn.collidepoint(mx, my)
+                info_col = (220, 220, 255) if info_hov else (160, 170, 210)
+                pygame.draw.circle(screen, info_col, (info_cx, info_cy), info_r)
+                pygame.draw.circle(screen, (40, 50, 80), (info_cx, info_cy), info_r, 1)
+                i_lbl = font_xs.render("i", True, (30, 40, 70))
+                screen.blit(i_lbl, (info_cx - i_lbl.get_width() // 2,
+                                     info_cy - i_lbl.get_height() // 2))
+
+                if clicked and info_btn.collidepoint(mx, my):
+                    gacha_info_popup = None if gacha_info_popup == ctype else ctype
+                elif clicked and hov and can and not info_btn.collidepoint(mx, my):
                     ok, result = sd.open_chest(save, ctype)
                     if ok:
                         last_item_obtained = result
                         gacha_msg         = f"Obtenu : {result['name']} (+{result['value']} {result['label']})"
                         gacha_msg_timer   = 240
+                        gacha_info_popup  = None
                     else:
                         gacha_msg       = result
                         gacha_msg_timer = 120
@@ -567,6 +587,54 @@ def run_menu(screen, clock, save=None):
                     _draw_item_card(screen, font_med, font_sm, font_xs,
                                     last_item_obtained,
                                     pygame.Rect(w // 2 - 160, panel.y + panel.h + 48, 320, 110))
+
+            # ── Popup info rarités ──────────────────────────────────────────
+            if gacha_info_popup is not None:
+                weights   = RARITY_WEIGHTS.get(gacha_info_popup, [])
+                total_w   = sum(weights) or 1
+                pop_lines = [CHEST_INFO[gacha_info_popup]["label"]]
+                for rarity, w_val in zip(RARITIES, weights):
+                    pct = w_val / total_w * 100
+                    pop_lines.append(f"{rarity} : {pct:.0f}%")
+
+                pad      = 12
+                line_h   = 22
+                pop_w    = 220
+                pop_h    = pad * 2 + len(pop_lines) * line_h
+                # Ancrer la popup sous le bouton ⓘ correspondant
+                ibtn = info_btn_rects.get(gacha_info_popup)
+                if ibtn:
+                    pop_x = max(10, min(ibtn.centerx - pop_w // 2, w - pop_w - 10))
+                    pop_y = ibtn.bottom + 6
+                else:
+                    pop_x = w // 2 - pop_w // 2
+                    pop_y = panel.bottom + 10
+                pop_rect = pygame.Rect(pop_x, pop_y, pop_w, pop_h)
+                _draw_rounded_rect(screen, (20, 24, 40), pop_rect, radius=10,
+                                   border=2, border_color=CHEST_INFO[gacha_info_popup]["color"])
+
+                rarity_pct_colors = {
+                    "Commun":     (180, 180, 180),
+                    "Rare":       (80,  140, 255),
+                    "Épique":     (180,  80, 255),
+                    "Légendaire": (255, 200,  40),
+                }
+                for li, line in enumerate(pop_lines):
+                    if li == 0:
+                        col = tuple(CHEST_INFO[gacha_info_popup]["color"])
+                        fnt = font_sm
+                    else:
+                        rarity_name = line.split(" :")[0]
+                        col = rarity_pct_colors.get(rarity_name, C_TEXT)
+                        fnt = font_xs
+                    lbl = fnt.render(line, True, col)
+                    screen.blit(lbl, (pop_x + pad, pop_y + pad + li * line_h))
+
+                # Fermer popup si clic hors zone
+                if clicked and not pop_rect.collidepoint(mx, my):
+                    all_info_btns = list(info_btn_rects.values())
+                    if not any(b.collidepoint(mx, my) for b in all_info_btns):
+                        gacha_info_popup = None
 
             # Inventaire équipement scrollable
             inv_panel = pygame.Rect(w // 2 - panel_w // 2, content_y + 230,

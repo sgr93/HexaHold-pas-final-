@@ -164,7 +164,8 @@ class Player:
                     target = e
                     best_dist_sq = dist_sq
             if target:
-                projectiles.append(Projectile(self.x, self.y, target, self.damage))
+                projectiles.append(Projectile(self.x, self.y, target, self.damage,
+                                              proj_type="player"))
                 self.attack_timer      = self.attack_cooldown
                 self.attack_anim_timer = 5
                 attacking = True
@@ -640,7 +641,8 @@ class Tower:
             dx = self.x - e.x
             dy = self.y - e.y
             if dx * dx + dy * dy <= range_sq:
-                projectiles.append(Projectile(self.x, self.y, e, self.damage))
+                projectiles.append(Projectile(self.x, self.y, e, self.damage,
+                                              proj_type=self.tower_type))
                 self.timer = self.cooldown
                 break
 
@@ -800,15 +802,87 @@ class Trap:
 class Projectile:
     """
     Projectile tiré par le joueur ou une tour.
+
+    Sprites :
+        Placez des PNG dans  assets/sprites/projectiles/<type>.png
+        où <type> correspond au tower_type de la tour (ex: "small.png",
+        "sniper.png", "laser.png"…) ou "player.png" pour le joueur.
+
+        - L'image est supposée pointer vers la DROITE (0°) par convention.
+          Elle sera automatiquement tournée dans la direction de la cible.
+        - Si le fichier est absent, fallback sur le cercle jaune.
+
+    Cache :
+        Les surfaces originales sont partagées entre toutes les instances
+        via Projectile._sprite_cache  {type_key: Surface | None}
+        Les surfaces tournées sont calculées à la volée (légères).
     """
 
-    def __init__(self, x, y, target, damage, speed=5):
-        self.x      = float(x)
-        self.y      = float(y)
-        self.target = target
-        self.damage = damage
-        self.speed  = speed
-        self.alive  = True
+    # Cache des sprites originaux (chargés une seule fois)
+    _sprite_cache: dict = {}
+
+    # Taille d'affichage des projectiles (pixels)
+    SPRITE_SIZE = 12
+
+    # Offset d'angle par type : permet de corriger l'orientation de base du sprite.
+    # 0   = sprite pointe vers la droite (→)  ← convention recommandée
+    # 180 = sprite pointe vers la gauche (←)  ← ex: Player.png flèche gauche
+    ANGLE_OFFSET = {
+        "player": 180,   # flèche dessinée vers la gauche
+    }
+
+    @classmethod
+    def _find_sprite_path(cls, type_key):
+        """Cherche le PNG en ignorant la casse du nom de fichier."""
+        folder = os.path.join(_ASSETS_BASE, "projectiles")
+        direct = os.path.join(folder, f"{type_key}.png")
+        if os.path.isfile(direct):
+            return direct
+        target = f"{type_key}.png".lower()
+        if os.path.isdir(folder):
+            for fname in os.listdir(folder):
+                if fname.lower() == target:
+                    return os.path.join(folder, fname)
+        return None
+
+    @classmethod
+    def _load_sprite(cls, type_key):
+        """
+        Charge (et met en cache) le sprite correspondant à type_key.
+        Retourne une Surface scalee ou None si le fichier est absent.
+        """
+        if type_key in cls._sprite_cache:
+            return cls._sprite_cache[type_key]
+
+        path = cls._find_sprite_path(type_key)
+        surface = None
+        if path:
+            try:
+                img = pygame.image.load(path).convert_alpha()
+                surface = pygame.transform.scale(img, (cls.SPRITE_SIZE, cls.SPRITE_SIZE))
+                print(f"[Projectile] Sprite charge : {os.path.basename(path)}")
+            except Exception as e:
+                print(f"[Projectile] Impossible de charger {type_key}.png : {e}")
+        else:
+            print(f"[Projectile] Sprite introuvable pour '{type_key}' dans assets/sprites/projectiles/")
+
+        cls._sprite_cache[type_key] = surface
+        return surface
+
+    def __init__(self, x, y, target, damage, speed=5, proj_type="player"):
+        self.x         = float(x)
+        self.y         = float(y)
+        self.target    = target
+        self.damage    = damage
+        self.speed     = speed
+        self.alive     = True
+        self.proj_type = proj_type  # "player" ou tower_type (ex: "sniper")
+
+        # Pré-chargement du sprite (None → cercle jaune)
+        self._sprite = Projectile._load_sprite(proj_type)
+
+        # Direction initiale vers la cible (pour la rotation du sprite)
+        self._angle = 0.0
 
     def update(self):
         if not self.alive or self.target.is_dead or self.target._dying:
@@ -825,12 +899,27 @@ class Projectile:
                 self.target.mark_dead()
             self.alive = False
         else:
+            # Mémoriser l'angle pour orienter le sprite
+            # Convention : sprite pointe à droite → angle de base = 0°
+            # pygame.transform.rotate tourne dans le sens anti-horaire,
+            # math.atan2 donne un angle en rad (axe Y inversé en pygame).
+            self._angle = -math.degrees(math.atan2(dy, dx))
             self.x += dx / dist * self.speed
             self.y += dy / dist * self.speed
 
     def draw(self, screen, offset_x, offset_y):
-        pygame.draw.circle(screen, (255, 255, 0),
-                           (int(self.x)+offset_x, int(self.y)+offset_y), 4)
+        cx = int(self.x) + offset_x
+        cy = int(self.y) + offset_y
+
+        if self._sprite is not None:
+            # Rotation : angle de deplacement + offset de correction du sprite
+            offset = Projectile.ANGLE_OFFSET.get(self.proj_type, 0)
+            rotated = pygame.transform.rotate(self._sprite, self._angle + offset)
+            rw, rh  = rotated.get_size()
+            screen.blit(rotated, (cx - rw // 2, cy - rh // 2))
+        else:
+            # Fallback : cercle jaune (comportement original)
+            pygame.draw.circle(screen, (255, 255, 0), (cx, cy), 4)
 
 
 # ============================================================

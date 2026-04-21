@@ -5,6 +5,7 @@ Fonctions de rendu de l'interface : HUD, ghost, inventaire, pause, game over,
 et LEVEL-UP BANNER (choix de tour en pause).
 """
 
+import os
 import random
 import pygame
 from config import ALL_TOWER_TYPES, GRID_WIDTH, GRID_HEIGHT, GRID_SIZE, COLS, ROWS
@@ -122,6 +123,64 @@ ITEM_COLORS = {
     "tower_damage": (240, 120, 40),
     "tower_cooldown": (90, 200, 180),
 }
+
+# ============================================================
+# ICONE PAUSE
+# ============================================================
+
+PAUSE_BTN_SIZE = 36   # taille du bouton en pixels
+
+_pause_icon_cache = None
+
+def get_pause_icon():
+    """Charge assets/sprites/pause.png une seule fois, ou retourne None."""
+    global _pause_icon_cache
+    if _pause_icon_cache is not None:
+        return _pause_icon_cache
+    path = os.path.join(os.path.dirname(__file__), "assets", "sprites", "pause.png")
+    if os.path.isfile(path):
+        try:
+            img = pygame.image.load(path).convert_alpha()
+            _pause_icon_cache = pygame.transform.smoothscale(img, (PAUSE_BTN_SIZE, PAUSE_BTN_SIZE))
+            return _pause_icon_cache
+        except Exception as e:
+            print(f"[ui] Impossible de charger pause.png : {e}")
+    _pause_icon_cache = False   # marquer "tenté mais absent"
+    return None
+
+
+def draw_pause_button(screen, offset_x, offset_y, mx, my):
+    """
+    Dessine le bouton pause en haut à droite de la grille.
+    Retourne le pygame.Rect du bouton (pour détecter les clics).
+    """
+    btn_x = offset_x + GRID_WIDTH - PAUSE_BTN_SIZE - 6
+    btn_y = offset_y - PAUSE_BTN_SIZE - 6
+    btn_rect = pygame.Rect(btn_x, btn_y, PAUSE_BTN_SIZE, PAUSE_BTN_SIZE)
+    hov = btn_rect.collidepoint(mx, my)
+
+    icon = get_pause_icon()
+    if icon:
+        if hov:
+            bright = pygame.Surface((PAUSE_BTN_SIZE, PAUSE_BTN_SIZE), pygame.SRCALPHA)
+            bright.fill((255, 255, 255, 40))
+            screen.blit(icon, btn_rect.topleft)
+            screen.blit(bright, btn_rect.topleft)
+        else:
+            screen.blit(icon, btn_rect.topleft)
+    else:
+        # Fallback vectoriel : deux barres verticales (▐▐)
+        col = (255, 230, 100) if hov else (200, 200, 220)
+        pygame.draw.rect(screen, (30, 36, 54, 180), btn_rect, border_radius=8)
+        pygame.draw.rect(screen, col, btn_rect, 2, border_radius=8)
+        bw, bh = 7, 18
+        bx = btn_x + PAUSE_BTN_SIZE // 2 - bw - 3
+        by = btn_y + (PAUSE_BTN_SIZE - bh) // 2
+        pygame.draw.rect(screen, col, (bx, by, bw, bh), border_radius=2)
+        pygame.draw.rect(screen, col, (bx + bw + 5, by, bw, bh), border_radius=2)
+
+    return btn_rect
+
 
 TOWER_CHOICES = ALL_TOWER_TYPES
 TOWER_DESCS   = {
@@ -306,15 +365,47 @@ def draw_inventory(screen, font, inventory, selected_item, win_w, win_h):
 # ECRAN DE PAUSE
 # ============================================================
 
-def draw_pause_screen(screen, big_font, font):
+def draw_pause_screen(screen, big_font, font, mouse_pos=(0,0), clicked=False):
+    """
+    Overlay de pause avec 3 boutons : Continuer / Recommencer / Menu.
+    Retourne : "resume" | "restart" | "menu" | None
+    """
     w, h = screen.get_size()
     overlay = pygame.Surface((w, h), pygame.SRCALPHA)
-    overlay.fill((0, 0, 0, 140))
+    overlay.fill((0, 0, 0, 160))
     screen.blit(overlay, (0, 0))
+
     pt = big_font.render("PAUSE", True, COLORS["accent"])
-    screen.blit(pt, ((w - pt.get_width()) // 2, (h - pt.get_height()) // 2 - 30))
-    hint = font.render("Appuyez sur P pour reprendre", True, (200, 200, 200))
-    screen.blit(hint, ((w - hint.get_width()) // 2, (h - hint.get_height()) // 2 + 30))
+    screen.blit(pt, ((w - pt.get_width()) // 2, h // 2 - 130))
+
+    mx, my = mouse_pos
+    btn_w, btn_h = 240, 54
+    gap = 16
+    total_h = 3 * btn_h + 2 * gap
+    start_y = h // 2 - total_h // 2 + 20
+
+    buttons = [
+        ("Continuer",   "resume",  (60, 160, 80),  (150, 255, 160)),
+        ("Recommencer", "restart", (60, 80,  160), (150, 160, 255)),
+        ("Menu",        "menu",    (120, 50, 50),  (255, 130, 130)),
+    ]
+
+    action = None
+    for i, (label, key, col_n, col_h) in enumerate(buttons):
+        bx = (w - btn_w) // 2
+        by = start_y + i * (btn_h + gap)
+        rect = pygame.Rect(bx, by, btn_w, btn_h)
+        hov  = rect.collidepoint(mx, my)
+        pygame.draw.rect(screen, col_h if hov else col_n, rect, border_radius=12)
+        border_col = (255, 255, 255) if hov else (180, 180, 200)
+        pygame.draw.rect(screen, border_col, rect, 2, border_radius=12)
+        lbl = font.render(label, True, (255, 255, 255))
+        screen.blit(lbl, (bx + (btn_w - lbl.get_width()) // 2,
+                           by + (btn_h - lbl.get_height()) // 2))
+        if clicked and hov:
+            action = key
+
+    return action
 
 
 # ============================================================
