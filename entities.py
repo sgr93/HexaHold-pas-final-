@@ -22,6 +22,14 @@ import os
 _ASSETS_BASE = os.path.join(os.path.dirname(__file__), "assets", "sprites")
 
 
+def _crop_alpha_surface(surface):
+    """Rogne les marges transparentes d'une surface pour mieux remplir sa hitbox visuelle."""
+    rect = surface.get_bounding_rect(min_alpha=10)
+    if rect.width <= 0 or rect.height <= 0:
+        return surface
+    return surface.subsurface(rect).copy()
+
+
 def _direction_from_delta(dx, dy):
     """
     Convertit un vecteur déplacement en direction pour le SpriteSet.
@@ -143,13 +151,18 @@ class Player:
         if self.attack_timer > 0:
             self.attack_timer -= 1
         else:
-            target = min(
-                (e for e in enemies
-                 if not e.is_dead
-                 and math.hypot(self.x - e.x, self.y - e.y) <= self.range),
-                key=lambda e: math.hypot(self.x - e.x, self.y - e.y),
-                default=None,
-            )
+            range_sq = self.range * self.range
+            target = None
+            best_dist_sq = None
+            for e in enemies:
+                if e.is_dead:
+                    continue
+                dx = self.x - e.x
+                dy = self.y - e.y
+                dist_sq = dx * dx + dy * dy
+                if dist_sq <= range_sq and (best_dist_sq is None or dist_sq < best_dist_sq):
+                    target = e
+                    best_dist_sq = dist_sq
             if target:
                 projectiles.append(Projectile(self.x, self.y, target, self.damage))
                 self.attack_timer      = self.attack_cooldown
@@ -241,10 +254,30 @@ class Goal:
         self.radius = 15
         self.hp     = 100
 
+        path = os.path.join(_ASSETS_BASE, "tiles", "goal.png")
+        self._animator = None
+        if os.path.isfile(path):
+            try:
+                self._animator = spr.SpritesheetAnimator(
+                    path, fps=6, target_size=(GRID_SIZE * 2, GRID_SIZE * 2), loop=True
+                )
+            except Exception as e:
+                print(f"[entities] Impossible de charger goal.png : {e}")
+
+    def update(self):
+        if self._animator:
+            self._animator.update()
+
     def draw(self, screen, offset_x, offset_y):
         cx = int(self.x) + offset_x
         cy = int(self.y) + offset_y
-        pygame.draw.circle(screen, (255, 255, 255), (cx, cy), self.radius)
+        if self._animator:
+            frame = self._animator.get_frame()
+            if frame:
+                w, h = frame.get_size()
+                screen.blit(frame, (cx - w // 2, cy - h // 2))
+        else:
+            pygame.draw.circle(screen, (255, 255, 255), (cx, cy), self.radius)
         pygame.draw.rect(screen, (200, 0, 0), (cx - 20, cy - 25, 40, 5))
         cur_w = int(40 * max(0, self.hp) / 100)
         pygame.draw.rect(screen, (0, 200, 0), (cx - 20, cy - 25, cur_w, 5))
@@ -468,19 +501,40 @@ class Tower:
         "poison":       (80, 180, 80),
         "beam":         (180, 60, 220),
         "tesla":        (120, 180, 250),
-        "rocket":       (200, 100, 40),
-        "storm":        (90, 130, 240),
-        "arcane":       (150, 60, 220),
-        "crystal":      (80, 220, 220),
-        "swarm":        (220, 140, 50),
         "burst":        (200, 70, 70),
         "cannon":       (140, 90, 30),
-        "flamethrower": (220, 120, 40),
-        "shock":        (255, 180, 60),
         "mine":         (120, 80, 50),
         "laser":        (180, 60, 180),
-        "trap":         (100, 100, 100),
     }
+
+    # Cache des animateurs maîtres (un par type, partagé entre instances)
+    _anim_cache = {}
+    _scaled_frame_cache = {}
+    @classmethod
+    def _build_tower_asset_map(cls):
+        towers_dir = os.path.join(_ASSETS_BASE, "towers")
+        mapping = {}
+        if not os.path.isdir(towers_dir):
+            return mapping
+        for tower_type in cls.TYPE_COLORS:
+            path = os.path.join(towers_dir, f"{tower_type}.png")
+            if os.path.isfile(path):
+                mapping[tower_type] = path
+        return mapping
+
+    @classmethod
+    def load_sprites(cls):
+        """Charge assets/sprites/towers/<type>.png (spritesheet horizontale) pour chaque type connu."""
+        path_map = cls._build_tower_asset_map()
+        for tower_type in cls.TYPE_COLORS:
+            path = path_map.get(tower_type, os.path.join(_ASSETS_BASE, "towers", f"{tower_type}.png"))
+            if os.path.isfile(path):
+                try:
+                    cls._anim_cache[tower_type] = spr.SpritesheetAnimator(
+                        path, fps=6, target_size=(GRID_SIZE, GRID_SIZE), loop=True
+                    )
+                except Exception as e:
+                    print(f"[entities] Impossible de charger {tower_type}.png : {e}")
 
     # OPTIM-E1 : cache de font de classe (évite pygame.font.SysFont à chaque draw)
     _level_font = None
@@ -498,6 +552,21 @@ class Tower:
         self.timer      = 0
         self.x = sum(c[0] for c in cells) / len(cells) * GRID_SIZE + GRID_SIZE / 2
         self.y = sum(c[1] for c in cells) / len(cells) * GRID_SIZE + GRID_SIZE / 2
+        master = Tower._anim_cache.get(tower_type)
+        self._animator = spr._clone_animator(master) if master else None
+        # Emprise en pixels (pour scaler le sprite sur toutes les cellules)
+        min_cx = min(c[0] for c in cells)
+        min_cy = min(c[1] for c in cells)
+        max_cx = max(c[0] for c in cells)
+        max_cy = max(c[1] for c in cells)
+        self._fp_x  = min_cx
+        self._fp_y  = min_cy
+        self._fp_w  = (max_cx - min_cx + 1) * GRID_SIZE
+        self._fp_h  = (max_cy - min_cy + 1) * GRID_SIZE
+        self._render_w = max(1, int(self._fp_w * 0.94))
+        self._render_h = max(1, int(self._fp_h * 0.94))
+        self._render_dx = (self._fp_w - self._render_w) // 2
+        self._render_dy = (self._fp_h - self._render_h) // 2
         self.set_stats()
 
     def set_stats(self, damage_bonus=0, cooldown_bonus=0):
@@ -533,26 +602,6 @@ class Tower:
             self.damage   = 7 * self.level + damage_bonus
             self.range    = 5 * GRID_SIZE + (self.level - 1) * 7
             self.cooldown = max(58 - (self.level - 1) * 8 - cooldown_bonus, 12)
-        elif self.tower_type == "rocket":
-            self.damage   = 12 * self.level + damage_bonus
-            self.range    = 5 * GRID_SIZE + (self.level - 1) * 10
-            self.cooldown = max(115 - (self.level - 1) * 13 - cooldown_bonus, 16)
-        elif self.tower_type == "storm":
-            self.damage   = 4 * self.level + damage_bonus
-            self.range    = 5 * GRID_SIZE + (self.level - 1) * 7
-            self.cooldown = max(26 - (self.level - 1) * 3 - cooldown_bonus, 7)
-        elif self.tower_type == "arcane":
-            self.damage   = 8 * self.level + damage_bonus
-            self.range    = 5 * GRID_SIZE + (self.level - 1) * 8
-            self.cooldown = max(68 - (self.level - 1) * 9 - cooldown_bonus, 12)
-        elif self.tower_type == "crystal":
-            self.damage   = 5 * self.level + damage_bonus
-            self.range    = 4 * GRID_SIZE + (self.level - 1) * 7
-            self.cooldown = max(42 - (self.level - 1) * 5 - cooldown_bonus, 10)
-        elif self.tower_type == "swarm":
-            self.damage   = 3 * self.level + damage_bonus
-            self.range    = 3 * GRID_SIZE + (self.level - 1) * 4
-            self.cooldown = max(14 - (self.level - 1) * 2 - cooldown_bonus, 5)
         elif self.tower_type == "burst":
             self.damage   = 12 * self.level + damage_bonus
             self.range    = 4 * GRID_SIZE + (self.level - 1) * 7
@@ -561,14 +610,6 @@ class Tower:
             self.damage   = 9 * self.level + damage_bonus
             self.range    = 5 * GRID_SIZE + (self.level - 1) * 8
             self.cooldown = max(82 - (self.level - 1) * 10 - cooldown_bonus, 14)
-        elif self.tower_type == "flamethrower":
-            self.damage   = 6 * self.level + damage_bonus
-            self.range    = 3 * GRID_SIZE + (self.level - 1) * 5
-            self.cooldown = max(30 - (self.level - 1) * 4 - cooldown_bonus, 8)
-        elif self.tower_type == "shock":
-            self.damage   = 7 * self.level + damage_bonus
-            self.range    = 5 * GRID_SIZE + (self.level - 1) * 7
-            self.cooldown = max(62 - (self.level - 1) * 8 - cooldown_bonus, 12)
         elif self.tower_type == "mine":
             self.damage   = 10 * self.level + damage_bonus
             self.range    = 2 * GRID_SIZE + (self.level - 1) * 4
@@ -587,13 +628,18 @@ class Tower:
         self.cooldown = max(1, int(self.cooldown * TOWER_COOLDOWN_MULT))
 
     def update(self, enemies, projectiles):
+        if self._animator:
+            self._animator.update()
         if self.timer > 0:
             self.timer -= 1
             return
+        range_sq = self.range * self.range
         for e in enemies:
             if e.is_dead or e._dying:
                 continue
-            if math.hypot(self.x - e.x, self.y - e.y) <= self.range:
+            dx = self.x - e.x
+            dy = self.y - e.y
+            if dx * dx + dy * dy <= range_sq:
                 projectiles.append(Projectile(self.x, self.y, e, self.damage))
                 self.timer = self.cooldown
                 break
@@ -602,12 +648,32 @@ class Tower:
         color = self.TYPE_COLORS.get(self.tower_type, (120, 120, 120))
         glow  = (max(color[0] - 40, 0), max(color[1] - 40, 0), max(color[2] - 40, 0))
 
-        for cx, cy in self.cells:
-            rect = pygame.Rect(offset_x + cx*GRID_SIZE, offset_y + cy*GRID_SIZE,
-                               GRID_SIZE, GRID_SIZE)
-            pygame.draw.rect(screen, glow, rect)
-            inner = rect.inflate(-6, -6)
-            pygame.draw.rect(screen, color, inner)
+        if self._animator:
+            frame = self._animator.get_frame()
+            if frame:
+                if frame.get_size() != (self._render_w, self._render_h):
+                    key = (self.tower_type, self._render_w, self._render_h, self._animator._frame_idx)
+                    cached = Tower._scaled_frame_cache.get(key)
+                    if cached is None:
+                        cropped = _crop_alpha_surface(frame)
+                        cached = pygame.transform.scale(cropped, (self._render_w, self._render_h))
+                        Tower._scaled_frame_cache[key] = cached
+                    frame = cached
+                screen.blit(
+                    frame,
+                    (
+                        offset_x + self._fp_x * GRID_SIZE + self._render_dx,
+                        offset_y + self._fp_y * GRID_SIZE + self._render_dy,
+                    ),
+                )
+        else:
+            for cx, cy in self.cells:
+                rect = pygame.Rect(offset_x + cx*GRID_SIZE, offset_y + cy*GRID_SIZE,
+                                   GRID_SIZE, GRID_SIZE)
+                # Les carrés ne sont plus visibles, uniquement hitbox
+                # pygame.draw.rect(screen, glow, rect)
+                # inner = rect.inflate(-6, -6)
+                # pygame.draw.rect(screen, color, inner)
 
         radius = int(self.range)
         pygame.draw.circle(screen, color, (int(self.x)+offset_x, int(self.y)+offset_y), radius, 1)
@@ -629,6 +695,22 @@ class Tower:
 class Trap:
     """Piège sur la grille (invisible pour le pathfinding)."""
 
+    # Cache des animateurs maîtres (un par type de piège)
+    _anim_cache = {}
+
+    @classmethod
+    def load_sprites(cls):
+        """Charge assets/sprites/traps/<type>.png (spritesheet horizontale) pour chaque type de piège."""
+        for trap_type in ("spikes",):
+            path = os.path.join(_ASSETS_BASE, "traps", f"{trap_type}.png")
+            if os.path.isfile(path):
+                try:
+                    cls._anim_cache[trap_type] = spr.SpritesheetAnimator(
+                        path, fps=6, target_size=(GRID_SIZE, GRID_SIZE), loop=True
+                    )
+                except Exception as e:
+                    print(f"[entities] Impossible de charger {trap_type}.png : {e}")
+
     # OPTIM-E2 : cache de font de classe
     _level_font = None
 
@@ -645,6 +727,8 @@ class Trap:
         self.timer     = 0
         self.x = sum(c[0] for c in cells) / len(cells) * GRID_SIZE + GRID_SIZE / 2
         self.y = sum(c[1] for c in cells) / len(cells) * GRID_SIZE + GRID_SIZE / 2
+        master = Trap._anim_cache.get(trap_type)
+        self._animator = spr._clone_animator(master) if master else None
         self.set_stats()
 
     def set_stats(self, damage_bonus=0, cooldown_bonus=0):
@@ -678,15 +762,28 @@ class Trap:
             self.timer = self.cooldown
 
     def draw(self, screen, offset_x, offset_y):
+        if self._animator:
+            self._animator.update()
         color = (100, 100, 100) if self.timer <= 0 else (150, 60, 60)
         for cx, cy in self.cells:
             rect = pygame.Rect(offset_x + cx*GRID_SIZE, offset_y + cy*GRID_SIZE,
                                GRID_SIZE, GRID_SIZE)
-            pygame.draw.rect(screen, color, rect)
-            inner = pygame.Rect(offset_x + cx*GRID_SIZE + 4,
-                                offset_y + cy*GRID_SIZE + 4,
-                                GRID_SIZE - 8, GRID_SIZE - 8)
-            pygame.draw.rect(screen, (80, 80, 80), inner)
+            if self._animator:
+                frame = self._animator.get_frame()
+                if frame:
+                    screen.blit(frame, rect.topleft)
+                if self.timer > 0:
+                    tint = pygame.Surface((GRID_SIZE, GRID_SIZE), pygame.SRCALPHA)
+                    tint.fill((150, 0, 0, 80))
+                    screen.blit(tint, rect.topleft)
+            else:
+                # Les carrés ne sont plus visibles, uniquement hitbox
+                # pygame.draw.rect(screen, color, rect)
+                # inner = pygame.Rect(offset_x + cx*GRID_SIZE + 4,
+                #                     offset_y + cy*GRID_SIZE + 4,
+                #                     GRID_SIZE - 8, GRID_SIZE - 8)
+                # pygame.draw.rect(screen, (80, 80, 80), inner)
+                pass
         if self.level > 1:
             # OPTIM-E2 : font mis en cache
             lvl_font = Trap._get_level_font()
@@ -734,3 +831,30 @@ class Projectile:
     def draw(self, screen, offset_x, offset_y):
         pygame.draw.circle(screen, (255, 255, 0),
                            (int(self.x)+offset_x, int(self.y)+offset_y), 4)
+
+
+# ============================================================
+# HELPER GHOST
+# ============================================================
+
+def get_tower_preview(tower_type, width_px, height_px):
+    """
+    Retourne une surface scalée à (width_px, height_px) représentant
+    la frame courante du sprite du type de tour donné.
+    Retourne None si aucun sprite n'est chargé pour ce type.
+    """
+    master = Tower._anim_cache.get(tower_type)
+    if master is None:
+        return None
+    frame = master.get_frame()
+    if frame is None:
+        return None
+    cropped = _crop_alpha_surface(frame)
+    preview_w = max(1, int(width_px * 0.94))
+    preview_h = max(1, int(height_px * 0.94))
+    scaled = pygame.transform.scale(cropped, (preview_w, preview_h))
+    if preview_w == width_px and preview_h == height_px:
+        return scaled
+    surf = pygame.Surface((width_px, height_px), pygame.SRCALPHA)
+    surf.blit(scaled, ((width_px - preview_w) // 2, (height_px - preview_h) // 2))
+    return surf

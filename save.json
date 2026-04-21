@@ -1,0 +1,151 @@
+{
+  "coins": 70,
+  "inventory_equipment": [
+    {
+      "slot": "tour",
+      "rarity": "Épique",
+      "stat": "tower_bonus",
+      "value": 22,
+      "label": "Bonus tour",
+      "name": "Épique Tour Bonus",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Épique",
+      "stat": "damage",
+      "value": 11,
+      "label": "Puissance att.",
+      "name": "Épique Arme",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Épique",
+      "stat": "max_hp",
+      "value": 35,
+      "label": "Vie max",
+      "name": "Épique Cape",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Épique",
+      "stat": "speed",
+      "value": 1.0,
+      "label": "Vitesse",
+      "name": "Épique Bottes",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Épique",
+      "stat": "damage",
+      "value": 11,
+      "label": "Puissance att.",
+      "name": "Épique Arme",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Rare",
+      "stat": "attack_speed",
+      "value": 6,
+      "label": "Vitesse attaque",
+      "name": "Rare Veste",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "tour",
+      "rarity": "Épique",
+      "stat": "tower_bonus",
+      "value": 22,
+      "label": "Bonus tour",
+      "name": "Épique Tour Bonus",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Rare",
+      "stat": "max_hp",
+      "value": 20,
+      "label": "Vie max",
+      "name": "Rare Cape",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    }
+  ],
+  "equipped": {
+    "cape": 2,
+    "veste": 5,
+    "bottes": 3,
+    "arme": 1,
+    "tour": 0
+  },
+  "tower_loadout": [
+    "laser",
+    "poison",
+    "mine"
+  ],
+  "music_volume": 0.8,
+  "sound_volume": 0.8,
+  "fullscreen": false,
+  "skill_points": 0,
+  "skills_unlocked": {
+    "force_1": true,
+    "force_2": true,
+    "force_3": false,
+    "force_4": false,
+    "speed_1": false,
+    "speed_2": false,
+    "speed_3": false,
+    "speed_4": false,
+    "resist_1": false,
+    "resist_2": false,
+    "resist_3": false,
+    "resist_4": false,
+    "tower_1": false,
+    "tower_2": false,
+    "tower_3": false,
+    "tower_4": false,
+    "power_1": false,
+    "power_2": false,
+    "power_3": false,
+    "hybrid_force_speed": false,
+    "hybrid_speed_resist": false,
+    "hybrid_resist_tower": false,
+    "hybrid_tower_power": false,
+    "hybrid_power_force": false
+  }
+}

@@ -46,6 +46,7 @@ class Grid:
 
         # Poids de danger par case (contribué par les tours uniquement)
         self.danger_field = [[0 for _ in range(ROWS)] for _ in range(COLS)]
+        self.version = 0
 
     # ------------------------------------------------------------------
     # Utilitaires
@@ -183,3 +184,4 @@ class Grid:
         self.update_danger_field()
         self.compute_integration_field()
         self.compute_flow_field()
+        self.version += 1

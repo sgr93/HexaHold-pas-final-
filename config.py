@@ -43,8 +43,7 @@ XP_REWARD_BOSS         = 2   # XP gagnée par un boss (y compris boss final)
 AVAILABLE_TOWERS_INIT  = ["small", "big", "trap"]
 TOWER_SLOT_COUNT       = 3
 ALL_TOWER_TYPES = [
-    "small", "big", "trap", "sniper", "mortar", "frost", "poison", "beam", "tesla", "rocket",
-    "storm", "arcane", "crystal", "swarm", "burst"
+    "small", "big", "sniper", "mortar", "frost", "poison", "beam", "tesla", "burst", "cannon", "mine", "laser"
 ]
 
 MUSIC_PATH = "assets/music"
@@ -140,12 +139,12 @@ RARITY_WEIGHTS = {
     "gold":   [10, 25, 40, 25],
 }
 
-EQUIPMENT_SLOTS = ["casque", "armure", "pantalon", "arme", "tour"]
+EQUIPMENT_SLOTS = ["cape", "veste", "bottes", "arme", "tour"]
 
 EQUIPMENT_STATS = {
-    "casque":   {"stat": "max_hp",       "label": "Vie max",         "values": {"Commun": 10, "Rare": 20, "Épique": 35, "Légendaire": 60}},
-    "armure":   {"stat": "attack_speed", "label": "Vitesse attaque", "values": {"Commun": 3,  "Rare": 6,  "Épique": 10, "Légendaire": 18}},
-    "pantalon": {"stat": "speed",        "label": "Vitesse",         "values": {"Commun": 0.3,"Rare": 0.6,"Épique": 1.0,"Légendaire": 1.8}},
+    "cape":   {"stat": "max_hp",       "label": "Vie max",         "values": {"Commun": 10, "Rare": 20, "Épique": 35, "Légendaire": 60}},
+    "veste":   {"stat": "attack_speed", "label": "Vitesse attaque", "values": {"Commun": 3,  "Rare": 6,  "Épique": 10, "Légendaire": 18}},
+    "bottes": {"stat": "speed",        "label": "Vitesse",         "values": {"Commun": 0.3,"Rare": 0.6,"Épique": 1.0,"Légendaire": 1.8}},
     "arme":     {"stat": "damage",       "label": "Puissance att.",  "values": {"Commun": 3,  "Rare": 6,  "Épique": 11, "Légendaire": 20}},
     "tour":     {"stat": "tower_bonus",  "label": "Bonus tour",      "values": {"Commun": 5,  "Rare": 12, "Épique": 22, "Légendaire": 40}},
 }

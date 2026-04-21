@@ -109,7 +109,7 @@ SKILLS = {
         "description": "+20 Points de vie max"
     },
     "resist_2": {
-        "name": "Armure Renforcée",
+        "name": "Veste Renforcée",
         "category": "resist",
         "level": 2,
         "cost": 2,
@@ -261,9 +261,9 @@ _DEFAULT = {
     "coins": 150,
     "inventory_equipment": [],   # liste de dicts {slot, rarity, stat, value, name}
     "equipped": {                # slot -> index dans inventory_equipment ou None
-        "casque":   None,
-        "armure":   None,
-        "pantalon": None,
+        "cape":   None,
+        "veste":   None,
+        "bottes": None,
         "arme":     None,
         "tour":     None,
     },
@@ -281,6 +281,31 @@ def load():
         try:
             with open(_SAVE_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
+
+            # Migration ancienne sauvegarde : casque -> cape, armure -> veste, pantalon -> bottes
+            equipped = data.get("equipped", {})
+            if "casque" in equipped and "cape" not in equipped:
+                equipped["cape"] = equipped.pop("casque")
+            if "armure" in equipped and "veste" not in equipped:
+                equipped["veste"] = equipped.pop("armure")
+            if "pantalon" in equipped and "bottes" not in equipped:
+                equipped["bottes"] = equipped.pop("pantalon")
+            for item in data.get("inventory_equipment", []):
+                if item.get("slot") == "casque":
+                    item["slot"] = "cape"
+                if item.get("slot") == "armure":
+                    item["slot"] = "veste"
+                if item.get("slot") == "pantalon":
+                    item["slot"] = "bottes"
+                if item.get("name") == "Casque du bataillon":
+                    item["name"] = "Cape du bataillon"
+                if item.get("image") == "casque.png":
+                    item["image"] = "cape.png"
+                if item.get("image") == "armure.png":
+                    item["image"] = "veste.png"
+                if item.get("image") == "pantalon.png":
+                    item["image"] = "bottes.png"
+
             # Merge keys manquantes
             for k, v in _DEFAULT.items():
                 if k not in data:
@@ -320,12 +345,19 @@ def open_chest(save_data_dict, chest_type):
     stat_info = EQUIPMENT_STATS[slot]
     value    = stat_info["values"][rarity]
 
-    SLOT_NAMES = {
-        "casque":   "Casque",
-        "armure":   "Armure",
-        "pantalon": "Pantalon",
-        "arme":     "Arme",
-        "tour":     "Tour Bonus",
+    EQUIPMENT_NAMES = {
+        "cape":   "Cape du bataillon",
+        "veste":   "Veste de garnison",
+        "bottes": "Bottes tactique",
+        "arme":     "Lames jumelles",
+        "tour":     "Insigne de commandement",
+    }
+    EQUIPMENT_IMAGES = {
+        "cape":   "cape.png",
+        "veste":   "veste.png",
+        "bottes": "bottes.png",
+        "arme":     "lames.png",
+        "tour":     "tour.png",
     }
 
     item = {
@@ -334,7 +366,8 @@ def open_chest(save_data_dict, chest_type):
         "stat":    stat_info["stat"],
         "value":   value,
         "label":   stat_info["label"],
-        "name":    f"{rarity} {SLOT_NAMES[slot]}",
+        "name":    EQUIPMENT_NAMES[slot],
+        "image":   EQUIPMENT_IMAGES[slot],
         "color":   list(RARITY_COLORS[rarity]),
     }
 

@@ -7,7 +7,7 @@ Système de menu principal avec 4 onglets :
   - Équipement
   - Skill Tree
 """
-
+import os
 import pygame
 import save_data as sd
 from config import (
@@ -16,21 +16,77 @@ from config import (
 )
 from ui import ITEM_LABELS, ITEM_COLORS
 
+# ============================================================
+# COLORS FROM THEME (INLINED)
+# ============================================================
+COLORS = {
+    "bg": (15, 18, 28),
+    "panel": (29, 35, 51),
+    "panel_alt": (36, 44, 64),
+    "border": (88, 103, 138),
+    "text": (236, 240, 250),
+    "muted": (163, 173, 196),
+    "accent": (255, 205, 92),
+    "accent_alt": (111, 205, 255),
+    "success": (96, 224, 138),
+    "danger": (240, 99, 99),
+}
+RADIUS = {"sm": 6, "md": 10, "lg": 14}
+
+def get_font(size_key="md", bold=False):
+    """Retourne une font simple."""
+    sizes = {"xs": 14, "sm": 18, "md": 22, "lg": 30, "xl": 48}
+    size = sizes.get(size_key, 22)
+    return pygame.font.SysFont("arial", size, bold=bold)
+
+def draw_panel(screen, rect, alt=False):
+    """Dessine un panneau stylisé."""
+    bg = COLORS["panel_alt"] if alt else COLORS["panel"]
+    pygame.draw.rect(screen, bg, rect, border_radius=RADIUS["md"])
+    pygame.draw.rect(screen, COLORS["border"], rect, 1, border_radius=RADIUS["md"])
+
+def draw_button(screen, rect, hovered=False, active=False):
+    """Dessine un bouton."""
+    if active:
+        color = COLORS["accent_alt"]
+    elif hovered:
+        color = (min(255, COLORS["panel_alt"][0] + 20), min(255, COLORS["panel_alt"][1] + 20), min(255, COLORS["panel_alt"][2] + 20))
+    else:
+        color = COLORS["panel_alt"]
+    pygame.draw.rect(screen, color, rect, border_radius=RADIUS["md"])
+    pygame.draw.rect(screen, COLORS["accent"] if hovered else COLORS["border"], rect, 2, border_radius=RADIUS["md"])
+
+def _get_icon(name, size=18, color=(255, 255, 255)):
+    """Crée une petite icône vectorielle."""
+    surf = pygame.Surface((size, size), pygame.SRCALPHA)
+    cx, cy = size // 2, size // 2
+    if name == "coin":
+        pygame.draw.circle(surf, color, (cx, cy), size // 2 - 1)
+        pygame.draw.circle(surf, (40, 30, 0), (cx, cy), size // 2 - 1, 1)
+    elif name == "hp":
+        pygame.draw.polygon(surf, color, [(cx, 2), (size - 2, cy), (cx, size - 2), (2, cy)])
+    elif name == "speed":
+        pygame.draw.polygon(surf, color, [(2, cy), (cx + 1, 2), (cx - 1, cy - 1), (size - 2, cy), (cx - 1, size - 2), (cx + 1, cy + 1)])
+    else:
+        pygame.draw.circle(surf, color, (cx, cy), size // 2 - 2, 2)
+    return surf
+
+
 # ── Couleurs ──────────────────────────────────────────────────────────────
-C_BG        = (18, 18, 28)
-C_PANEL     = (30, 32, 48)
-C_PANEL2    = (38, 40, 58)
-C_ACCENT    = (255, 200, 60)
-C_ACCENT2   = (80, 180, 255)
-C_TEXT      = (230, 230, 240)
-C_SUBTEXT   = (150, 155, 175)
-C_BTN       = (50, 55, 80)
-C_BTN_HOV   = (70, 75, 110)
-C_BTN_BOR   = (90, 95, 130)
-C_TAB_ACT   = (60, 65, 100)
-C_TAB_INACT = (35, 38, 55)
-C_GREEN     = (60, 200, 100)
-C_RED       = (220, 60, 60)
+C_BG = COLORS["bg"]
+C_PANEL = COLORS["panel"]
+C_PANEL2 = COLORS["panel_alt"]
+C_ACCENT = COLORS["accent"]
+C_ACCENT2 = COLORS["accent_alt"]
+C_TEXT = COLORS["text"]
+C_SUBTEXT = COLORS["muted"]
+C_BTN = COLORS["panel_alt"]
+C_BTN_HOV = (64, 79, 114)
+C_BTN_BOR = COLORS["border"]
+C_TAB_ACT = (52, 64, 95)
+C_TAB_INACT = (31, 38, 57)
+C_GREEN = COLORS["success"]
+C_RED = COLORS["danger"]
 
 DIFF_COLORS = {
     1: (80,  200, 100),
@@ -47,19 +103,128 @@ CHEST_INFO = {
 }
 
 SLOT_ICONS = {
-    "casque":   "⛨",
-    "armure":   "🛡",
-    "pantalon": "👖",
+    "cape":   "⛨",
+    "veste":   "🛡",
+    "bottes": "👖",
     "arme":     "⚔",
     "tour":     "🗼",
 }
 SLOT_LABELS = {
-    "casque":   "Casque",
-    "armure":   "Armure",
-    "pantalon": "Pantalon",
+    "cape":   "Cape",
+    "veste":   "Veste",
+    "bottes": "Bottes",
     "arme":     "Arme",
     "tour":     "Tour",
 }
+
+RARITY_SLOT_COLORS = {
+    "Commun": (120, 120, 128),
+    "Rare": (70, 130, 235),
+    "Epique": (150, 90, 220),
+    "Legendaire": (230, 190, 60),
+}
+EQUIPMENT_SLOT_IMAGE_FILES = {
+    "cape": "cape.png",
+    "veste": "veste.png",
+    "bottes": "bottes.png",
+    "arme": "lames.png",
+    "tour": "tour.png",
+}
+EQUIPMENT_DEFAULT_NAMES = {
+    "cape": "Cape du bataillon",
+    "veste": "Veste de garnison",
+    "bottes": "Bottes tactique",
+    "arme": "Lames jumelles",
+    "tour": "Insigne de commandement",
+}
+
+_equipment_character_sprite = None
+_equipment_background_sprite = None
+_equipment_icon_cache = {}
+
+
+def _get_equipment_character_sprite():
+    """Charge le sprite du personnage de l'écran d'équipement une seule fois."""
+    global _equipment_character_sprite
+    if _equipment_character_sprite is not None:
+        return _equipment_character_sprite
+
+    path = os.path.join(os.path.dirname(__file__), "assets", "sprites", "eren.png")
+    try:
+        _equipment_character_sprite = pygame.image.load(path).convert_alpha()
+    except Exception:
+        _equipment_character_sprite = False
+    return _equipment_character_sprite
+
+
+def _get_equipment_background_sprite():
+    """Charge le fond du panneau d'équipement une seule fois."""
+    global _equipment_background_sprite
+    if _equipment_background_sprite is not None:
+        return _equipment_background_sprite
+
+    path = os.path.join(os.path.dirname(__file__), "assets", "sprites", "maison1.png")
+    try:
+        _equipment_background_sprite = pygame.image.load(path).convert_alpha()
+    except Exception:
+        _equipment_background_sprite = False
+    return _equipment_background_sprite
+
+
+def _get_equipment_rarity_color(rarity):
+    return RARITY_SLOT_COLORS.get(rarity, tuple(RARITY_COLORS.get(rarity, (120, 120, 128))))
+
+
+def _get_equipment_name(item):
+    default_name = EQUIPMENT_DEFAULT_NAMES.get(item.get("slot"), "Equipement")
+    return item.get("name") or default_name
+
+
+def _get_equipment_icon_surface(item):
+    slot_key = item.get("slot")
+    filename = item.get("image") or EQUIPMENT_SLOT_IMAGE_FILES.get(slot_key)
+    if not filename:
+        return None
+    path = os.path.join(os.path.dirname(__file__), "assets", "sprites", filename)
+    if path in _equipment_icon_cache:
+        return _equipment_icon_cache[path]
+    try:
+        _equipment_icon_cache[path] = pygame.image.load(path).convert_alpha()
+    except Exception:
+        _equipment_icon_cache[path] = False
+    return _equipment_icon_cache[path]
+
+
+def _fit_surface(image, max_w, max_h):
+    if not image or max_w <= 0 or max_h <= 0:
+        return None
+    scale = min(max_w / image.get_width(), max_h / image.get_height())
+    new_w = max(1, int(image.get_width() * scale))
+    new_h = max(1, int(image.get_height() * scale))
+    return pygame.transform.smoothscale(image, (new_w, new_h))
+
+
+def _draw_equipment_icon(screen, item, rect, show_label=False):
+    rarity_color = _get_equipment_rarity_color(item.get("rarity"))
+    _draw_rounded_rect(screen, C_PANEL2, rect, radius=min(rect.w, rect.h) // 4, border=2, border_color=rarity_color)
+
+    fill_rect = rect.inflate(-6, -6)
+    inner = pygame.Surface((fill_rect.w, fill_rect.h), pygame.SRCALPHA)
+    inner.fill((*rarity_color, 70))
+    screen.blit(inner, fill_rect.topleft)
+
+    icon = _get_equipment_icon_surface(item)
+    if icon:
+        top_padding = 18 if show_label else 4
+        fitted = _fit_surface(icon, fill_rect.w - 2, fill_rect.h - top_padding - 2)
+        if fitted:
+            icon_x = fill_rect.centerx - fitted.get_width() // 2
+            icon_y = fill_rect.y + top_padding + max(0, (fill_rect.h - top_padding - fitted.get_height()) // 2)
+            screen.blit(fitted, (icon_x, icon_y))
+
+    if show_label:
+        name_lbl = get_font("xs", bold=True).render(_get_equipment_name(item), True, C_TEXT)
+        screen.blit(name_lbl, (rect.centerx - name_lbl.get_width() // 2, rect.y + 6))
 
 # État global du menu (plus utilisé depuis la refonte skilltree radial)
 
@@ -78,10 +243,10 @@ def _center_text(surf, font, text, color, rect):
 
 
 def run_title_screen(screen, clock, save):
-    font_big   = pygame.font.SysFont("arial", 56, bold=True)
-    font_med   = pygame.font.SysFont("arial", 28, bold=True)
-    font_sm    = pygame.font.SysFont("arial", 20)
-    font_xs    = pygame.font.SysFont("arial", 14)
+    font_big = get_font("xl", bold=True)
+    font_med = get_font("lg", bold=True)
+    font_sm = get_font("sm")
+    font_xs = get_font("xs")
 
     buttons = ["Jouer", "Options", "Quitter"]
     selected = None
@@ -135,9 +300,9 @@ def run_title_screen(screen, clock, save):
 
 
 def run_options_screen(screen, clock, save):
-    font_med   = pygame.font.SysFont("arial", 24, bold=True)
-    font_sm    = pygame.font.SysFont("arial", 18)
-    font_xs    = pygame.font.SysFont("arial", 14)
+    font_med = get_font("md", bold=True)
+    font_sm = get_font("sm")
+    font_xs = get_font("xs")
 
     option_items = [
         {"label": "Volume musique", "key": "music_volume", "type": "slider"},
@@ -226,10 +391,10 @@ def run_menu(screen, clock, save=None):
     """
     if save is None:
         save = sd.load()
-    font_big   = pygame.font.SysFont("arial", 36, bold=True)
-    font_med   = pygame.font.SysFont("arial", 24, bold=True)
-    font_sm    = pygame.font.SysFont("arial", 18)
-    font_xs    = pygame.font.SysFont("arial", 14)
+    font_big = get_font("xl", bold=True)
+    font_med = get_font("md", bold=True)
+    font_sm = get_font("sm")
+    font_xs = get_font("xs")
 
     tabs       = ["Menu Principal", "Gacha", "Équipement", "Skill Tree"]
     active_tab = 0
@@ -275,7 +440,8 @@ def run_menu(screen, clock, save=None):
         screen.blit(title, (w // 2 - title.get_width() // 2, 16))
 
         # Pièces
-        coins_lbl = font_med.render(f"💰 {save['coins']} pièces", True, C_ACCENT)
+        coins_lbl = font_med.render(f"{save['coins']} pièces", True, C_ACCENT)
+        screen.blit(_get_icon("coin", 18, C_ACCENT), (w - coins_lbl.get_width() - 44, 24))
         screen.blit(coins_lbl, (w - coins_lbl.get_width() - 20, 20))
 
         # ── Onglets ────────────────────────────────────────────────────────
@@ -420,10 +586,10 @@ def run_menu(screen, clock, save=None):
         # TAB 2 : ÉQUIPEMENT
         # ────────────────────────────────────────────────────────────────────
         elif active_tab == 2:
-            categories = ["casque", "armure", "pantalon", "arme", "tour"]
-            category_labels = ["Casque", "Armure", "Pantalon", "Arme", "Tour"]
+            categories = ["cape", "veste", "bottes", "arme", "tour"]
+            category_labels = ["Cape", "Veste", "Bottes", "Arme", "Tour"]
             category_slot = categories[selected_equip_category]
-            slot_titles = {"casque": "Casque", "armure": "Armure", "pantalon": "Pantalon", "arme": "Arme", "tour": "Tour"}
+            slot_titles = {"cape": "Cape", "veste": "Veste", "bottes": "Bottes", "arme": "Arme", "tour": "Tour"}
 
             left_w = int((w - 40) * 0.55)
             right_w = (w - 40) - left_w - 10
@@ -437,31 +603,45 @@ def run_menu(screen, clock, save=None):
             center_x = left_panel.x + left_panel.w // 2
             head_y = left_panel.y + 90
             body_y = head_y + 60
-            pygame.draw.circle(screen, (120, 120, 120), (center_x, head_y), 34)
-            body_rect = pygame.Rect(center_x - 36, body_y, 72, 120)
-            pygame.draw.rect(screen, (140, 140, 140), body_rect, border_radius=24)
-            pygame.draw.line(screen, (140, 140, 140), (center_x, body_y + 45), (center_x - 45, body_y + 90), 10)
-            pygame.draw.line(screen, (140, 140, 140), (center_x, body_y + 45), (center_x + 45, body_y + 90), 10)
-            pygame.draw.line(screen, (140, 140, 140), (center_x - 20, body_y + 115), (center_x - 20, body_y + 170), 10)
-            pygame.draw.line(screen, (140, 140, 140), (center_x + 20, body_y + 115), (center_x + 20, body_y + 170), 10)
 
-            def _draw_arrow(start, end):
-                pygame.draw.line(screen, C_ACCENT2, start, end, 2)
-                pygame.draw.circle(screen, C_ACCENT2, end, 4)
+            preview_area = pygame.Rect(left_panel.x + 20, left_panel.y + 56, left_panel.w - 40, left_panel.h - 128)
+            background_sprite = _get_equipment_background_sprite()
+            if background_sprite:
+                bg_scaled = pygame.transform.smoothscale(background_sprite, (preview_area.w, preview_area.h))
+                screen.blit(bg_scaled, preview_area.topleft)
+                overlay = pygame.Surface((preview_area.w, preview_area.h), pygame.SRCALPHA)
+                overlay.fill((12, 16, 24, 82))
+                screen.blit(overlay, preview_area.topleft)
+                pygame.draw.rect(screen, C_BTN_BOR, preview_area, 2, border_radius=18)
+            else:
+                _draw_rounded_rect(screen, C_PANEL2, preview_area, radius=18, border=2, border_color=C_BTN_BOR)
+
+            character_sprite = _get_equipment_character_sprite()
+            if character_sprite:
+                max_sprite_h = min(preview_area.h - 70, 420)
+                scale = max_sprite_h / character_sprite.get_height()
+                sprite_w = max(1, int(character_sprite.get_width() * scale))
+                sprite_h = max(1, int(character_sprite.get_height() * scale))
+                scaled_sprite = pygame.transform.smoothscale(character_sprite, (sprite_w, sprite_h))
+                sprite_x = center_x - sprite_w // 2
+                sprite_y = preview_area.bottom - sprite_h - 12
+                screen.blit(scaled_sprite, (sprite_x, sprite_y))
+            else:
+                pygame.draw.circle(screen, (120, 120, 120), (center_x, head_y), 34)
+                body_rect = pygame.Rect(center_x - 36, body_y, 72, 120)
+                pygame.draw.rect(screen, (140, 140, 140), body_rect, border_radius=24)
+                pygame.draw.line(screen, (140, 140, 140), (center_x, body_y + 45), (center_x - 45, body_y + 90), 10)
+                pygame.draw.line(screen, (140, 140, 140), (center_x, body_y + 45), (center_x + 45, body_y + 90), 10)
+                pygame.draw.line(screen, (140, 140, 140), (center_x - 20, body_y + 115), (center_x - 20, body_y + 170), 10)
+                pygame.draw.line(screen, (140, 140, 140), (center_x + 20, body_y + 115), (center_x + 20, body_y + 170), 10)
 
             slot_boxes = {
-                "casque": pygame.Rect(center_x - 75, head_y - 140, 150, 40),
-                "armure": pygame.Rect(left_panel.x + 18, body_y + 20, 140, 40),
-                "arme": pygame.Rect(left_panel.right - 158, body_y + 10, 140, 40),
-                "pantalon": pygame.Rect(left_panel.right - 158, body_y + 100, 140, 40),
-                "tour": pygame.Rect(center_x - 75, left_panel.y + left_panel.h - 90, 150, 40),
+                "cape": pygame.Rect(preview_area.right - 112, preview_area.y + 24, 92, 92),
+                "veste": pygame.Rect(preview_area.right - 112, preview_area.y + 142, 92, 92),
+                "bottes": pygame.Rect(preview_area.right - 112, preview_area.y + 260, 92, 92),
+                "arme": pygame.Rect(preview_area.x + 20, preview_area.y + preview_area.h // 2 - 46, 92, 92),
+                "tour": pygame.Rect(center_x - 72, preview_area.bottom - 72, 144, 54),
             }
-
-            _draw_arrow((center_x, head_y - 30), (slot_boxes["casque"].centerx, slot_boxes["casque"].bottom))
-            _draw_arrow((center_x - 30, body_y + 35), (slot_boxes["armure"].right, slot_boxes["armure"].centery))
-            _draw_arrow((center_x + 30, body_y + 35), (slot_boxes["arme"].left, slot_boxes["arme"].centery))
-            _draw_arrow((center_x + 20, body_y + 120), (slot_boxes["pantalon"].left, slot_boxes["pantalon"].centery))
-            _draw_arrow((center_x, body_y + 140), (slot_boxes["tour"].centerx, slot_boxes["tour"].top))
 
             equip_ref = save["equipped"]
             inv_items = save["inventory_equipment"]
@@ -469,17 +649,10 @@ def run_menu(screen, clock, save=None):
             if dragging_item is not None and 0 <= dragging_item < len(inv_items):
                 drag_item_data = inv_items[dragging_item]
 
-            def _label_for_slot(slot_key):
-                idx = equip_ref.get(slot_key)
-                if idx is not None and 0 <= idx < len(inv_items):
-                    return inv_items[idx]["name"]
-                return "Aucun"
-
-            labels = {key: _label_for_slot(key) for key in slot_boxes}
-
             for slot_key, rect in slot_boxes.items():
-                item_name = labels[slot_key]
-                is_filled = equip_ref.get(slot_key) is not None
+                equipped_idx = equip_ref.get(slot_key)
+                equipped_item = inv_items[equipped_idx] if equipped_idx is not None and 0 <= equipped_idx < len(inv_items) else None
+                is_filled = equipped_item is not None
                 hovered = rect.collidepoint(mx, my)
                 valid_drop = drag_item_data is not None and drag_item_data["slot"] == slot_key
                 if hovered and drag_item_data is not None:
@@ -488,10 +661,22 @@ def run_menu(screen, clock, save=None):
                     border_color = C_GREEN
                 else:
                     border_color = C_BTN_BOR
-                _draw_rounded_rect(screen, C_PANEL2, rect, radius=14, border=2, border_color=border_color)
-                label_text = f"{slot_titles[slot_key]} : {item_name}"
-                lbl = font_xs.render(label_text, True, C_TEXT if is_filled else C_SUBTEXT)
-                screen.blit(lbl, (rect.x + 12, rect.y + (rect.h - lbl.get_height()) // 2))
+                if slot_key == "tour":
+                    if equipped_item:
+                        _draw_equipment_icon(screen, equipped_item, rect, show_label=False)
+                        pygame.draw.rect(screen, border_color, rect, 2, border_radius=18)
+                    else:
+                        _draw_rounded_rect(screen, C_PANEL2, rect, radius=18, border=2, border_color=border_color)
+                        title_lbl = font_xs.render("Boost tour", True, C_ACCENT2)
+                        screen.blit(title_lbl, (rect.centerx - title_lbl.get_width() // 2, rect.y + 18))
+                else:
+                    if equipped_item:
+                        _draw_equipment_icon(screen, equipped_item, rect, show_label=False)
+                        pygame.draw.rect(screen, border_color, rect, 3, border_radius=18)
+                    else:
+                        _draw_rounded_rect(screen, C_PANEL2, rect, radius=18, border=3, border_color=border_color)
+                        title_lbl = font_xs.render(slot_titles[slot_key], True, C_ACCENT2)
+                        screen.blit(title_lbl, (rect.centerx - title_lbl.get_width() // 2, rect.y + 36))
                 if clicked and rect.collidepoint(mx, my) and is_filled:
                     save["equipped"][slot_key] = None
                     sd.save(save)
@@ -512,9 +697,19 @@ def run_menu(screen, clock, save=None):
             tower_loadout = save.get("tower_loadout")
             if not isinstance(tower_loadout, list):
                 tower_loadout = list(tower_loadout or [])
-            if len(tower_loadout) < TOWER_SLOT_COUNT:
-                tower_loadout = (tower_loadout + ALL_TOWER_TYPES)[:TOWER_SLOT_COUNT]
+            cleaned_loadout = []
+            for tower_type in tower_loadout:
+                if tower_type in ALL_TOWER_TYPES and tower_type not in cleaned_loadout:
+                    cleaned_loadout.append(tower_type)
+            for tower_type in ALL_TOWER_TYPES:
+                if len(cleaned_loadout) >= TOWER_SLOT_COUNT:
+                    break
+                if tower_type not in cleaned_loadout:
+                    cleaned_loadout.append(tower_type)
+            tower_loadout = cleaned_loadout[:TOWER_SLOT_COUNT]
+            if save.get("tower_loadout") != tower_loadout:
                 save["tower_loadout"] = tower_loadout
+                sd.save(save)
 
             slot_width = (loadout_area.w - 28) // TOWER_SLOT_COUNT
             loadout_slot_rects = []
@@ -551,14 +746,15 @@ def run_menu(screen, clock, save=None):
                 )
                 assigned = tower_type in tower_loadout
                 is_selected = tower_type == tower_loadout[selected_loadout_slot]
-                cell_color = C_BTN_HOV if is_selected else (C_PANEL if assigned else C_BTN)
+                assigned_elsewhere = assigned and not is_selected
+                cell_color = C_BTN_HOV if is_selected else ((70, 70, 78) if assigned_elsewhere else (C_PANEL if assigned else C_BTN))
                 _draw_rounded_rect(screen, cell_color, cell, radius=8,
                                    border=2, border_color=C_ACCENT2 if is_selected else C_BTN_BOR)
                 tlabel = ITEM_LABELS.get(tower_type, tower_type)
-                text = font_xs.render(tlabel, True, C_TEXT)
+                text = font_xs.render(tlabel, True, C_SUBTEXT if assigned_elsewhere else C_TEXT)
                 screen.blit(text, (cell.x + (cell.w - text.get_width()) // 2,
                                    cell.y + (cell.h - text.get_height()) // 2))
-                if clicked and cell.collidepoint(mx, my):
+                if clicked and cell.collidepoint(mx, my) and not assigned_elsewhere:
                     tower_loadout[selected_loadout_slot] = tower_type
                     save["tower_loadout"] = tower_loadout
                     sd.save(save)
@@ -608,10 +804,12 @@ def run_menu(screen, clock, save=None):
                                        radius=8, border=2,
                                        border_color=C_ACCENT2 if is_sel else C_BTN_BOR)
 
-                    name_lbl = font_sm.render(item["name"], True, tuple(item["color"]))
-                    screen.blit(name_lbl, (row.x + 12, row.y + 10))
-                    stat_lbl = font_xs.render(f"+{item['value']} {item['label']}", True, C_SUBTEXT)
-                    screen.blit(stat_lbl, (row.x + 12, row.y + 34))
+                    icon_rect = pygame.Rect(row.x + 8, row.y + 8, 48, 48)
+                    _draw_equipment_icon(screen, item, icon_rect, show_label=False)
+                    name_lbl = font_sm.render(_get_equipment_name(item), True, tuple(item["color"]))
+                    screen.blit(name_lbl, (row.x + 66, row.y + 10))
+                    stat_lbl = font_xs.render(f"+{item['value']} {item['label']}  |  {item['rarity']}", True, C_SUBTEXT)
+                    screen.blit(stat_lbl, (row.x + 66, row.y + 34))
 
                     eq_btn = pygame.Rect(row.right - 90, row.y + 16, 76, 32)
                     already = save["equipped"].get(category_slot) == item_idx
@@ -643,10 +841,12 @@ def run_menu(screen, clock, save=None):
                 drag_rect = pygame.Rect(mx + 12, my + 12, 180, 52)
                 _draw_rounded_rect(screen, C_PANEL2, drag_rect, radius=8, border=2,
                                    border_color=tuple(drag_item_data["color"]))
-                dname = font_sm.render(drag_item_data["name"], True, tuple(drag_item_data["color"]))
-                screen.blit(dname, (drag_rect.x + 10, drag_rect.y + 6))
+                icon_rect = pygame.Rect(drag_rect.x + 8, drag_rect.y + 6, 40, 40)
+                _draw_equipment_icon(screen, drag_item_data, icon_rect, show_label=False)
+                dname = font_sm.render(_get_equipment_name(drag_item_data), True, tuple(drag_item_data["color"]))
+                screen.blit(dname, (drag_rect.x + 56, drag_rect.y + 6))
                 dstat = font_xs.render(f"+{drag_item_data['value']} {drag_item_data['label']}", True, C_SUBTEXT)
-                screen.blit(dstat, (drag_rect.x + 10, drag_rect.y + 28))
+                screen.blit(dstat, (drag_rect.x + 56, drag_rect.y + 28))
 
             selected_info = font_sm.render("Sélection : " + category_labels[selected_equip_category], True, C_TEXT)
             screen.blit(selected_info, (right_panel.x + 14, right_panel.y + right_panel.h - 24))
@@ -880,7 +1080,6 @@ def run_menu(screen, clock, save=None):
                 # Clic pour acheter
                 if clicked and is_hovered and not is_unlocked and can_buy:
                     unlock_skill(save, sid)
-                    sd.save(save)
             
             # ── Tooltip au survol ──
             if hovered_skill:
@@ -955,12 +1154,14 @@ def run_menu(screen, clock, save=None):
 def _draw_item_card(screen, font_med, font_sm, font_xs, item, rect):
     rc = tuple(item["color"])
     _draw_rounded_rect(screen, C_PANEL2, rect, radius=10, border=2, border_color=rc)
-    n = font_sm.render(item["name"], True, rc)
-    screen.blit(n, (rect.x + (rect.w - n.get_width()) // 2, rect.y + 10))
+    icon_rect = pygame.Rect(rect.x + 14, rect.y + 16, 72, 72)
+    _draw_equipment_icon(screen, item, icon_rect, show_label=False)
+    n = font_sm.render(_get_equipment_name(item), True, rc)
+    screen.blit(n, (rect.x + 100, rect.y + 14))
     v = font_sm.render(f"+{item['value']} {item['label']}", True, C_TEXT)
-    screen.blit(v, (rect.x + (rect.w - v.get_width()) // 2, rect.y + 40))
-    s = font_xs.render(f"Slot : {SLOT_LABELS.get(item['slot'], item['slot'])}", True, C_SUBTEXT)
-    screen.blit(s, (rect.x + (rect.w - s.get_width()) // 2, rect.y + 72))
+    screen.blit(v, (rect.x + 100, rect.y + 42))
+    s = font_xs.render(f"Slot : {SLOT_LABELS.get(item['slot'], item['slot'])}  |  {item['rarity']}", True, C_SUBTEXT)
+    screen.blit(s, (rect.x + 100, rect.y + 72))
 
 
 def _draw_equipment_list(screen, font_sm, font_xs, save, area,
@@ -996,11 +1197,14 @@ def _draw_equipment_list(screen, font_sm, font_xs, save, area,
         _draw_rounded_rect(screen, col, row, radius=7, border=2,
                            border_color=rc if is_sel else C_BTN_BOR)
 
-        name_lbl = font_sm.render(item["name"], True, rc)
-        screen.blit(name_lbl, (row.x + 10, row.y + 6))
+        icon_rect = pygame.Rect(row.x + 6, row.y + 5, 36, 36)
+        _draw_equipment_icon(screen, item, icon_rect, show_label=False)
 
-        val_lbl = font_xs.render(f"+{item['value']} {item['label']}", True, C_SUBTEXT)
-        screen.blit(val_lbl, (row.x + 10, row.y + 26))
+        name_lbl = font_sm.render(_get_equipment_name(item), True, rc)
+        screen.blit(name_lbl, (row.x + 50, row.y + 6))
+
+        val_lbl = font_xs.render(f"+{item['value']} {item['label']}  |  {item['rarity']}", True, C_SUBTEXT)
+        screen.blit(val_lbl, (row.x + 50, row.y + 26))
 
         # Bouton Équiper
         if show_equip_btn and equip_callback:

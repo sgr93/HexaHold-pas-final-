@@ -33,6 +33,7 @@ from ui import (
     draw_inventory,
     draw_pause_screen, draw_gameover_screen, draw_start_hint,
     draw_levelup_banner,
+    draw_toasts,
 )
 from walls import apply_map_walls
 import save_data as sd
@@ -50,12 +51,19 @@ def make_can_place(grid, start_cell, item_type=None):
       - pas de piège déjà présent (pour trap)
       - le chemin START -> END reste possible (flow field)
     """
+    cache = {}
+
     def can_place(cells):
+        cache_key = (item_type, tuple(sorted(cells)), grid.version)
+        if cache_key in cache:
+            return cache[cache_key]
         # 1) Limites + walkable
         for x, y in cells:
             if not grid.in_bounds(x, y):
+                cache[cache_key] = False
                 return False
             if not grid.walkable[x][y]:
+                cache[cache_key] = False
                 return False
 
         # 2) Cas spécial : pièges (pas de chevauchement)
@@ -64,7 +72,9 @@ def make_can_place(grid, start_cell, item_type=None):
             for t in grid.towers_ref:
                 if hasattr(t, "trap_type"):
                     occupied.update(t.cells)
-            return not any((x, y) in occupied for x, y in cells)
+            result = not any((x, y) in occupied for x, y in cells)
+            cache[cache_key] = result
+            return result
 
         # 3) Vérifier que le chemin reste valide
         blocked = []
@@ -76,6 +86,7 @@ def make_can_place(grid, start_cell, item_type=None):
                 actually_changed = True
 
         if not actually_changed:
+            cache[cache_key] = False
             return False
 
         grid.compute_integration_field()
@@ -85,9 +96,18 @@ def make_can_place(grid, start_cell, item_type=None):
         for x, y in blocked:
             grid.walkable[x][y] = True
         grid.recompute()
+        cache[cache_key] = valid
         return valid
 
     return can_place
+
+
+def _is_matching_upgrade_target(tower, item_type, cells):
+    t_type = getattr(tower, "tower_type", getattr(tower, "trap_type", None))
+    match_type = (t_type == item_type) or (
+        item_type == "trap" and t_type == "spikes"
+    )
+    return match_type and set(tower.cells) == set(cells)
 
 
 def cells_for_item(item_type, gx, gy):
@@ -122,13 +142,10 @@ def place_tower_on_grid(grid, towers, cells, item_type, grid_cache,
     Place une tour ou un piège sur la grille, ou upgrade si déjà présent.
     Retourne True si placement/upgrade effectué, False sinon.
     """
-    # Upgrade si même type sur les mêmes cellules
+    target_cells = set(cells)
+    # Upgrade si même type sur exactement les mêmes cellules
     for t in towers:
-        t_type = getattr(t, "tower_type", getattr(t, "trap_type", None))
-        match_type = (t_type == item_type) or (
-            item_type == "trap" and t_type == "spikes"
-        )
-        if match_type and any(cell in t.cells for cell in cells):
+        if _is_matching_upgrade_target(t, item_type, target_cells):
             if t.level < TOWER_MAX_LEVEL:
                 t.level += 1
                 t.set_stats(damage_bonus=damage_bonus, cooldown_bonus=cooldown_bonus)
@@ -369,6 +386,7 @@ def build_initial_state(difficulty=2, save=None):
 
         # Référence save
         "save":                     save,
+        "toasts":                   [],
     }
 
 
@@ -377,12 +395,18 @@ def build_initial_state(difficulty=2, save=None):
 # ============================================================
 
 def _make_known_towers(save):
+    if not save:
+        return set(ALL_TOWER_TYPES[:TOWER_SLOT_COUNT])
     loadout = save.get("tower_loadout", []) or ALL_TOWER_TYPES
     return set(loadout[:TOWER_SLOT_COUNT])
 
 
 def main():
     render.init_pygame()
+    # Chargement des sprites optionnels (silencieux si les fichiers sont absents)
+    render.load_wall_image()
+    Tower.load_sprites()
+    Trap.load_sprites()
 
     from menu_screen import run_menu, run_title_screen
     from ui import draw_levelup_banner
@@ -413,9 +437,8 @@ def main():
 
     # Choix initial de tour au lancement du niveau
     gs["levelup_pending"] = True
-    gs["levelup_choices"] = pick_starting_tower_choices(
-        (gs["save"].get("tower_loadout", []) or ALL_TOWER_TYPES)[:TOWER_SLOT_COUNT]
-    )
+    start_loadout = (gs.get("save") or {}).get("tower_loadout", []) or ALL_TOWER_TYPES
+    gs["levelup_choices"] = pick_starting_tower_choices(start_loadout[:TOWER_SLOT_COUNT])
 
     _pause_start = None
     running      = True
@@ -513,7 +536,7 @@ def main():
         if not gs["game_over"] and not gs_player.alive:
             gs["game_over"] = True
 
-        if gs["game_win"] and not gs.get("reward_collected"):
+        if gs["game_win"] and not gs.get("reward_collected") and gs.get("save") is not None:
             gs["save"]["coins"] = gs["save"].get("coins", 0) + gs["coins_reward"]
             gs["reward_collected"] = True
             sd.save(gs["save"])
@@ -527,6 +550,11 @@ def main():
             gs["last_wave_time"]   = current_time
             gs["last_enemy_spawn"] = current_time
             gs["last_regen_time"]  = current_time
+        if gs.get("toasts"):
+            for toast in gs["toasts"][:]:
+                toast["ttl"] -= 1
+                if toast["ttl"] <= 0:
+                    gs["toasts"].remove(toast)
 
         is_frozen = gs["paused"] or gs["game_over"] or gs["game_win"] or gs["levelup_pending"]
 
@@ -646,6 +674,9 @@ def main():
                         gs["player_buff_tokens"] += 1
                     gs_enemies.remove(e)
 
+            # Goal
+            gs_goal.update()
+
             # Tours
             for t in gs_towers:
                 t.update(gs_enemies, gs_projectiles)
@@ -677,7 +708,7 @@ def main():
         # ----------------------------------------------------
         # RENDU GRILLE + ENTITES
         # ----------------------------------------------------
-        grid_cache.draw(render.screen, gs_grid, offset_x, offset_y)
+        grid_cache.draw(render.screen, gs_grid, offset_x, offset_y, towers=gs_towers)
 
         # Zone de spawn visible tant que le jeu n'a pas commencé
         if not gs["game_started"]:
@@ -877,11 +908,7 @@ def main():
                 can_place_fn = make_can_place(gs_grid, START, sel)
 
                 is_upgrade = any(
-                    (
-                        (getattr(t, "tower_type", getattr(t, "trap_type", None)) == sel)
-                        or (sel == "trap" and getattr(t, "trap_type", None) == "spikes")
-                    )
-                    and any(cell in t.cells for cell in cells)
+                    _is_matching_upgrade_target(t, sel, cells)
                     for t in gs_towers
                 )
 
@@ -902,6 +929,7 @@ def main():
                         cooldown_bonus=gs['tower_cooldown_bonus'],
                     )
                     if placed:
+                        gs["toasts"].append({"text": "Tour placee", "ttl": 140, "max_ttl": 140, "color": (120, 235, 140)})
                         gs["game_started"] = True
                         if sel in gs["inventory"]:
                             gs["inventory"][sel] -= 1
@@ -909,9 +937,12 @@ def main():
                                 del gs["inventory"][sel]
                                 if gs["selected_item"] == sel:
                                     gs["selected_item"] = None
+                    else:
+                        gs["toasts"].append({"text": "Impossible de poser ici", "ttl": 120, "max_ttl": 120, "color": (240, 120, 120)})
 
         if gs["paused"] and not gs["game_over"] and not gs["game_win"]:
             draw_pause_screen(render.screen, render.big_font, render.font)
+        draw_toasts(render.screen, gs.get("toasts", []))
 
         if gs["game_over"] or gs["game_win"]:
             action = draw_gameover_screen(
@@ -927,9 +958,8 @@ def main():
                 gs = build_initial_state(chosen_level, current_save)
                 grid_cache.invalidate()
                 gs["levelup_pending"] = True
-                gs["levelup_choices"] = pick_starting_tower_choices(
-                    (gs["save"].get("tower_loadout", []) or ALL_TOWER_TYPES)[:TOWER_SLOT_COUNT]
-                )
+                loadout = (gs.get("save") or {}).get("tower_loadout", []) or ALL_TOWER_TYPES
+                gs["levelup_choices"] = pick_starting_tower_choices(loadout[:TOWER_SLOT_COUNT])
 
                 known_towers = _make_known_towers(current_save)
                 _pause_start = None
@@ -945,9 +975,8 @@ def main():
                 gs = build_initial_state(chosen_level, current_save)
                 grid_cache.invalidate()
                 gs["levelup_pending"] = True
-                gs["levelup_choices"] = pick_starting_tower_choices(
-                    (gs["save"].get("tower_loadout", []) or ALL_TOWER_TYPES)[:TOWER_SLOT_COUNT]
-                )
+                loadout = (gs.get("save") or {}).get("tower_loadout", []) or ALL_TOWER_TYPES
+                gs["levelup_choices"] = pick_starting_tower_choices(loadout[:TOWER_SLOT_COUNT])
 
                 known_towers = _make_known_towers(current_save)
                 _pause_start = None

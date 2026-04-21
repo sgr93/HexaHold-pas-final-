@@ -10,6 +10,59 @@ import pygame
 from config import ALL_TOWER_TYPES, GRID_WIDTH, GRID_HEIGHT, GRID_SIZE, COLS, ROWS
 
 # ============================================================
+# COLORS & UI CONSTANTS
+# ============================================================
+COLORS = {
+    "bg": (15, 18, 28),
+    "panel": (29, 35, 51),
+    "panel_alt": (36, 44, 64),
+    "border": (88, 103, 138),
+    "text": (236, 240, 250),
+    "muted": (163, 173, 196),
+    "accent": (255, 205, 92),
+    "accent_alt": (111, 205, 255),
+    "success": (96, 224, 138),
+    "danger": (240, 99, 99),
+}
+RADIUS = {"sm": 6, "md": 10, "lg": 14}
+
+def get_font(size_key="md", bold=False):
+    """Retourne une font simple."""
+    sizes = {"xs": 14, "sm": 18, "md": 22, "lg": 30, "xl": 48}
+    size = sizes.get(size_key, 22)
+    return pygame.font.SysFont("arial", size, bold=bold)
+
+def _draw_panel(screen, rect, alt=False):
+    """Dessine un panneau stylisé."""
+    bg = COLORS["panel_alt"] if alt else COLORS["panel"]
+    pygame.draw.rect(screen, bg, rect, border_radius=RADIUS["md"])
+    pygame.draw.rect(screen, COLORS["border"], rect, 1, border_radius=RADIUS["md"])
+
+def _draw_progress_bar(screen, rect, value, max_value, fg, bg=(40, 40, 50)):
+    """Dessine une barre de progression."""
+    pygame.draw.rect(screen, bg, rect, border_radius=RADIUS["sm"])
+    ratio = 0 if max_value <= 0 else max(0.0, min(1.0, value / max_value))
+    fill = pygame.Rect(rect.x, rect.y, int(rect.w * ratio), rect.h)
+    pygame.draw.rect(screen, fg, fill, border_radius=RADIUS["sm"])
+    pygame.draw.rect(screen, COLORS["border"], rect, 1, border_radius=RADIUS["sm"])
+
+def _get_icon(name, size=18, color=(255, 255, 255)):
+    """Crée une petite icône vectorielle."""
+    surf = pygame.Surface((size, size), pygame.SRCALPHA)
+    cx, cy = size // 2, size // 2
+    if name == "coin":
+        pygame.draw.circle(surf, color, (cx, cy), size // 2 - 1)
+        pygame.draw.circle(surf, (40, 30, 0), (cx, cy), size // 2 - 1, 1)
+    elif name == "hp":
+        pygame.draw.polygon(surf, color, [(cx, 2), (size - 2, cy), (cx, size - 2), (2, cy)])
+    elif name == "speed":
+        pygame.draw.polygon(surf, color, [(2, cy), (cx + 1, 2), (cx - 1, cy - 1), (size - 2, cy), (cx - 1, size - 2), (cx + 1, cy + 1)])
+    else:
+        pygame.draw.circle(surf, color, (cx, cy), size // 2 - 2, 2)
+    return surf
+
+
+# ============================================================
 # CONSTANTES D'INVENTAIRE
 # ============================================================
 
@@ -106,9 +159,12 @@ def draw_hud(screen, font, big_font, level, xp, xp_to_next,
              boss_active, boss_timer, wave_timer,
              offset_x, offset_y,
              player_hp=None, player_max_hp=None):
-    info_y = offset_y - 30
-    lvl_txt = font.render(f"Niv.{level}  XP:{xp}/{xp_to_next}", True, (200, 255, 200))
-    screen.blit(lvl_txt, (offset_x, info_y))
+    info_y = offset_y - 38
+    panel = pygame.Rect(offset_x - 8, info_y - 10, GRID_WIDTH + 16, 34)
+    _draw_panel(screen, panel, alt=True)
+    lvl_txt = font.render(f"Niv.{level}  XP:{xp}/{xp_to_next}", True, COLORS["text"])
+    screen.blit(_get_icon("hp", 14, COLORS["accent_alt"]), (offset_x + 4, info_y + 4))
+    screen.blit(lvl_txt, (offset_x + 22, info_y))
 
     wave_txt = font.render(
         f"Vague {wave_number}/{max_waves}  Tués:{mobs_killed}/{max_enemies}",
@@ -124,12 +180,9 @@ def draw_hud(screen, font, big_font, level, xp, xp_to_next,
     screen.blit(t_txt, (offset_x + GRID_WIDTH - t_txt.get_width(), info_y))
 
     if player_hp is not None and player_max_hp:
-        bar_w, bar_h = 120, 10
+        bar_w, bar_h = 150, 12
         bx, by = offset_x, info_y - 18
-        pygame.draw.rect(screen, (120, 0, 0),     (bx, by, bar_w, bar_h))
-        fill_w = int(bar_w * max(0, player_hp) / player_max_hp)
-        pygame.draw.rect(screen, (0, 200, 0),     (bx, by, fill_w, bar_h))
-        pygame.draw.rect(screen, (200, 200, 200), (bx, by, bar_w, bar_h), 1)
+        _draw_progress_bar(screen, pygame.Rect(bx, by, bar_w, bar_h), player_hp, player_max_hp, COLORS["success"], bg=(110, 25, 25))
         hp_lbl = font.render(f"HP {player_hp}/{player_max_hp}", True, (220, 220, 220))
         screen.blit(hp_lbl, (bx + bar_w + 6, by - 1))
 
@@ -139,6 +192,8 @@ def draw_hud(screen, font, big_font, level, xp, xp_to_next,
 # ============================================================
 
 def draw_ghost(screen, cells, gx, gy, item_type, towers, can_place_fn, offset_x, offset_y):
+    from entities import get_tower_preview
+
     is_upgrade = any(
         (
             (getattr(t, "tower_type", getattr(t, "trap_type", None)) == item_type)
@@ -148,17 +203,37 @@ def draw_ghost(screen, cells, gx, gy, item_type, towers, can_place_fn, offset_x,
         for t in towers
     )
     valid = is_upgrade or can_place_fn(cells)
-    color = (0, 255, 0, 80) if valid else (255, 0, 0, 80)
-    ghost_surf = pygame.Surface((GRID_WIDTH, GRID_HEIGHT), pygame.SRCALPHA)
-    for cx, cy in cells:
-        if 0 <= cx < COLS and 0 <= cy < ROWS:
-            pygame.draw.rect(ghost_surf, color,
-                             pygame.Rect(cx * GRID_SIZE, cy * GRID_SIZE, GRID_SIZE, GRID_SIZE))
+    tint  = (0, 255, 0, 80) if valid else (255, 0, 0, 80)
+
+    valid_cells = [(cx, cy) for cx, cy in cells if 0 <= cx < COLS and 0 <= cy < ROWS]
+    ghost_surf  = pygame.Surface((GRID_WIDTH, GRID_HEIGHT), pygame.SRCALPHA)
+
+    # Sprite de la tour si disponible
+    if valid_cells:
+        min_cx = min(c[0] for c in valid_cells)
+        min_cy = min(c[1] for c in valid_cells)
+        max_cx = max(c[0] for c in valid_cells)
+        max_cy = max(c[1] for c in valid_cells)
+        fw = (max_cx - min_cx + 1) * GRID_SIZE
+        fh = (max_cy - min_cy + 1) * GRID_SIZE
+
+        preview = get_tower_preview(item_type, fw, fh)
+        if preview:
+            tmp = preview.copy()
+            # Réduit l'opacité de chaque pixel à 75 %
+            tmp.fill((255, 255, 255, 190), special_flags=pygame.BLEND_RGBA_MULT)
+            ghost_surf.blit(tmp, (min_cx * GRID_SIZE, min_cy * GRID_SIZE))
+
+    # Teinte verte/rouge par-dessus
+    for cx, cy in valid_cells:
+        pygame.draw.rect(ghost_surf, tint,
+                         pygame.Rect(cx * GRID_SIZE, cy * GRID_SIZE, GRID_SIZE, GRID_SIZE))
+
     screen.blit(ghost_surf, (offset_x, offset_y))
+
     if is_upgrade:
-        f2 = pygame.font.SysFont(None, 20)
+        f2 = get_font("sm", bold=True)
         lbl = f2.render("UPGRADE", True, (255, 255, 100))
-        valid_cells = [(cx, cy) for cx, cy in cells if 0 <= cx < COLS and 0 <= cy < ROWS]
         if valid_cells:
             mx_ = sum(c[0] for c in valid_cells) / len(valid_cells) * GRID_SIZE + offset_x
             my_ = sum(c[1] for c in valid_cells) / len(valid_cells) * GRID_SIZE + offset_y
@@ -171,9 +246,7 @@ def draw_ghost(screen, cells, gx, gy, item_type, towers, can_place_fn, offset_x,
 
 def draw_inventory(screen, font, inventory, selected_item, win_w, win_h):
     bar_rect = pygame.Rect(0, win_h - INV_BAR_HEIGHT, win_w, INV_BAR_HEIGHT)
-    pygame.draw.rect(screen, INV_BG_COLOR, bar_rect)
-    pygame.draw.line(screen, INV_BORDER_COLOR,
-                     (0, win_h - INV_BAR_HEIGHT), (win_w, win_h - INV_BAR_HEIGHT), 2)
+    _draw_panel(screen, bar_rect, alt=True)
 
     inv_lbl = font.render("Inventaire", True, (220, 190, 130))
     screen.blit(inv_lbl, (12, win_h - INV_BAR_HEIGHT + 8))
@@ -193,7 +266,7 @@ def draw_inventory(screen, font, inventory, selected_item, win_w, win_h):
     start_x = (win_w - total_w) // 2
     slot_y  = win_h - INV_BAR_HEIGHT + (INV_BAR_HEIGHT - INV_SLOT_SIZE) // 2
 
-    badge_font = pygame.font.SysFont(None, 20)
+    badge_font = get_font("sm", bold=True)
 
     for i, (item_type, qty) in enumerate(present):
         sx        = start_x + i * (INV_SLOT_SIZE + INV_SLOT_GAP)
@@ -209,7 +282,7 @@ def draw_inventory(screen, font, inventory, selected_item, win_w, win_h):
         pygame.draw.rect(screen, b_color, slot_rect, b_width, border_radius=6)
 
         lbl_text = ITEM_LABELS.get(item_type, item_type)
-        lbl      = font.render(lbl_text, True, (255, 255, 255))
+        lbl = font.render(lbl_text, True, (255, 255, 255))
         screen.blit(lbl, (
             sx + (INV_SLOT_SIZE - lbl.get_width())  // 2,
             slot_y + (INV_SLOT_SIZE - lbl.get_height()) // 2,
@@ -238,7 +311,7 @@ def draw_pause_screen(screen, big_font, font):
     overlay = pygame.Surface((w, h), pygame.SRCALPHA)
     overlay.fill((0, 0, 0, 140))
     screen.blit(overlay, (0, 0))
-    pt = big_font.render("PAUSE", True, (255, 255, 255))
+    pt = big_font.render("PAUSE", True, COLORS["accent"])
     screen.blit(pt, ((w - pt.get_width()) // 2, (h - pt.get_height()) // 2 - 30))
     hint = font.render("Appuyez sur P pour reprendre", True, (200, 200, 200))
     screen.blit(hint, ((w - hint.get_width()) // 2, (h - hint.get_height()) // 2 + 30))
@@ -376,7 +449,7 @@ def draw_levelup_banner(screen, big_font, font, choices, mouse_pos, clicked):
         screen.blit(nlbl, (cx + (card_w - nlbl.get_width()) // 2, card_y + 108))
 
         # Description
-        desc_font = pygame.font.SysFont(None, 18)
+        desc_font = get_font("sm")
         desc_lines = TOWER_DESCS.get(tower_type, "").split("\n")
         for li, line in enumerate(desc_lines):
             dl = desc_font.render(line, True, (200, 220, 255))
@@ -387,3 +460,25 @@ def draw_levelup_banner(screen, big_font, font, choices, mouse_pos, clicked):
             chosen = tower_type
 
     return chosen
+
+
+def draw_toasts(screen, toasts):
+    if not toasts:
+        return
+    w, _ = screen.get_size()
+    y = 20
+    font = get_font("sm", bold=True)
+    for toast in toasts[-4:]:
+        ttl = max(1, toast.get("ttl", 1))
+        alpha = min(230, max(70, int(255 * (ttl / toast.get("max_ttl", ttl)))))
+        text = toast.get("text", "")
+        color = toast.get("color", COLORS["text"])
+        lbl = font.render(text, True, color)
+        pad = 10
+        rect = pygame.Rect(w - lbl.get_width() - 24 - pad * 2, y, lbl.get_width() + pad * 2, lbl.get_height() + pad * 2)
+        box = pygame.Surface((rect.w, rect.h), pygame.SRCALPHA)
+        box.fill((20, 24, 34, alpha))
+        screen.blit(box, rect.topleft)
+        pygame.draw.rect(screen, COLORS["border"], rect, 1, border_radius=8)
+        screen.blit(lbl, (rect.x + pad, rect.y + pad))
+        y += rect.h + 8
