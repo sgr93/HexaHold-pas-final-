@@ -1,5 +1,5 @@
 {
-  "coins": 70,
+  "coins": 10,
   "inventory_equipment": [
     {
       "slot": "tour",
@@ -104,6 +104,34 @@
         120,
         255
       ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Commun",
+      "stat": "speed",
+      "value": 0.3,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Épique",
+      "stat": "speed",
+      "value": 1.0,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
     }
   ],
   "equipped": {
@@ -119,8 +147,8 @@
     "mine"
   ],
   "music_volume": 0.8,
-  "sound_volume": 0.8,
-  "fullscreen": false,
+  "sound_volume": 0.16,
+  "fullscreen": true,
   "skill_points": 0,
   "skills_unlocked": {
     "force_1": true,
@@ -147,5 +175,19 @@
     "hybrid_resist_tower": false,
     "hybrid_tower_power": false,
     "hybrid_power_force": false
-  }
+  },
+  "gems": 0,
+  "quests_completed": {
+    "mission_premiere_tour": true
+  },
+  "level": 1,
+  "xp": 10,
+  "battles_won": 0,
+  "towers_placed": 4,
+  "enemies_killed": 0,
+  "max_wave_reached": 0,
+  "daily_quests_completed": {},
+  "events_completed": {},
+  "player_icon": "icone0.png",
+  "xp_next": 30
 }

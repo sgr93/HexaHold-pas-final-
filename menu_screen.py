@@ -13,8 +13,10 @@ import save_data as sd
 from config import (
     DIFFICULTY_LEVELS, CHEST_COSTS, RARITIES, RARITY_COLORS, RARITY_WEIGHTS,
     EQUIPMENT_SLOTS, EQUIPMENT_STATS, ALL_TOWER_TYPES, TOWER_SLOT_COUNT,
+    LEVEL_START, XP_START, XP_TO_NEXT_LVL_START, XP_GROWTH_FACTOR,
 )
 from ui import ITEM_LABELS, ITEM_COLORS
+import quetes as quetes_module
 
 # ============================================================
 # COLORS FROM THEME (INLINED)
@@ -39,6 +41,59 @@ def get_font(size_key="md", bold=False):
     size = sizes.get(size_key, 22)
     return pygame.font.SysFont("arial", size, bold=bold)
 
+def calculate_level_info(total_xp):
+    """Calcule le niveau actuel et l'XP nécessaire pour le niveau suivant."""
+    level = LEVEL_START
+    xp_to_next = XP_TO_NEXT_LVL_START
+    remaining_xp = total_xp
+
+    while remaining_xp >= xp_to_next:
+        remaining_xp -= xp_to_next
+        level += 1
+        xp_to_next = int(xp_to_next * XP_GROWTH_FACTOR)
+
+    return level, remaining_xp, xp_to_next
+
+ICON_PATH = os.path.join(os.path.dirname(__file__), "assets", "sprites")
+_icon_cache = {}
+
+def load_icon(name, size=None):
+    key = (name, size)
+    if key in _icon_cache:
+        return _icon_cache[key]
+
+    # Cherche d'abord dans assets/sprites/, puis assets/ en fallback
+    for folder in [
+        os.path.join(os.path.dirname(__file__), "assets", "sprites"),
+        os.path.join(os.path.dirname(__file__), "assets"),
+    ]:
+        path = os.path.join(folder, f"{name}.png")
+        try:
+            img = pygame.image.load(path).convert_alpha()
+            if size:
+                img = pygame.transform.smoothscale(img, (size, size))
+            _icon_cache[key] = img
+            return _icon_cache[key]
+        except Exception:
+            pass
+
+    print(f"[WARN] Icon not found: {name}.png")
+    _icon_cache[key] = None
+    return None
+
+def add_xp(player, amount):
+    player["xp"] += amount
+
+    # Level up en boucle (si gros gain d'XP)
+    while player["xp"] >= player["xp_next"]:
+        player["xp"] -= player["xp_next"]
+        player["level"] += 1
+
+        # Scaling du level (tu peux ajuster)
+        player["xp_next"] = int(player["xp_next"] * 1.25)
+
+        print(f"Level UP ! Niveau {player['level']}")
+        
 def draw_panel(screen, rect, alt=False):
     """Dessine un panneau stylisé."""
     bg = COLORS["panel_alt"] if alt else COLORS["panel"]
@@ -56,13 +111,52 @@ def draw_button(screen, rect, hovered=False, active=False):
     pygame.draw.rect(screen, color, rect, border_radius=RADIUS["md"])
     pygame.draw.rect(screen, COLORS["accent"] if hovered else COLORS["border"], rect, 2, border_radius=RADIUS["md"])
 
+# ── Cache des sprites d'icônes (pieces.png / gemmes.png) ─────────────────────
+_ICON_SPRITE_CACHE: dict = {}
+_ASSETS_DIR = os.path.join(os.path.dirname(__file__), "assets", "sprites")
+
+def _load_icon_sprite(filename, size):
+    """Charge et met en cache un sprite PNG redimensionné à (size, size). Retourne None si absent."""
+    key = (filename, size)
+    if key in _ICON_SPRITE_CACHE:
+        return _ICON_SPRITE_CACHE[key]
+    path = os.path.join(_ASSETS_DIR, filename)
+    surf = None
+    if os.path.isfile(path):
+        try:
+            img = pygame.image.load(path).convert_alpha()
+            surf = pygame.transform.smoothscale(img, (size, size))
+        except Exception as e:
+            print(f"[menu_screen] Impossible de charger {filename}: {e}")
+    _ICON_SPRITE_CACHE[key] = surf
+    return surf
+
+
 def _get_icon(name, size=18, color=(255, 255, 255)):
-    """Crée une petite icône vectorielle."""
+    """
+    Retourne une surface icône.
+    Pour 'coin' -> tente pieces.png, fallback vectoriel.
+    Pour 'gem'  -> tente gemmes.png, fallback vectoriel.
+    """
+    if name == "coin":
+        img = _load_icon_sprite("pieces.png", size)
+        if img is not None:
+            return img
+    elif name == "gem":
+        img = _load_icon_sprite("gemmes.png", size)
+        if img is not None:
+            return img
+
+    # Fallback vectoriel
     surf = pygame.Surface((size, size), pygame.SRCALPHA)
     cx, cy = size // 2, size // 2
     if name == "coin":
         pygame.draw.circle(surf, color, (cx, cy), size // 2 - 1)
         pygame.draw.circle(surf, (40, 30, 0), (cx, cy), size // 2 - 1, 1)
+    elif name == "gem":
+        points = [(cx, 1), (size-2, cy//2), (cx, size-2), (2, cy//2)]
+        pygame.draw.polygon(surf, color, points)
+        pygame.draw.polygon(surf, (color[0]//2, color[1]//2, color[2]//2), points, 1)
     elif name == "hp":
         pygame.draw.polygon(surf, color, [(cx, 2), (size - 2, cy), (cx, size - 2), (2, cy)])
     elif name == "speed":
@@ -70,6 +164,178 @@ def _get_icon(name, size=18, color=(255, 255, 255)):
     else:
         pygame.draw.circle(surf, color, (cx, cy), size // 2 - 2, 2)
     return surf
+
+def draw_player_info(screen, font, small_font, player, x=20, y=20):
+    """
+    player doit contenir :
+    {
+        "level":       int,
+        "xp":          int,
+        "xp_next":     int,
+        "player_icon": str (optionnel, ex: "icone0.png")
+    }
+    Retourne le pygame.Rect de l'icône joueur (pour détecter le clic).
+    """
+    ICON_SIZE = 48
+    BAR_WIDTH = 160
+    BAR_HEIGHT = 10
+
+    # === Icône joueur ===
+    icon_name = player.get("player_icon", "icone0")
+    if icon_name.endswith(".png"):
+        icon_name = icon_name[:-4]
+    icon = load_icon(icon_name, ICON_SIZE)
+    icon_rect = pygame.Rect(x, y, ICON_SIZE, ICON_SIZE)
+    if icon:
+        screen.blit(icon, (x, y))
+    else:
+        pygame.draw.rect(screen, (80, 80, 80), icon_rect)
+
+    # Bordure dorée au survol pour indiquer que c'est cliquable
+    mx_cur, my_cur = pygame.mouse.get_pos()
+    if icon_rect.collidepoint(mx_cur, my_cur):
+        pygame.draw.rect(screen, (255, 205, 92), icon_rect, 2, border_radius=6)
+    else:
+        pygame.draw.rect(screen, (100, 100, 120), icon_rect, 1, border_radius=6)
+
+    # === Texte niveau ===
+    lvl_text = font.render(f"Niv. {player['level']}", True, (255, 255, 255))
+    text_x = x + ICON_SIZE + 10
+    text_y = y + 4
+    screen.blit(lvl_text, (text_x, text_y))
+
+    # === Barre XP ===
+    xp = player["xp"]
+    xp_next = max(1, player["xp_next"])
+    ratio = max(0, min(1, xp / xp_next))
+
+    bar_x = text_x
+    bar_y = text_y + lvl_text.get_height() + 6
+
+    pygame.draw.rect(screen, (50, 50, 50), (bar_x, bar_y, BAR_WIDTH, BAR_HEIGHT), border_radius=4)
+    pygame.draw.rect(screen, (100, 200, 255),
+                     (bar_x, bar_y, int(BAR_WIDTH * ratio), BAR_HEIGHT), border_radius=4)
+    pygame.draw.rect(screen, (255, 255, 255),
+                     (bar_x, bar_y, BAR_WIDTH, BAR_HEIGHT), 1, border_radius=4)
+
+    xp_text = small_font.render(f"{xp}/{xp_next}", True, (200, 200, 200))
+    screen.blit(xp_text, (bar_x, bar_y + BAR_HEIGHT + 4))
+
+    return icon_rect
+
+
+def _scan_available_icons():
+    """
+    Scanne assets/sprites/ et retourne la liste des PNG dont le nom
+    commence par 'icone'. Si aucun trouvé, retourne tous les PNG du dossier.
+    """
+    folder = os.path.join(os.path.dirname(__file__), "assets", "sprites")
+    if not os.path.isdir(folder):
+        return []
+    all_pngs = [f for f in os.listdir(folder) if f.lower().endswith(".png")]
+    icone_pngs = sorted([f for f in all_pngs if f.lower().startswith("icone")])
+    return icone_pngs if icone_pngs else sorted(all_pngs)
+
+
+def draw_icon_picker(screen, font_sm, font_xs, save, mx, my, clicked):
+    """
+    Dessine le popup de sélection d'icône joueur.
+    Retourne True quand le popup doit se fermer (bouton ✕ cliqué ou icône sélectionnée).
+    Modifie save["player_icon"] directement si une icône est choisie.
+    """
+    icons = _scan_available_icons()
+    if not icons:
+        return True
+
+    CELL = 64
+    COLS_PICKER = 5
+    PAD = 14
+    TITLE_H = 36
+
+    rows = (len(icons) + COLS_PICKER - 1) // COLS_PICKER
+    pop_w = COLS_PICKER * (CELL + PAD) + PAD
+    pop_h = TITLE_H + rows * (CELL + PAD) + PAD
+
+    w_scr, _ = screen.get_size()
+    pop_x = max(10, min(20, w_scr - pop_w - 10))
+    pop_y = 95
+    pop_rect = pygame.Rect(pop_x, pop_y, pop_w, pop_h)
+
+    # Fond du popup
+    _draw_rounded_rect(screen, (20, 24, 40), pop_rect, radius=12,
+                       border=2, border_color=(88, 103, 138))
+
+    # Titre
+    title_lbl = font_sm.render("Choisir une icône", True, (236, 240, 250))
+    screen.blit(title_lbl, (pop_rect.x + PAD, pop_rect.y + (TITLE_H - title_lbl.get_height()) // 2))
+
+    # Bouton ✕ en haut à droite
+    close_r = 12
+    close_cx = pop_rect.right - close_r - 8
+    close_cy = pop_rect.y + TITLE_H // 2
+    close_rect = pygame.Rect(close_cx - close_r, close_cy - close_r, close_r * 2, close_r * 2)
+    close_hov = close_rect.collidepoint(mx, my)
+    pygame.draw.circle(screen, (200, 60, 60) if close_hov else (140, 50, 50), (close_cx, close_cy), close_r)
+    pygame.draw.circle(screen, (255, 100, 100), (close_cx, close_cy), close_r, 1)
+    x_lbl = font_xs.render("✕", True, (255, 220, 220))
+    screen.blit(x_lbl, (close_cx - x_lbl.get_width() // 2, close_cy - x_lbl.get_height() // 2))
+
+    if clicked and close_rect.collidepoint(mx, my):
+        return True  # fermeture demandée
+
+    # Séparateur sous le titre
+    pygame.draw.line(screen, (60, 70, 100),
+                     (pop_rect.x + 8, pop_rect.y + TITLE_H),
+                     (pop_rect.right - 8, pop_rect.y + TITLE_H), 1)
+
+    current_icon = save.get("player_icon", "icone0.png")
+
+    for idx, fname in enumerate(icons):
+        col_i = idx % COLS_PICKER
+        row_i = idx // COLS_PICKER
+        cx = pop_rect.x + PAD + col_i * (CELL + PAD)
+        cy = pop_rect.y + TITLE_H + PAD // 2 + row_i * (CELL + PAD)
+        cell_rect = pygame.Rect(cx, cy, CELL, CELL)
+
+        is_selected = (fname == current_icon)
+        is_hovered  = cell_rect.collidepoint(mx, my)
+
+        bg_col     = (60, 80, 60)   if is_selected else ((50, 60, 80) if is_hovered else (29, 35, 51))
+        border_col = (96, 224, 138) if is_selected else ((255, 205, 92) if is_hovered else (60, 70, 95))
+        _draw_rounded_rect(screen, bg_col, cell_rect, radius=8, border=2, border_color=border_col)
+
+        icon_name = fname[:-4] if fname.endswith(".png") else fname
+        img = load_icon(icon_name, CELL - 8)
+        if img:
+            screen.blit(img, (cx + 4, cy + 4))
+        else:
+            lbl = font_xs.render(icon_name[:7], True, (180, 180, 180))
+            screen.blit(lbl, (cx + CELL // 2 - lbl.get_width() // 2,
+                               cy + CELL // 2 - lbl.get_height() // 2))
+
+        if clicked and cell_rect.collidepoint(mx, my):
+            save["player_icon"] = fname
+            import save_data as _sd
+            _sd.save(save)
+            # On ne ferme PAS automatiquement, le joueur peut continuer à changer
+
+    return False  # rester ouvert
+
+
+def _inline_currency(screen, font, value, currency, x, y, color=None, icon_size=18):
+    """
+    Affiche l'icône currency (pieces.png ou gemmes.png) suivie du texte value.
+    currency = 'coins' ou 'gems'.
+    Retourne la largeur totale rendue.
+    """
+    icon_name = "coin" if currency == "coins" else "gem"
+    default_color = (255, 205, 92) if currency == "coins" else (255, 100, 255)
+    text_color = color or default_color
+    icon = _get_icon(icon_name, icon_size)
+    text_surf = font.render(str(value), True, text_color)
+    screen.blit(icon, (x, y + (text_surf.get_height() - icon_size) // 2))
+    screen.blit(text_surf, (x + icon_size + 4, y))
+    return icon_size + 4 + text_surf.get_width()
 
 
 # ── Couleurs ──────────────────────────────────────────────────────────────
@@ -88,6 +354,9 @@ C_TAB_INACT = (31, 38, 57)
 C_GREEN = COLORS["success"]
 C_RED = COLORS["danger"]
 
+font = pygame.font.SysFont("arial", 24)
+small_font = pygame.font.SysFont("arial", 16)
+
 DIFF_COLORS = {
     1: (80,  200, 100),
     2: (140, 220, 80 ),
@@ -97,18 +366,22 @@ DIFF_COLORS = {
 }
 
 CHEST_INFO = {
-    "wood":   {"label": "Coffre en Bois",   "color": (139, 90,  43 ), "cost": CHEST_COSTS["wood"]  },
-    "silver": {"label": "Coffre en Argent", "color": (170, 180, 200), "cost": CHEST_COSTS["silver"]},
-    "gold":   {"label": "Coffre en Or",     "color": (220, 180, 30 ), "cost": CHEST_COSTS["gold"]  },
+    "wood":   {"label": "Coffre en Bois",   "color": (139, 90,  43 ), "cost": CHEST_COSTS["wood"],  "currency": "coins"},
+    "silver": {"label": "Coffre en Argent", "color": (170, 180, 200), "cost": CHEST_COSTS["silver"],"currency": "coins"},
+    "gold":   {"label": "Coffre en Or",     "color": (220, 180, 30 ), "cost": CHEST_COSTS["gold"],  "currency": "coins"},
+    "gem_common": {"label": "Coffre Gemme Commun",   "color": (200, 100, 200), "cost": CHEST_COSTS["gem_common"],      "currency": "gems"},
+    "gem_epic": {"label": "Coffre Gemme Épique",     "color": (255, 150, 255), "cost": CHEST_COSTS["gem_epic"],        "currency": "gems"},
+    "gem_legendary": {"label": "Coffre Gemme Légendaire", "color": (255, 0, 255), "cost": CHEST_COSTS["gem_legendary"], "currency": "gems"},
 }
 
 SLOT_ICONS = {
-    "cape":   "⛨",
-    "veste":   "🛡",
-    "bottes": "👖",
-    "arme":     "⚔",
-    "tour":     "🗼",
+    "cape":   "",
+    "veste":   "",
+    "bottes": "",
+    "arme":     "",
+    "tour":     "",
 }
+
 SLOT_LABELS = {
     "cape":   "Cape",
     "veste":   "Veste",
@@ -396,7 +669,7 @@ def run_menu(screen, clock, save=None):
     font_sm = get_font("sm")
     font_xs = get_font("xs")
 
-    tabs       = ["Menu Principal", "Gacha", "Équipement", "Skill Tree"]
+    tabs       = ["Menu Principal", "Gacha", "Équipement", "Skill Tree", "Quêtes"]
     active_tab = 0
 
     # État gacha
@@ -414,6 +687,11 @@ def run_menu(screen, clock, save=None):
     save.setdefault("tower_loadout", ALL_TOWER_TYPES[:TOWER_SLOT_COUNT])
     if len(save["tower_loadout"]) < TOWER_SLOT_COUNT:
         save["tower_loadout"] = (save["tower_loadout"] + ALL_TOWER_TYPES)[:TOWER_SLOT_COUNT]
+
+    quest_section_active = "quotidiennes"
+    event_type_scroll = 0
+    available_quests_clicked = None
+    icon_picker_open = False
 
     running = True
     chosen_level = None
@@ -440,14 +718,36 @@ def run_menu(screen, clock, save=None):
         title = font_big.render("HEXAHOLD", True, C_ACCENT)
         screen.blit(title, (w // 2 - title.get_width() // 2, 16))
 
-        # Pièces
-        coins_lbl = font_med.render(f"{save['coins']} pièces", True, C_ACCENT)
-        screen.blit(_get_icon("coin", 18, C_ACCENT), (w - coins_lbl.get_width() - 44, 24))
-        screen.blit(coins_lbl, (w - coins_lbl.get_width() - 20, 20))
+        # Pièces (icône + valeur)
+        _hdr_coins_txt = font_med.render(str(save['coins']), True, C_ACCENT)
+        _hdr_coin_ico  = _get_icon("coin", 22)
+        _hdr_cx = w - _hdr_coins_txt.get_width() - 22 - 8 - 12
+        screen.blit(_hdr_coin_ico,  (_hdr_cx, 18))
+        screen.blit(_hdr_coins_txt, (_hdr_cx + 26, 18))
 
+        # Gemmes (icône + valeur)
+        _hdr_gems_txt = font_med.render(str(save.get('gems', 0)), True, (255, 100, 255))
+        _hdr_gem_ico  = _get_icon("gem", 22)
+        _hdr_gx = _hdr_cx - _hdr_gems_txt.get_width() - 22 - 8 - 20
+        screen.blit(_hdr_gem_ico,  (_hdr_gx, 18))
+        screen.blit(_hdr_gems_txt, (_hdr_gx + 26, 18))
+        
+        # Icône et progression du joueur (données réelles depuis la sauvegarde)
+        _player_display = {
+            "level":       save.get("level", 1),
+            "xp":          save.get("xp", 0),
+            "xp_next":     save.get("xp_next", 30),
+            "player_icon": save.get("player_icon", "icone0.png"),
+        }
+        _icon_rect = draw_player_info(screen, font, small_font, _player_display)
+        if clicked and _icon_rect.collidepoint(mx, my):
+            icon_picker_open = True
+            _icon_picker_just_opened = True
+        else:
+            _icon_picker_just_opened = False
         # ── Onglets ────────────────────────────────────────────────────────
         tab_h   = 40
-        tab_y   = 65
+        tab_y   = 95
         tab_w   = w // len(tabs)
         tab_rects = []
         for i, tab in enumerate(tabs):
@@ -490,10 +790,12 @@ def run_menu(screen, clock, save=None):
                 screen.blit(name_lbl, (btn.x + 18, btn.y + 8))
 
                 detail = font_xs.render(
-                    f"{info['waves']} vagues  |  Mult. ennemis ×{info['enemy_hp_mult']}  |  Récompense : {info['coins_reward']} pièces",
+                    f"{info['waves']} vagues  |  Mult. ennemis x{info['enemy_hp_mult']}  |  Recompense : {info['coins_reward']}",
                     True, C_SUBTEXT
                 )
                 screen.blit(detail, (btn.x + 18, btn.y + 38))
+                _coin_ico_d = _get_icon("coin", 14)
+                screen.blit(_coin_ico_d, (btn.x + 18 + detail.get_width() + 4, btn.y + 38))
 
                 if clicked and hov:
                     chosen_level = lvl
@@ -508,9 +810,9 @@ def run_menu(screen, clock, save=None):
         # TAB 1 : GACHA
         # ────────────────────────────────────────────────────────────────────
         elif active_tab == 1:
-            # Panneau coffres
-            panel_w = min(700, w - 40)
-            panel   = pygame.Rect(w // 2 - panel_w // 2, content_y + 10, panel_w, 200)
+            # Panneau coffres - 2 rang?es : pi?ces et gemmes
+            panel_w = min(900, w - 40)
+            panel   = pygame.Rect(w // 2 - panel_w // 2, content_y + 10, panel_w, 490)
             _draw_rounded_rect(screen, C_PANEL, panel, radius=12)
             sub = font_med.render("Ouvrir un coffre", True, C_TEXT)
             screen.blit(sub, (panel.x + (panel.w - sub.get_width()) // 2, panel.y + 12))
@@ -519,11 +821,20 @@ def run_menu(screen, clock, save=None):
             chest_y     = panel.y + 50
             chest_btn_rects = {}
             info_btn_rects  = {}   # boutons ⓘ par ctype
-            for ci, (ctype, cinfo) in enumerate(CHEST_INFO.items()):
-                cx   = panel.x + 30 + ci * (chest_btn_w + 20)
+
+            # 2 rangées : coins (0-2) et gems (3-5)
+            coin_chests = [(ct, ci) for ct, ci in CHEST_INFO.items() if ci["currency"] == "coins"]
+            gem_chests  = [(ct, ci) for ct, ci in CHEST_INFO.items() if ci["currency"] == "gems"]
+
+            # Label rangée 1
+            row1_lbl = font_xs.render("─── Coffres à pièces ───", True, C_ACCENT)
+            screen.blit(row1_lbl, (panel.x + (panel.w - row1_lbl.get_width()) // 2, chest_y - 18))
+
+            for ci_idx, (ctype, cinfo) in enumerate(coin_chests):
+                cx   = panel.x + 30 + ci_idx * (chest_btn_w + 20)
                 cbtn = pygame.Rect(cx, chest_y, chest_btn_w, 110)
                 hov  = cbtn.collidepoint(mx, my)
-                can  = save["coins"] >= cinfo["cost"]
+                can  = save.get("coins", 0) >= cinfo["cost"]
                 col  = (min(cinfo["color"][0]+20, 255),
                          min(cinfo["color"][1]+20, 255),
                          min(cinfo["color"][2]+20, 255)) if hov and can else cinfo["color"]
@@ -533,30 +844,81 @@ def run_menu(screen, clock, save=None):
 
                 lbl = font_sm.render(cinfo["label"], True, (255,255,255))
                 screen.blit(lbl, (cbtn.x + (cbtn.w - lbl.get_width()) // 2, cbtn.y + 12))
-
-                cost_lbl = font_sm.render(f"{cinfo['cost']} 💰", True,
-                                          C_ACCENT if can else C_RED)
-                screen.blit(cost_lbl, (cbtn.x + (cbtn.w - cost_lbl.get_width()) // 2,
-                                        cbtn.y + 45))
-
+                _cost_icon = _get_icon("coin", 18)
+                _cost_txt  = font_sm.render(str(cinfo['cost']), True, C_ACCENT if can else C_RED)
+                _cost_total_w = 18 + 4 + _cost_txt.get_width()
+                _cost_x = cbtn.x + (cbtn.w - _cost_total_w) // 2
+                screen.blit(_cost_icon, (_cost_x, cbtn.y + 45))
+                screen.blit(_cost_txt,  (_cost_x + 22, cbtn.y + 45))
                 if not can:
                     nl = font_xs.render("Insuffisant", True, C_RED)
                     screen.blit(nl, (cbtn.x + (cbtn.w - nl.get_width()) // 2, cbtn.y + 75))
 
-                # ── Bouton ⓘ en haut à droite du coffre ──
                 info_r = 10
                 info_cx = cbtn.right - info_r - 5
                 info_cy = cbtn.top   + info_r + 5
-                info_btn = pygame.Rect(info_cx - info_r, info_cy - info_r,
-                                       info_r * 2, info_r * 2)
+                info_btn = pygame.Rect(info_cx - info_r, info_cy - info_r, info_r * 2, info_r * 2)
                 info_btn_rects[ctype] = info_btn
                 info_hov = info_btn.collidepoint(mx, my)
                 info_col = (220, 220, 255) if info_hov else (160, 170, 210)
                 pygame.draw.circle(screen, info_col, (info_cx, info_cy), info_r)
                 pygame.draw.circle(screen, (40, 50, 80), (info_cx, info_cy), info_r, 1)
                 i_lbl = font_xs.render("i", True, (30, 40, 70))
-                screen.blit(i_lbl, (info_cx - i_lbl.get_width() // 2,
-                                     info_cy - i_lbl.get_height() // 2))
+                screen.blit(i_lbl, (info_cx - i_lbl.get_width() // 2, info_cy - i_lbl.get_height() // 2))
+
+                if clicked and info_btn.collidepoint(mx, my):
+                    gacha_info_popup = None if gacha_info_popup == ctype else ctype
+                elif clicked and hov and can and not info_btn.collidepoint(mx, my):
+                    ok, result = sd.open_chest(save, ctype)
+                    if ok:
+                        last_item_obtained = result
+                        gacha_msg         = f"Obtenu : {result['name']} (+{result['value']} {result['label']})"
+                        gacha_msg_timer   = 240
+                        gacha_info_popup  = None
+                    else:
+                        gacha_msg       = result
+                        gacha_msg_timer = 120
+
+            # Rangée 2 : coffres gemmes
+            gem_row_y = chest_y + 130
+            row2_lbl = font_xs.render("─── Coffres à gemmes ───", True, (255, 100, 255))
+            screen.blit(row2_lbl, (panel.x + (panel.w - row2_lbl.get_width()) // 2, gem_row_y - 18))
+
+            for ci_idx, (ctype, cinfo) in enumerate(gem_chests):
+                cx   = panel.x + 30 + ci_idx * (chest_btn_w + 20)
+                cbtn = pygame.Rect(cx, gem_row_y, chest_btn_w, 110)
+                hov  = cbtn.collidepoint(mx, my)
+                can  = save.get("gems", 0) >= cinfo["cost"]
+                col  = (min(cinfo["color"][0]+20, 255),
+                         min(cinfo["color"][1]+20, 255),
+                         min(cinfo["color"][2]+20, 255)) if hov and can else cinfo["color"]
+                bdr  = (255, 100, 255) if can else (80, 80, 80)
+                _draw_rounded_rect(screen, col, cbtn, radius=10, border=2, border_color=bdr)
+                chest_btn_rects[ctype] = cbtn
+
+                lbl = font_sm.render(cinfo["label"], True, (255,255,255))
+                screen.blit(lbl, (cbtn.x + (cbtn.w - lbl.get_width()) // 2, cbtn.y + 12))
+                _cost_icon_g = _get_icon("gem", 18)
+                _cost_txt_g  = font_sm.render(str(cinfo['cost']), True, (255, 100, 255) if can else C_RED)
+                _cost_total_w_g = 18 + 4 + _cost_txt_g.get_width()
+                _cost_x_g = cbtn.x + (cbtn.w - _cost_total_w_g) // 2
+                screen.blit(_cost_icon_g, (_cost_x_g, cbtn.y + 45))
+                screen.blit(_cost_txt_g,  (_cost_x_g + 22, cbtn.y + 45))
+                if not can:
+                    nl = font_xs.render("Insuffisant", True, C_RED)
+                    screen.blit(nl, (cbtn.x + (cbtn.w - nl.get_width()) // 2, cbtn.y + 75))
+
+                info_r = 10
+                info_cx = cbtn.right - info_r - 5
+                info_cy = cbtn.top   + info_r + 5
+                info_btn = pygame.Rect(info_cx - info_r, info_cy - info_r, info_r * 2, info_r * 2)
+                info_btn_rects[ctype] = info_btn
+                info_hov = info_btn.collidepoint(mx, my)
+                info_col = (220, 220, 255) if info_hov else (160, 170, 210)
+                pygame.draw.circle(screen, info_col, (info_cx, info_cy), info_r)
+                pygame.draw.circle(screen, (40, 50, 80), (info_cx, info_cy), info_r, 1)
+                i_lbl = font_xs.render("i", True, (30, 40, 70))
+                screen.blit(i_lbl, (info_cx - i_lbl.get_width() // 2, info_cy - i_lbl.get_height() // 2))
 
                 if clicked and info_btn.collidepoint(mx, my):
                     gacha_info_popup = None if gacha_info_popup == ctype else ctype
@@ -637,8 +999,8 @@ def run_menu(screen, clock, save=None):
                         gacha_info_popup = None
 
             # Inventaire équipement scrollable
-            inv_panel = pygame.Rect(w // 2 - panel_w // 2, content_y + 230,
-                                     panel_w, content_h - 240)
+            inv_panel = pygame.Rect(w // 2 - panel_w // 2, content_y + 510,
+                                     panel_w, content_h - 530)
             _draw_rounded_rect(screen, C_PANEL, inv_panel, radius=12)
             inv_title = font_sm.render(f"Équipements obtenus ({len(save['inventory_equipment'])})",
                                        True, C_TEXT)
@@ -1210,6 +1572,151 @@ def run_menu(screen, clock, save=None):
                     
                     lt = tt_font.render(line, True, col)
                     screen.blit(lt, (tt_x + tt_padding, tt_y + tt_padding + li * tt_line_h))
+
+        elif active_tab == 4:
+            quest_panel = pygame.Rect(20, content_y + 10, w - 40, content_h - 10)
+            _draw_rounded_rect(screen, C_PANEL, quest_panel, radius=12)
+
+            quest_title = font_med.render("Quêtes et Missions", True, C_ACCENT)
+            screen.blit(quest_title, (quest_panel.x + (quest_panel.w - quest_title.get_width()) // 2, quest_panel.y + 12))
+
+            section_names = ["Quotidiennes", "Missions", "Événements"]
+            section_ids = ["quotidiennes", "missions", "evenements"]
+            section_tab_h = 36
+            section_tab_y = quest_panel.y + 50
+            section_tab_w = (quest_panel.w - 40) // 3
+
+            for si, (sname, sid) in enumerate(zip(section_names, section_ids)):
+                sr = pygame.Rect(quest_panel.x + 20 + si * (section_tab_w + 10), section_tab_y, section_tab_w, section_tab_h)
+                is_active = (quest_section_active == sid)
+                scol = C_TAB_ACT if is_active else C_TAB_INACT
+                _draw_rounded_rect(screen, scol, sr, radius=8, border=2,
+                                   border_color=C_ACCENT if is_active else C_BTN_BOR)
+                stxt = font_sm.render(sname, True, C_ACCENT if is_active else C_SUBTEXT)
+                screen.blit(stxt, (sr.x + (sr.w - stxt.get_width()) // 2, sr.y + (sr.h - stxt.get_height()) // 2))
+                if clicked and sr.collidepoint(mx, my):
+                    quest_section_active = sid
+
+            content_rect = pygame.Rect(quest_panel.x + 20, section_tab_y + section_tab_h + 12,
+                                        quest_panel.w - 40, quest_panel.h - section_tab_h - 90)
+            _draw_rounded_rect(screen, C_PANEL2, content_rect, radius=10)
+
+            if quest_section_active == "evenements":
+                event_types = quetes_module.get_all_event_types()
+                if event_types:
+                    event_names = {"histoire": "📖 Histoire", "guerre": "⚔️ Guerre", "infini": "♾️ Infini"}
+                    left_btn = pygame.Rect(content_rect.x + 10, content_rect.y + 10, 40, 30)
+                    right_btn = pygame.Rect(content_rect.right - 50, content_rect.y + 10, 40, 30)
+                    left_hov = left_btn.collidepoint(mx, my)
+                    right_hov = right_btn.collidepoint(mx, my)
+                    _draw_rounded_rect(screen, C_BTN_HOV if left_hov else C_BTN, left_btn, radius=6)
+                    _draw_rounded_rect(screen, C_BTN_HOV if right_hov else C_BTN, right_btn, radius=6)
+                    lt = font_sm.render("<", True, C_TEXT)
+                    rt = font_sm.render(">", True, C_TEXT)
+                    screen.blit(lt, (left_btn.x + (left_btn.w - lt.get_width()) // 2, left_btn.y + (left_btn.h - lt.get_height()) // 2))
+                    screen.blit(rt, (right_btn.x + (right_btn.w - rt.get_width()) // 2, right_btn.y + (right_btn.h - rt.get_height()) // 2))
+                    if clicked and left_hov:
+                        event_type_scroll = (event_type_scroll - 1) % len(event_types)
+                    if clicked and right_hov:
+                        event_type_scroll = (event_type_scroll + 1) % len(event_types)
+                    current_event_type = event_types[event_type_scroll % len(event_types)] if event_types else None
+                    if current_event_type:
+                        event_title = font_sm.render(event_names.get(current_event_type, current_event_type), True, C_ACCENT)
+                        screen.blit(event_title, (content_rect.centerx - event_title.get_width() // 2, content_rect.y + 15))
+                        quest_dicts = quetes_module.get_event_quests_by_type(current_event_type)
+                        quest_list = list(quest_dicts.items())
+                    else:
+                        quest_list = []
+                else:
+                    quest_list = []
+            else:
+                quest_dicts = quetes_module.get_quests_by_section(quest_section_active)
+                quest_list = list(quest_dicts.items())
+
+            quest_display_area = pygame.Rect(content_rect.x + 10, content_rect.y + 50,
+                                              content_rect.w - 20, content_rect.h - 60)
+            if not quest_list:
+                no_quest_lbl = font_sm.render("Aucune quête disponible.", True, C_SUBTEXT)
+                screen.blit(no_quest_lbl, (quest_display_area.centerx - no_quest_lbl.get_width() // 2,
+                                            quest_display_area.centery - no_quest_lbl.get_height() // 2))
+            else:
+                q_row_h = 64
+                q_row_gap = 8
+                for qi, (q_id, quest) in enumerate(quest_list):
+                    qy = quest_display_area.y + qi * (q_row_h + q_row_gap)
+                    if qy + q_row_h < quest_display_area.y or qy > quest_display_area.bottom:
+                        continue
+                    q_row = pygame.Rect(quest_display_area.x, qy, quest_display_area.w, q_row_h)
+                    is_completed = quetes_module.check_quest_completion(q_id, save)
+                    is_claimed = quetes_module.has_quest_been_completed(save, q_id)
+                    can_claim = is_completed and not is_claimed
+                    if is_claimed:
+                        q_bg_col = (50, 70, 50)
+                        q_border_col = C_GREEN
+                    elif can_claim:
+                        q_bg_col = (70, 70, 50)
+                        q_border_col = (255, 220, 80)
+                    else:
+                        q_bg_col = C_BTN
+                        q_border_col = C_BTN_BOR
+                    _draw_rounded_rect(screen, q_bg_col, q_row, radius=10, border=2, border_color=q_border_col)
+                    quest_name_col = C_GREEN if is_claimed else (C_ACCENT if can_claim else C_TEXT)
+                    q_name = font_sm.render(quest["nom"], True, quest_name_col)
+                    screen.blit(q_name, (q_row.x + 14, q_row.y + 8))
+                    q_desc = font_xs.render(quest["description"], True, C_SUBTEXT)
+                    screen.blit(q_desc, (q_row.x + 14, q_row.y + 30))
+                    # Affichage des récompenses avec icônes
+                    _rw_x = q_row.right - 14
+                    _rw_y = q_row.y + 50
+                    if quest.get("gemmes"):
+                        _gem_txt = font_xs.render(f"+{quest['gemmes']}", True, (255, 100, 255))
+                        _gem_ico = _get_icon("gem", 14)
+                        _rw_x -= _gem_txt.get_width()
+                        screen.blit(_gem_txt, (_rw_x, _rw_y))
+                        _rw_x -= 16
+                        screen.blit(_gem_ico, (_rw_x, _rw_y))
+                        _rw_x -= 6
+                    if quest.get("pieces"):
+                        _coin_txt = font_xs.render(f"+{quest['pieces']}", True, (255, 205, 92))
+                        _coin_ico = _get_icon("coin", 14)
+                        _rw_x -= _coin_txt.get_width()
+                        screen.blit(_coin_txt, (_rw_x, _rw_y))
+                        _rw_x -= 16
+                        screen.blit(_coin_ico, (_rw_x, _rw_y))
+                        _rw_x -= 6
+                    if quest.get("xp"):
+                        _xp_txt = font_xs.render(f"+{quest['xp']} XP", True, (200, 200, 100))
+                        _rw_x -= _xp_txt.get_width()
+                        screen.blit(_xp_txt, (_rw_x, _rw_y))
+                    if not is_claimed:
+                        claim_btn = pygame.Rect(q_row.right - 100, q_row.y + 14, 86, 30)
+                        claim_hov = claim_btn.collidepoint(mx, my)
+                        if can_claim:
+                            claim_col = C_BTN_HOV if claim_hov else (100, 200, 100)
+                            claim_txt = "Réclamer"
+                            if clicked and claim_btn.collidepoint(mx, my):
+                                ok, reward_quest = quetes_module.claim_quest_reward(save, q_id)
+                                if ok:
+                                    sd.save(save)
+                        else:
+                            claim_col = (80, 80, 80)
+                            claim_txt = "En cours..."
+                        _draw_rounded_rect(screen, claim_col, claim_btn, radius=6, border=1, border_color=C_BTN_BOR)
+                        btn_lbl = font_xs.render(claim_txt, True, C_TEXT)
+                        screen.blit(btn_lbl, (claim_btn.x + (claim_btn.w - btn_lbl.get_width()) // 2,
+                                               claim_btn.y + (claim_btn.h - btn_lbl.get_height()) // 2))
+                    else:
+                        status_lbl = font_xs.render("? Complétée", True, C_GREEN)
+                        screen.blit(status_lbl, (q_row.right - status_lbl.get_width() - 14, q_row.y + 22))
+
+        # ── Popup sélection icône joueur (par-dessus tout) ───────────────
+        if icon_picker_open:
+            should_close = draw_icon_picker(
+                screen, font_sm, font_xs, save, mx, my,
+                clicked and not _icon_picker_just_opened
+            )
+            if should_close:
+                icon_picker_open = False
 
         pygame.display.flip()
         clock.tick(60)

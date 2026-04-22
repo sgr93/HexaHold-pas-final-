@@ -8,7 +8,7 @@ et LEVEL-UP BANNER (choix de tour en pause).
 import os
 import random
 import pygame
-from config import ALL_TOWER_TYPES, GRID_WIDTH, GRID_HEIGHT, GRID_SIZE, COLS, ROWS
+from config import ALL_TOWER_TYPES, GRID_WIDTH, GRID_HEIGHT, GRID_SIZE, COLS, ROWS, INTERFACE_WIDTH
 
 # ============================================================
 # COLORS & UI CONSTANTS
@@ -154,7 +154,7 @@ def draw_pause_button(screen, offset_x, offset_y, mx, my):
     Dessine le bouton pause en haut à droite de la grille.
     Retourne le pygame.Rect du bouton (pour détecter les clics).
     """
-    btn_x = offset_x + GRID_WIDTH - PAUSE_BTN_SIZE - 6
+    btn_x = offset_x + GRID_WIDTH + INTERFACE_WIDTH - PAUSE_BTN_SIZE - 6
     btn_y = offset_y - PAUSE_BTN_SIZE - 6
     btn_rect = pygame.Rect(btn_x, btn_y, PAUSE_BTN_SIZE, PAUSE_BTN_SIZE)
     hov = btn_rect.collidepoint(mx, my)

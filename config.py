@@ -124,28 +124,35 @@ CHEST_COSTS = {
     "wood":   30,
     "silver": 80,
     "gold":   200,
+    "gem_common": 5,
+    "gem_epic": 15,
+    "gem_legendary": 50,
 }
 
-RARITIES = ["Commun", "Rare", "Épique", "Légendaire"]
+RARITIES = ["Commun", "Rare", "Épique", "Légendaire", "Mythique"]
 RARITY_COLORS = {
     "Commun":    (180, 180, 180),
     "Rare":      (60,  120, 255),
     "Épique":    (160, 60,  255),
     "Légendaire":(255, 180, 0  ),
+    "Mythique":  (255, 0,   255),
 }
 RARITY_WEIGHTS = {
-    "wood":   [60, 30, 9,  1 ],
-    "silver": [30, 40, 22, 8 ],
-    "gold":   [10, 25, 40, 25],
+    "wood":   [70, 20, 8,   1,  1  ],  # Diminué les chances rares/épiques/légendaires
+    "silver": [45, 35, 15,  4,  1  ],
+    "gold":   [20, 25, 30,  20, 5  ],
+    "gem_common": [5, 15, 30, 35, 15],    # Coffre commun en gemmes : beaucoup de rares
+    "gem_epic": [2, 8, 30, 40, 20],      # Coffre épique en gemmes : beaucoup de légendaires
+    "gem_legendary": [0, 3, 15, 32, 50], # Coffre légendaire en gemmes : 50% mythique!
 }
 
 EQUIPMENT_SLOTS = ["cape", "veste", "bottes", "arme", "tour"]
 
 EQUIPMENT_STATS = {
-    "cape":   {"stat": "max_hp",       "label": "Vie max",         "values": {"Commun": 10, "Rare": 20, "Épique": 35, "Légendaire": 60}},
-    "veste":   {"stat": "attack_speed", "label": "Vitesse attaque", "values": {"Commun": 3,  "Rare": 6,  "Épique": 10, "Légendaire": 18}},
-    "bottes": {"stat": "speed",        "label": "Vitesse",         "values": {"Commun": 0.3,"Rare": 0.6,"Épique": 1.0,"Légendaire": 1.8}},
-    "arme":     {"stat": "damage",       "label": "Puissance att.",  "values": {"Commun": 3,  "Rare": 6,  "Épique": 11, "Légendaire": 20}},
-    "tour":     {"stat": "tower_bonus",  "label": "Bonus tour",      "values": {"Commun": 5,  "Rare": 12, "Épique": 22, "Légendaire": 40}},
+    "cape":   {"stat": "max_hp",       "label": "Vie max",         "values": {"Commun": 10, "Rare": 20, "Épique": 35, "Légendaire": 60, "Mythique": 100}},
+    "veste":   {"stat": "attack_speed", "label": "Vitesse attaque", "values": {"Commun": 3,  "Rare": 6,  "Épique": 10, "Légendaire": 18, "Mythique": 30}},
+    "bottes": {"stat": "speed",        "label": "Vitesse",         "values": {"Commun": 0.3,"Rare": 0.6,"Épique": 1.0,"Légendaire": 1.8,"Mythique": 3.0}},
+    "arme":     {"stat": "damage",       "label": "Puissance att.",  "values": {"Commun": 3,  "Rare": 6,  "Épique": 11, "Légendaire": 20, "Mythique": 35}},
+    "tour":     {"stat": "tower_bonus",  "label": "Bonus tour",      "values": {"Commun": 5,  "Rare": 12, "Épique": 22, "Légendaire": 40, "Mythique": 70}},
 }
 INV_BAR_HEIGHT = 90

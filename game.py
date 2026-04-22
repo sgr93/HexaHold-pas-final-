@@ -38,6 +38,7 @@ from ui import (
 )
 from walls import apply_map_walls
 import save_data as sd
+import quetes
 
 
 # ============================================================
@@ -525,8 +526,25 @@ def main():
 
         if gs["game_win"] and not gs.get("reward_collected") and gs.get("save") is not None:
             gs["save"]["coins"] = gs["save"].get("coins", 0) + gs["coins_reward"]
+            gs["save"]["battles_won"] = gs["save"].get("battles_won", 0) + 1
             gs["reward_collected"] = True
             sd.save(gs["save"])
+            
+            # Vérifier les quêtes complétées après la victoire
+            completed_quests = []
+            for q_id, quest in quetes.QUETES.items():
+                if not gs["save"].get("quests_completed", {}).get(q_id, False):
+                    if quetes.check_quest_completion(q_id, gs["save"], gs):
+                        completed_quests.append(quest["nom"])
+            
+            # Ajouter des toasts pour les quêtes complétées
+            for quest_name in completed_quests:
+                gs["toasts"].append({
+                    "text": f"Quête complétée: {quest_name}!",
+                    "ttl": 300,  # Plus long pour les quêtes importantes
+                    "max_ttl": 300,
+                    "color": (255, 215, 0)  # Or pour les quêtes
+                })
 
         # ----------------------------------------------------
         # GESTION DES VAGUES / BOSS
@@ -659,6 +677,28 @@ def main():
                         gs["mobs_killed_this_wave"] += 1
                     else:
                         gs["player_buff_tokens"] += 1
+                    
+                    # Incrémenter le compteur d'ennemis tués
+                    if gs.get("save") is not None:
+                        gs["save"]["enemies_killed"] = gs["save"].get("enemies_killed", 0) + 1
+                        sd.save(gs["save"])
+                        
+                        # Vérifier les quêtes complétées après avoir tué un ennemi
+                        completed_quests = []
+                        for q_id, quest in quetes.QUETES.items():
+                            if not gs["save"].get("quests_completed", {}).get(q_id, False):
+                                if quetes.check_quest_completion(q_id, gs["save"], gs):
+                                    completed_quests.append(quest["nom"])
+                        
+                        # Ajouter des toasts pour les quêtes complétées
+                        for quest_name in completed_quests:
+                            gs["toasts"].append({
+                                "text": f"Quête complétée: {quest_name}!",
+                                "ttl": 300,
+                                "max_ttl": 300,
+                                "color": (255, 215, 0)
+                            })
+                    
                     gs_enemies.remove(e)
 
             # Goal
@@ -936,6 +976,28 @@ def main():
                     if placed:
                         gs["toasts"].append({"text": "Tour placee", "ttl": 140, "max_ttl": 140, "color": (120, 235, 140)})
                         gs["game_started"] = True
+                        
+                        # Incrémenter le compteur de tours placées
+                        if gs.get("save") is not None:
+                            gs["save"]["towers_placed"] = gs["save"].get("towers_placed", 0) + 1
+                            sd.save(gs["save"])
+                            
+                            # Vérifier les quêtes complétées après avoir placé une tour
+                            completed_quests = []
+                            for q_id, quest in quetes.QUETES.items():
+                                if not gs["save"].get("quests_completed", {}).get(q_id, False):
+                                    if quetes.check_quest_completion(q_id, gs["save"], gs):
+                                        completed_quests.append(quest["nom"])
+                            
+                            # Ajouter des toasts pour les quêtes complétées
+                            for quest_name in completed_quests:
+                                gs["toasts"].append({
+                                    "text": f"Quête complétée: {quest_name}!",
+                                    "ttl": 300,
+                                    "max_ttl": 300,
+                                    "color": (255, 215, 0)
+                                })
+                        
                         if sel in gs["inventory"]:
                             gs["inventory"][sel] -= 1
                             if gs["inventory"][sel] <= 0:

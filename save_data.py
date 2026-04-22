@@ -258,7 +258,11 @@ SKILLS = {
 }
 
 _DEFAULT = {
+    "level": 1,
+    "xp": 0,
+    "xp_next": 30,              # Aligné sur XP_TO_NEXT_LVL_START = 30 dans config.py
     "coins": 150,
+    "gems": 0,
     "inventory_equipment": [],   # liste de dicts {slot, rarity, stat, value, name}
     "equipped": {                # slot -> index dans inventory_equipment ou None
         "cape":   None,
@@ -273,6 +277,14 @@ _DEFAULT = {
     "fullscreen": False,
     "skill_points": 3,
     "skills_unlocked": {sid: False for sid in SKILLS.keys()},
+    "quests_completed": {},
+    "battles_won": 0,
+    "towers_placed": 0,
+    "enemies_killed": 0,
+    "max_wave_reached": 0,
+    "daily_quests_completed": {},
+    "events_completed": {},
+    "player_icon": "icone0.png",
 }
 
 
@@ -333,17 +345,24 @@ def open_chest(save_data_dict, chest_type):
     from config import CHEST_COSTS, RARITIES, RARITY_WEIGHTS, EQUIPMENT_SLOTS, EQUIPMENT_STATS, RARITY_COLORS
 
     cost = CHEST_COSTS.get(chest_type, 9999)
-    if save_data_dict["coins"] < cost:
-        return False, f"Pas assez de pièces (coût : {cost})"
 
-    save_data_dict["coins"] -= cost
+    # Détecter la currency (gemmes ou pièces)
+    is_gem_chest = chest_type.startswith("gem_")
+    if is_gem_chest:
+        if save_data_dict.get("gems", 0) < cost:
+            return False, f"Pas assez de gemmes (coût : {cost} 💎)"
+        save_data_dict["gems"] = save_data_dict.get("gems", 0) - cost
+    else:
+        if save_data_dict.get("coins", 0) < cost:
+            return False, f"Pas assez de pièces (coût : {cost})"
+        save_data_dict["coins"] -= cost
 
     weights = RARITY_WEIGHTS[chest_type]
     rarity  = random.choices(RARITIES, weights=weights, k=1)[0]
 
     slot     = random.choice(EQUIPMENT_SLOTS)
     stat_info = EQUIPMENT_STATS[slot]
-    value    = stat_info["values"][rarity]
+    value    = stat_info["values"].get(rarity, stat_info["values"]["Commun"])
 
     EQUIPMENT_NAMES = {
         "cape":   "Cape du bataillon",
@@ -368,7 +387,7 @@ def open_chest(save_data_dict, chest_type):
         "label":   stat_info["label"],
         "name":    EQUIPMENT_NAMES[slot],
         "image":   EQUIPMENT_IMAGES[slot],
-        "color":   list(RARITY_COLORS[rarity]),
+        "color":   list(RARITY_COLORS.get(rarity, (180, 180, 180))),
     }
 
     save_data_dict["inventory_equipment"].append(item)
