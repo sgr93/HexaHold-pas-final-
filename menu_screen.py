@@ -677,11 +677,19 @@ def run_menu(screen, clock, save=None):
     gacha_msg          = ""
     gacha_msg_timer    = 0
     gacha_info_popup   = None   # None ou ctype du coffre dont on affiche les taux
+    # Nouveau système gacha tours
+    gacha_tower_results    = []
+    gacha_tower_anim       = 0
+    gacha_tower_result_idx = 0
+    gacha_show_rates       = False
+    gacha_tower_scroll     = 0
+    sd._ensure_tower_data(save)
 
     # État équipement
     selected_inv_idx       = None    # index dans save["inventory_equipment"]
     selected_loadout_slot  = 0
     selected_equip_category = 0
+    equip_scroll_by_cat    = [0, 0, 0, 0, 0]  # scroll indépendant par onglet équipement
     dragging_item          = None
     drag_offset            = (0, 0)
     save.setdefault("tower_loadout", ALL_TOWER_TYPES[:TOWER_SLOT_COUNT])
@@ -703,6 +711,7 @@ def run_menu(screen, clock, save=None):
         mx, my = pygame.mouse.get_pos()
         clicked = False
         mouse_released = False
+        scroll_dy = 0
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -713,6 +722,8 @@ def run_menu(screen, clock, save=None):
                 clicked = True
             if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
                 mouse_released = True
+            if event.type == pygame.MOUSEWHEEL:
+                scroll_dy = event.y
 
         # ── Header / Title ────────────────────────────────────────────────
         title = font_big.render("HEXAHOLD", True, C_ACCENT)
@@ -807,210 +818,588 @@ def run_menu(screen, clock, save=None):
             screen.blit(note, (panel.x + 30, panel.y + panel.h - 40))
 
         # ────────────────────────────────────────────────────────────────────
-        # TAB 1 : GACHA
+        # TAB 1 : GACHA (refonte complète avec 2 coffres + système tours)
         # ────────────────────────────────────────────────────────────────────
         elif active_tab == 1:
-            # Panneau coffres - 2 rang?es : pi?ces et gemmes
-            panel_w = min(900, w - 40)
-            panel   = pygame.Rect(w // 2 - panel_w // 2, content_y + 10, panel_w, 490)
-            _draw_rounded_rect(screen, C_PANEL, panel, radius=12)
-            sub = font_med.render("Ouvrir un coffre", True, C_TEXT)
-            screen.blit(sub, (panel.x + (panel.w - sub.get_width()) // 2, panel.y + 12))
+            # ── Palette locale gacha ─────────────────────────────────────────
+            G_BG      = (18, 20, 30)
+            G_CARD    = (28, 32, 48)
+            G_CARD2   = (38, 44, 64)
+            G_BORDER  = (60, 70, 100)
+            G_GOLD    = (220, 170, 40)
+            G_GEM     = (140, 80, 240)
+            G_RED_LBL = (230, 80, 80)
+            RARITY_COL = {
+                "Commun":    (160, 160, 165),
+                "Rare":      (60,  130, 255),
+                "Épique":    (155,  60, 255),
+                "Légendaire":(240, 175,  20),
+            }
 
-            chest_btn_w = (panel.w - 80) // 3
-            chest_y     = panel.y + 50
-            chest_btn_rects = {}
-            info_btn_rects  = {}   # boutons ⓘ par ctype
+            def _gacha_rounded(surf, col, r, radius=10, bw=0, bc=None):
+                pygame.draw.rect(surf, col, r, border_radius=radius)
+                if bw and bc:
+                    pygame.draw.rect(surf, bc, r, bw, border_radius=radius)
 
-            # 2 rangées : coins (0-2) et gems (3-5)
-            coin_chests = [(ct, ci) for ct, ci in CHEST_INFO.items() if ci["currency"] == "coins"]
-            gem_chests  = [(ct, ci) for ct, ci in CHEST_INFO.items() if ci["currency"] == "gems"]
+            # Layout : 2 colonnes côte à côte
+            pad  = 14
+            full_w = min(w - 2*pad, 860)
+            left_x = w//2 - full_w//2
+            col_w  = (full_w - pad) // 2  # largeur de chaque carte coffre
 
-            # Label rangée 1
-            row1_lbl = font_xs.render("─── Coffres à pièces ───", True, C_ACCENT)
-            screen.blit(row1_lbl, (panel.x + (panel.w - row1_lbl.get_width()) // 2, chest_y - 18))
+            # ── COFFRE PIÈCES (gauche) ───────────────────────────────────────
+            coin_card = pygame.Rect(left_x, content_y + 8, col_w, 310)
+            _gacha_rounded(screen, G_CARD, coin_card, radius=14, bw=2, bc=(100, 85, 40))
 
-            for ci_idx, (ctype, cinfo) in enumerate(coin_chests):
-                cx   = panel.x + 30 + ci_idx * (chest_btn_w + 20)
-                cbtn = pygame.Rect(cx, chest_y, chest_btn_w, 110)
-                hov  = cbtn.collidepoint(mx, my)
-                can  = save.get("coins", 0) >= cinfo["cost"]
-                col  = (min(cinfo["color"][0]+20, 255),
-                         min(cinfo["color"][1]+20, 255),
-                         min(cinfo["color"][2]+20, 255)) if hov and can else cinfo["color"]
-                bdr  = (255, 220, 80) if can else (80, 80, 80)
-                _draw_rounded_rect(screen, col, cbtn, radius=10, border=2, border_color=bdr)
-                chest_btn_rects[ctype] = cbtn
+            # Niveau réel du coffre pièces
+            chest_level_coin = sd.get_coin_chest_level(save)
+            coin_pulls_in, coin_pulls_needed, _ = sd.get_coin_chest_progress(save)
 
-                lbl = font_sm.render(cinfo["label"], True, (255,255,255))
-                screen.blit(lbl, (cbtn.x + (cbtn.w - lbl.get_width()) // 2, cbtn.y + 12))
-                _cost_icon = _get_icon("coin", 18)
-                _cost_txt  = font_sm.render(str(cinfo['cost']), True, C_ACCENT if can else C_RED)
-                _cost_total_w = 18 + 4 + _cost_txt.get_width()
-                _cost_x = cbtn.x + (cbtn.w - _cost_total_w) // 2
-                screen.blit(_cost_icon, (_cost_x, cbtn.y + 45))
-                screen.blit(_cost_txt,  (_cost_x + 22, cbtn.y + 45))
-                if not can:
-                    nl = font_xs.render("Insuffisant", True, C_RED)
-                    screen.blit(nl, (cbtn.x + (cbtn.w - nl.get_width()) // 2, cbtn.y + 75))
+            # Badge Lv
+            lv_badge = pygame.Rect(coin_card.x + 10, coin_card.y + 10, 46, 24)
+            _gacha_rounded(screen, G_GOLD, lv_badge, radius=6)
+            lv_txt = font_xs.render(f"Lv {chest_level_coin}", True, (30, 20, 0))
+            screen.blit(lv_txt, (lv_badge.x + (lv_badge.w - lv_txt.get_width())//2,
+                                  lv_badge.y + (lv_badge.h - lv_txt.get_height())//2))
 
-                info_r = 10
-                info_cx = cbtn.right - info_r - 5
-                info_cy = cbtn.top   + info_r + 5
-                info_btn = pygame.Rect(info_cx - info_r, info_cy - info_r, info_r * 2, info_r * 2)
-                info_btn_rects[ctype] = info_btn
-                info_hov = info_btn.collidepoint(mx, my)
-                info_col = (220, 220, 255) if info_hov else (160, 170, 210)
-                pygame.draw.circle(screen, info_col, (info_cx, info_cy), info_r)
-                pygame.draw.circle(screen, (40, 50, 80), (info_cx, info_cy), info_r, 1)
-                i_lbl = font_xs.render("i", True, (30, 40, 70))
-                screen.blit(i_lbl, (info_cx - i_lbl.get_width() // 2, info_cy - i_lbl.get_height() // 2))
+            # Titre
+            coin_title = font_med.render("Boîte à objets", True, C_TEXT)
+            screen.blit(coin_title, (coin_card.x + 62, coin_card.y + 12))
 
-                if clicked and info_btn.collidepoint(mx, my):
-                    gacha_info_popup = None if gacha_info_popup == ctype else ctype
-                elif clicked and hov and can and not info_btn.collidepoint(mx, my):
-                    ok, result = sd.open_chest(save, ctype)
-                    if ok:
-                        last_item_obtained = result
-                        gacha_msg         = f"Obtenu : {result['name']} (+{result['value']} {result['label']})"
-                        gacha_msg_timer   = 240
-                        gacha_info_popup  = None
+            # Barre de progression
+            prog_bar_rect = pygame.Rect(coin_card.x + 10, coin_card.y + 44, col_w - 20, 14)
+            _gacha_rounded(screen, (40, 40, 55), prog_bar_rect, radius=7)
+            if chest_level_coin < 10:
+                coin_prog = min(1.0, coin_pulls_in / max(1, coin_pulls_needed))
+                prog_label_txt = f"{coin_pulls_in}/{coin_pulls_needed}"
+            else:
+                coin_prog = 1.0
+                prog_label_txt = "MAX"
+            prog_fill = pygame.Rect(prog_bar_rect.x, prog_bar_rect.y,
+                                     int(prog_bar_rect.w * coin_prog), 14)
+            _gacha_rounded(screen, G_GOLD, prog_fill, radius=7)
+            prog_lbl = font_xs.render(prog_label_txt, True, C_TEXT)
+            screen.blit(prog_lbl, (prog_bar_rect.x + (prog_bar_rect.w - prog_lbl.get_width())//2,
+                                    prog_bar_rect.y + (prog_bar_rect.h - prog_lbl.get_height())//2))
+
+            # Image coffre (boite_a_objet.png en priorité)
+            chest_img_rect = pygame.Rect(coin_card.x + col_w//2 - 60, coin_card.y + 68, 120, 100)
+            chest_img = _load_icon_sprite("boite_a_objet.png", 120)
+            if chest_img is None:
+                chest_img = _load_icon_sprite("coffre_pieces.png", 120)
+            if chest_img is None:
+                chest_img = _load_icon_sprite("coffre.png", 120)
+            if chest_img:
+                screen.blit(chest_img, chest_img_rect.topleft)
+            else:
+                _gacha_rounded(screen, (80, 60, 20), chest_img_rect, radius=12, bw=2, bc=G_GOLD)
+                chest_ico = font_big.render("📦", True, G_GOLD)
+                screen.blit(chest_ico, (chest_img_rect.centerx - chest_ico.get_width()//2,
+                                         chest_img_rect.centery - chest_ico.get_height()//2))
+
+            # Texte pitié
+            pity_epic_coin   = 30
+            pity_legend_coin = 100
+            pe_lbl = font_xs.render(f"{pity_epic_coin} tirages garantissent un objet ", True, (220, 80, 80))
+            screen.blit(pe_lbl, (coin_card.x + 10, coin_card.y + 178))
+            epic_col_lbl = font_xs.render("Épique", True, RARITY_COL["Épique"])
+            screen.blit(epic_col_lbl, (coin_card.x + 10 + pe_lbl.get_width(), coin_card.y + 178))
+
+            pl_lbl = font_xs.render(f"{pity_legend_coin} tirages garantissent un objet ", True, (220, 80, 80))
+            screen.blit(pl_lbl, (coin_card.x + 10, coin_card.y + 200))
+            leg_col_lbl = font_xs.render("Légendaire", True, RARITY_COL["Légendaire"])
+            screen.blit(leg_col_lbl, (coin_card.x + 10 + pl_lbl.get_width(), coin_card.y + 200))
+
+            # Boutons 1× et 5×
+            coin_btn1 = pygame.Rect(coin_card.x + 10, coin_card.y + 230, (col_w - 30)//2, 52)
+            coin_btn5 = pygame.Rect(coin_btn1.right + 10, coin_card.y + 230, (col_w - 30)//2, 52)
+            can_coin1 = save.get("coins", 0) >= CHEST_COSTS["wood"]
+            can_coin5 = save.get("coins", 0) >= CHEST_COSTS["wood"] * 5
+            cost_default = CHEST_COSTS["wood"]
+
+            for btn, count_b, can_b, cost_b in [
+                (coin_btn1, 1, can_coin1, cost_default),
+                (coin_btn5, 5, can_coin5, cost_default * 5),
+            ]:
+                hov_b = btn.collidepoint(mx, my)
+                bc_b  = G_GOLD if can_b else G_BORDER
+                bg_b  = (55, 50, 20) if (hov_b and can_b) else (38, 34, 14)
+                _gacha_rounded(screen, bg_b, btn, radius=10, bw=2, bc=bc_b)
+                count_lbl = font_sm.render(f"{count_b} Achats", True, C_TEXT)
+                screen.blit(count_lbl, (btn.x + (btn.w - count_lbl.get_width())//2, btn.y + 6))
+                cost_ico = _get_icon("coin", 16)
+                cost_lbl = font_xs.render(str(cost_b), True, G_GOLD if can_b else C_RED)
+                cw = 16 + 4 + cost_lbl.get_width()
+                cx_ = btn.x + (btn.w - cw)//2
+                screen.blit(cost_ico, (cx_, btn.y + 30))
+                screen.blit(cost_lbl, (cx_ + 20, btn.y + 30))
+                if clicked and hov_b and can_b:
+                    for _ in range(count_b):
+                        ok, result = sd.open_chest(save, "wood")
+                        if ok:
+                            last_item_obtained = result
+                            gacha_msg       = f"Obtenu : {result['name']} (+{result['value']} {result['label']})"
+                            gacha_msg_timer = 240
+                    if not ok:
+                        gacha_msg = result; gacha_msg_timer = 120
+
+            # Bouton % taux
+            pct_btn_c = pygame.Rect(coin_card.right - 36, coin_card.y + 10, 28, 28)
+            hov_pct_c = pct_btn_c.collidepoint(mx, my)
+            _gacha_rounded(screen, (50, 50, 70) if hov_pct_c else (35, 35, 52), pct_btn_c, radius=6, bw=1, bc=G_BORDER)
+            pct_c_lbl = font_xs.render("%", True, C_TEXT)
+            screen.blit(pct_c_lbl, (pct_btn_c.x + (pct_btn_c.w - pct_c_lbl.get_width())//2,
+                                     pct_btn_c.y + (pct_btn_c.h - pct_c_lbl.get_height())//2))
+            if clicked and hov_pct_c:
+                gacha_info_popup = None if gacha_info_popup == "wood" else "wood"
+
+            # ── COFFRE TOURS (droite) ────────────────────────────────────────
+            gem_card = pygame.Rect(left_x + col_w + pad, content_y + 8, col_w, 310)
+            _gacha_rounded(screen, G_CARD, gem_card, radius=14, bw=2, bc=(100, 50, 160))
+
+            tower_level_val = sd._get_tower_chest_level(save)
+            pulls_in, pulls_needed, _ = sd._get_tower_chest_progress(save)
+            cost_per_gem = sd.TOWER_CHEST_COSTS.get(tower_level_val, 5)
+            pity_e, pity_l = sd.TOWER_CHEST_PITY.get(tower_level_val, (22, 100))
+
+            # Badge Lv
+            lv_badge_g = pygame.Rect(gem_card.x + 10, gem_card.y + 10, 38, 24)
+            _gacha_rounded(screen, G_GEM, lv_badge_g, radius=6)
+            lv_g_txt = font_xs.render(f"Lv {tower_level_val}", True, (240, 220, 255))
+            screen.blit(lv_g_txt, (lv_badge_g.x + (lv_badge_g.w - lv_g_txt.get_width())//2,
+                                    lv_badge_g.y + (lv_badge_g.h - lv_g_txt.get_height())//2))
+            gem_title = font_med.render("Contrat Héros / Tour", True, C_TEXT)
+            screen.blit(gem_title, (gem_card.x + 56, gem_card.y + 12))
+
+            # Barre progression coffre tours
+            prog_bar_g = pygame.Rect(gem_card.x + 10, gem_card.y + 44, col_w - 20, 14)
+            _gacha_rounded(screen, (40, 30, 60), prog_bar_g, radius=7)
+            prog_g = min(1.0, pulls_in / max(1, pulls_needed)) if tower_level_val < 10 else 1.0
+            prog_fill_g = pygame.Rect(prog_bar_g.x, prog_bar_g.y, int(prog_bar_g.w * prog_g), 14)
+            _gacha_rounded(screen, G_GEM, prog_fill_g, radius=7)
+            prog_g_lbl = font_xs.render(f"{pulls_in}/{pulls_needed}" if tower_level_val < 10 else "MAX", True, C_TEXT)
+            screen.blit(prog_g_lbl, (prog_bar_g.x + (prog_bar_g.w - prog_g_lbl.get_width())//2,
+                                      prog_bar_g.y + (prog_bar_g.h - prog_g_lbl.get_height())//2))
+
+            # Image coffre gemmes (contrat.png en priorité)
+            chest_img_rect_g = pygame.Rect(gem_card.x + col_w//2 - 50, gem_card.y + 68, 100, 100)
+            chest_img_g = _load_icon_sprite("contrat.png", 100)
+            if chest_img_g is None:
+                chest_img_g = _load_icon_sprite("coffre_tours.png", 100)
+            if chest_img_g is None:
+                chest_img_g = _load_icon_sprite("coffre_gemmes.png", 100)
+            if chest_img_g:
+                screen.blit(chest_img_g, chest_img_rect_g.topleft)
+            else:
+                _gacha_rounded(screen, (50, 20, 80), chest_img_rect_g, radius=12, bw=2, bc=G_GEM)
+                q_ico = font_big.render("?", True, G_GEM)
+                screen.blit(q_ico, (chest_img_rect_g.centerx - q_ico.get_width()//2,
+                                     chest_img_rect_g.centery - q_ico.get_height()//2))
+
+            # Pitié
+            pe_g_lbl = font_xs.render(f"{pity_e} tirages garantissent une tour ", True, (220, 80, 80))
+            screen.blit(pe_g_lbl, (gem_card.x + 10, gem_card.y + 178))
+            epic_g_lbl = font_xs.render("Épique", True, RARITY_COL["Épique"])
+            screen.blit(epic_g_lbl, (gem_card.x + 10 + pe_g_lbl.get_width(), gem_card.y + 178))
+
+            pl_g_lbl = font_xs.render(f"{pity_l} tirages garantissent une tour ", True, (220, 80, 80))
+            screen.blit(pl_g_lbl, (gem_card.x + 10, gem_card.y + 200))
+            leg_g_lbl = font_xs.render("Légendaire", True, RARITY_COL["Légendaire"])
+            screen.blit(leg_g_lbl, (gem_card.x + 10 + pl_g_lbl.get_width(), gem_card.y + 200))
+
+            # Boutons 1× et 5×
+            gem_btn1 = pygame.Rect(gem_card.x + 10, gem_card.y + 230, (col_w - 30)//2, 52)
+            gem_btn5 = pygame.Rect(gem_btn1.right + 10, gem_card.y + 230, (col_w - 30)//2, 52)
+            can_gem1 = save.get("gems", 0) >= cost_per_gem
+            can_gem5 = save.get("gems", 0) >= cost_per_gem * 5
+
+            for btn_g, cnt_g, can_g, cost_g in [
+                (gem_btn1, 1, can_gem1, cost_per_gem),
+                (gem_btn5, 5, can_gem5, cost_per_gem * 5),
+            ]:
+                hov_g  = btn_g.collidepoint(mx, my)
+                bc_g   = G_GEM if can_g else G_BORDER
+                bg_g   = (45, 20, 70) if (hov_g and can_g) else (28, 14, 48)
+                _gacha_rounded(screen, bg_g, btn_g, radius=10, bw=2, bc=bc_g)
+                cnt_lbl = font_sm.render(f"{cnt_g} Achats", True, C_TEXT)
+                screen.blit(cnt_lbl, (btn_g.x + (btn_g.w - cnt_lbl.get_width())//2, btn_g.y + 6))
+                gem_ico = _get_icon("gem", 16)
+                cost_g_lbl = font_xs.render(str(cost_g), True, (200, 130, 255) if can_g else C_RED)
+                gw = 16 + 4 + cost_g_lbl.get_width()
+                gx_ = btn_g.x + (btn_g.w - gw)//2
+                screen.blit(gem_ico, (gx_, btn_g.y + 30))
+                screen.blit(cost_g_lbl, (gx_ + 20, btn_g.y + 30))
+                if clicked and hov_g and can_g:
+                    ok_g, res_g = sd.open_tower_chest(save, cnt_g)
+                    if ok_g:
+                        gacha_tower_results   = res_g
+                        gacha_tower_anim      = 300
+                        gacha_tower_result_idx = 0
                     else:
-                        gacha_msg       = result
-                        gacha_msg_timer = 120
+                        gacha_msg = res_g; gacha_msg_timer = 120
 
-            # Rangée 2 : coffres gemmes
-            gem_row_y = chest_y + 130
-            row2_lbl = font_xs.render("─── Coffres à gemmes ───", True, (255, 100, 255))
-            screen.blit(row2_lbl, (panel.x + (panel.w - row2_lbl.get_width()) // 2, gem_row_y - 18))
+            # Bouton % taux tours
+            pct_btn_g = pygame.Rect(gem_card.right - 36, gem_card.y + 10, 28, 28)
+            hov_pct_g = pct_btn_g.collidepoint(mx, my)
+            _gacha_rounded(screen, (50, 30, 70) if hov_pct_g else (35, 20, 55), pct_btn_g, radius=6, bw=1, bc=G_BORDER)
+            pct_g_lbl = font_xs.render("%", True, C_TEXT)
+            screen.blit(pct_g_lbl, (pct_btn_g.x + (pct_btn_g.w - pct_g_lbl.get_width())//2,
+                                     pct_btn_g.y + (pct_btn_g.h - pct_g_lbl.get_height())//2))
+            if clicked and hov_pct_g:
+                gacha_show_rates = not gacha_show_rates
 
-            for ci_idx, (ctype, cinfo) in enumerate(gem_chests):
-                cx   = panel.x + 30 + ci_idx * (chest_btn_w + 20)
-                cbtn = pygame.Rect(cx, gem_row_y, chest_btn_w, 110)
-                hov  = cbtn.collidepoint(mx, my)
-                can  = save.get("gems", 0) >= cinfo["cost"]
-                col  = (min(cinfo["color"][0]+20, 255),
-                         min(cinfo["color"][1]+20, 255),
-                         min(cinfo["color"][2]+20, 255)) if hov and can else cinfo["color"]
-                bdr  = (255, 100, 255) if can else (80, 80, 80)
-                _draw_rounded_rect(screen, col, cbtn, radius=10, border=2, border_color=bdr)
-                chest_btn_rects[ctype] = cbtn
+            # ── RÉSULTATS TIRAGE TOURS ────────────────────────────────────────
+            if gacha_tower_anim > 0:
+                gacha_tower_anim -= 1
+                if len(gacha_tower_results) > 1:
+                    idx_show = min(len(gacha_tower_results) - 1,
+                                   (300 - gacha_tower_anim) // (300 // max(1, len(gacha_tower_results))))
+                else:
+                    idx_show = 0
+                if gacha_tower_results:
+                    res = gacha_tower_results[idx_show]
+                    rc  = tuple(res["rarity_color"])
+                    # Carte plus haute si doublon (jauge + bouton)
+                    card_h = 130 if not res["is_new"] and res.get("needed") else 90
+                    rcard = pygame.Rect(w//2 - 200, content_y + 322, 400, card_h)
+                    _gacha_rounded(screen, (20, 15, 35), rcard, radius=12, bw=2, bc=rc)
 
-                lbl = font_sm.render(cinfo["label"], True, (255,255,255))
-                screen.blit(lbl, (cbtn.x + (cbtn.w - lbl.get_width()) // 2, cbtn.y + 12))
-                _cost_icon_g = _get_icon("gem", 18)
-                _cost_txt_g  = font_sm.render(str(cinfo['cost']), True, (255, 100, 255) if can else C_RED)
-                _cost_total_w_g = 18 + 4 + _cost_txt_g.get_width()
-                _cost_x_g = cbtn.x + (cbtn.w - _cost_total_w_g) // 2
-                screen.blit(_cost_icon_g, (_cost_x_g, cbtn.y + 45))
-                screen.blit(_cost_txt_g,  (_cost_x_g + 22, cbtn.y + 45))
-                if not can:
-                    nl = font_xs.render("Insuffisant", True, C_RED)
-                    screen.blit(nl, (cbtn.x + (cbtn.w - nl.get_width()) // 2, cbtn.y + 75))
+                    # Badge nouvelle/doublon
+                    badge_txt = "✨ NOUVELLE TOUR !" if res["is_new"] else "🔁 Doublon"
+                    badge_col = (100, 255, 150) if res["is_new"] else (180, 150, 255)
+                    new_lbl = font_sm.render(badge_txt, True, badge_col)
+                    screen.blit(new_lbl, (rcard.x + 14, rcard.y + 8))
 
-                info_r = 10
-                info_cx = cbtn.right - info_r - 5
-                info_cy = cbtn.top   + info_r + 5
-                info_btn = pygame.Rect(info_cx - info_r, info_cy - info_r, info_r * 2, info_r * 2)
-                info_btn_rects[ctype] = info_btn
-                info_hov = info_btn.collidepoint(mx, my)
-                info_col = (220, 220, 255) if info_hov else (160, 170, 210)
-                pygame.draw.circle(screen, info_col, (info_cx, info_cy), info_r)
-                pygame.draw.circle(screen, (40, 50, 80), (info_cx, info_cy), info_r, 1)
-                i_lbl = font_xs.render("i", True, (30, 40, 70))
-                screen.blit(i_lbl, (info_cx - i_lbl.get_width() // 2, info_cy - i_lbl.get_height() // 2))
+                    if len(gacha_tower_results) > 1:
+                        nav_lbl = font_xs.render(f"{idx_show+1}/{len(gacha_tower_results)}", True, C_SUBTEXT)
+                        screen.blit(nav_lbl, (rcard.right - nav_lbl.get_width() - 10, rcard.y + 8))
 
-                if clicked and info_btn.collidepoint(mx, my):
-                    gacha_info_popup = None if gacha_info_popup == ctype else ctype
-                elif clicked and hov and can and not info_btn.collidepoint(mx, my):
-                    ok, result = sd.open_chest(save, ctype)
-                    if ok:
-                        last_item_obtained = result
-                        gacha_msg         = f"Obtenu : {result['name']} (+{result['value']} {result['label']})"
-                        gacha_msg_timer   = 240
-                        gacha_info_popup  = None
-                    else:
-                        gacha_msg       = result
-                        gacha_msg_timer = 120
+                    tower_name = font_med.render(res["label"], True, rc)
+                    screen.blit(tower_name, (rcard.x + 14, rcard.y + 32))
+                    rar_lbl = font_xs.render(f"{res['rarity']}  |  Niv. {res['level']}", True, rc)
+                    screen.blit(rar_lbl, (rcard.x + 14, rcard.y + 58))
+                    desc_lbl = font_xs.render(res["desc"], True, C_SUBTEXT)
+                    screen.blit(desc_lbl, (rcard.right - desc_lbl.get_width() - 14, rcard.y + 58))
 
-            # Message résultat
+                    # Si doublon : jauge de copies + bouton upgrade manuel
+                    if not res["is_new"] and res.get("needed") is not None:
+                        copies_now = res.get("copies", 0)
+                        needed_up  = res["needed"]
+                        can_up     = res.get("can_upgrade", False)
+
+                        # Jauge copies
+                        gauge_rect = pygame.Rect(rcard.x + 14, rcard.y + 80, rcard.w - 28, 12)
+                        _gacha_rounded(screen, (40, 35, 60), gauge_rect, radius=6)
+                        fill_ratio = min(1.0, copies_now / max(1, needed_up))
+                        fill_col   = (100, 255, 150) if can_up else (140, 100, 220)
+                        fill_w     = int(gauge_rect.w * fill_ratio)
+                        if fill_w > 0:
+                            _gacha_rounded(screen, fill_col,
+                                           pygame.Rect(gauge_rect.x, gauge_rect.y, fill_w, 12), radius=6)
+                        gauge_lbl = font_xs.render(f"{copies_now}/{needed_up}", True, C_TEXT)
+                        screen.blit(gauge_lbl, (gauge_rect.x + (gauge_rect.w - gauge_lbl.get_width())//2,
+                                                 gauge_rect.y + (gauge_rect.h - gauge_lbl.get_height())//2))
+
+                        # Bouton "Niveau supérieur" si prêt
+                        if can_up:
+                            up_btn = pygame.Rect(rcard.x + 14, rcard.y + 100, rcard.w - 28, 24)
+                            hov_up = up_btn.collidepoint(mx, my)
+                            _gacha_rounded(screen, (50, 180, 70) if hov_up else (35, 130, 50),
+                                           up_btn, radius=8, bw=2, bc=(100, 255, 130))
+                            up_lbl = font_xs.render("▲ Niveau supérieur", True, (220, 255, 220))
+                            screen.blit(up_lbl, (up_btn.x + (up_btn.w - up_lbl.get_width())//2,
+                                                  up_btn.y + (up_btn.h - up_lbl.get_height())//2))
+                            if clicked and hov_up:
+                                ok_up, _ = sd.upgrade_tower(save, res["tower_id"])
+                                if ok_up:
+                                    # Mettre à jour le résultat affiché
+                                    new_lv = save["towers_level"].get(res["tower_id"], 1)
+                                    new_cp = save["towers_copies"].get(res["tower_id"], 0)
+                                    new_need = sd.TOWER_UPGRADE_COST[new_lv - 1] if new_lv <= len(sd.TOWER_UPGRADE_COST) else None
+                                    res["level"]       = new_lv
+                                    res["copies"]      = new_cp
+                                    res["needed"]      = new_need
+                                    res["can_upgrade"] = (new_need is not None) and (new_cp >= new_need)
+                        else:
+                            # Indiquer combien il manque
+                            missing = needed_up - copies_now
+                            miss_lbl = font_xs.render(f"Encore {missing} doublon{'s' if missing > 1 else ''} pour monter de niveau", True, C_SUBTEXT)
+                            screen.blit(miss_lbl, (rcard.x + 14, rcard.y + 100))
+
+            # ── MESSAGE COFFRE PIÈCES ──────────────────────────────────────────
             if gacha_msg_timer > 0:
                 gacha_msg_timer -= 1
-                alpha = min(255, gacha_msg_timer * 3)
-                if last_item_obtained and gacha_msg_timer > 0:
-                    rc = tuple(last_item_obtained["color"])
-                    msg_lbl = font_med.render(gacha_msg, True, rc)
+                if last_item_obtained:
+                    rc2 = tuple(last_item_obtained["color"])
+                    msg_lbl = font_sm.render(gacha_msg, True, rc2)
                 else:
-                    msg_lbl = font_med.render(gacha_msg, True, C_RED)
-                screen.blit(msg_lbl, (w // 2 - msg_lbl.get_width() // 2, panel.y + panel.h + 14))
-
-                # Affichage de l'item obtenu
+                    msg_lbl = font_sm.render(gacha_msg, True, C_RED)
+                screen.blit(msg_lbl, (w//2 - msg_lbl.get_width()//2, content_y + 328))
                 if last_item_obtained and gacha_msg_timer > 0:
                     _draw_item_card(screen, font_med, font_sm, font_xs,
                                     last_item_obtained,
-                                    pygame.Rect(w // 2 - 160, panel.y + panel.h + 48, 320, 110))
+                                    pygame.Rect(w//2 - 160, content_y + 356, 320, 90))
 
-            # ── Popup info rarités ──────────────────────────────────────────
-            if gacha_info_popup is not None:
-                weights   = RARITY_WEIGHTS.get(gacha_info_popup, [])
-                total_w   = sum(weights) or 1
-                pop_lines = [CHEST_INFO[gacha_info_popup]["label"]]
-                for rarity, w_val in zip(RARITIES, weights):
-                    pct = w_val / total_w * 100
-                    pop_lines.append(f"{rarity} : {pct:.0f}%")
+            # ── POPUP TAUX RARITÉS COFFRE TOURS (tableau visuel tous niveaux) ──
+            if gacha_show_rates:
+                RARITIES_SHOW = ["Commun", "Rare", "Épique", "Légendaire"]
+                ROW_H   = 20   # hauteur d'une ligne de niveau
+                BAR_W   = 90   # largeur de la barre de pourcentage
+                PAD     = 10
+                COL_LV  = 28   # colonne "Lv X"
+                COL_GAP = 6
+                COL_RAR = 52   # largeur colonne rareté (label)
+                # Largeur totale : pad + Lv + gap + (label+bar)*4 + pad
+                pr_w = PAD*2 + COL_LV + COL_GAP + len(RARITIES_SHOW) * (COL_RAR + BAR_W + COL_GAP)
+                pr_w = min(pr_w, w - 20)
+                # Hauteur : titre + en-tête + 10 lignes + pitié
+                HEADER_H = 28
+                PITY_H   = 40
+                pr_h = PAD*2 + HEADER_H + 10 * (ROW_H + 2) + PITY_H
+                pr_x = max(10, min(pct_btn_g.right - pr_w, w - pr_w - 10))
+                pr_y = max(content_y + 4, pct_btn_g.top - pr_h - 6)
+                pr_rect = pygame.Rect(pr_x, pr_y, pr_w, pr_h)
 
-                pad      = 12
-                line_h   = 22
-                pop_w    = 220
-                pop_h    = pad * 2 + len(pop_lines) * line_h
-                # Ancrer la popup sous le bouton ⓘ correspondant
-                ibtn = info_btn_rects.get(gacha_info_popup)
-                if ibtn:
-                    pop_x = max(10, min(ibtn.centerx - pop_w // 2, w - pop_w - 10))
-                    pop_y = ibtn.bottom + 6
-                else:
-                    pop_x = w // 2 - pop_w // 2
-                    pop_y = panel.bottom + 10
-                pop_rect = pygame.Rect(pop_x, pop_y, pop_w, pop_h)
-                _draw_rounded_rect(screen, (20, 24, 40), pop_rect, radius=10,
-                                   border=2, border_color=CHEST_INFO[gacha_info_popup]["color"])
+                # Fond
+                _gacha_rounded(screen, (14, 10, 28), pr_rect, radius=12, bw=2, bc=G_GEM)
 
-                rarity_pct_colors = {
-                    "Commun":     (180, 180, 180),
-                    "Rare":       (80,  140, 255),
-                    "Épique":     (180,  80, 255),
-                    "Légendaire": (255, 200,  40),
+                # Titre
+                t_lbl = font_sm.render("Taux par niveau de coffre", True, (210, 170, 255))
+                screen.blit(t_lbl, (pr_x + (pr_w - t_lbl.get_width())//2, pr_y + PAD))
+
+                # En-tête colonnes
+                hdr_y = pr_y + PAD + HEADER_H - 4
+                lv_hdr = font_xs.render("Lv", True, C_SUBTEXT)
+                screen.blit(lv_hdr, (pr_x + PAD, hdr_y))
+                col_xs_starts = []
+                cx_hdr = pr_x + PAD + COL_LV + COL_GAP
+                for rar in RARITIES_SHOW:
+                    rc_h = RARITY_COL[rar]
+                    rar_hdr = font_xs.render(rar[:4], True, rc_h)
+                    screen.blit(rar_hdr, (cx_hdr, hdr_y))
+                    col_xs_starts.append(cx_hdr)
+                    cx_hdr += COL_RAR + BAR_W + COL_GAP
+
+                # Ligne séparatrice
+                sep_y = hdr_y + 18
+                pygame.draw.line(screen, (50, 40, 80), (pr_x + 6, sep_y), (pr_x + pr_w - 6, sep_y))
+
+                # 10 lignes de niveaux
+                for lv in range(1, 11):
+                    row_y = sep_y + 2 + (lv - 1) * (ROW_H + 2)
+                    # Surligner le niveau actuel
+                    if lv == tower_level_val:
+                        hl = pygame.Rect(pr_x + 4, row_y, pr_w - 8, ROW_H)
+                        _gacha_rounded(screen, (40, 28, 70), hl, radius=4, bw=1, bc=(130, 80, 210))
+
+                    # Numéro de niveau
+                    lv_col = (255, 215, 0) if lv == tower_level_val else C_SUBTEXT
+                    lv_t = font_xs.render(f"{'▶' if lv == tower_level_val else ' '}{lv}", True, lv_col)
+                    screen.blit(lv_t, (pr_x + PAD, row_y + 2))
+
+                    weights_lv = sd.TOWER_CHEST_WEIGHTS_BY_LEVEL[lv]
+                    total_lv   = sum(weights_lv.values()) or 1
+
+                    for ri, rar in enumerate(RARITIES_SHOW):
+                        pct_val = weights_lv.get(rar, 0) / total_lv * 100
+                        cx_r    = col_xs_starts[ri]
+                        rc_r    = RARITY_COL[rar]
+
+                        # Barre de progression
+                        bar_bg = pygame.Rect(cx_r, row_y + 5, BAR_W, 8)
+                        _gacha_rounded(screen, (30, 25, 45), bar_bg, radius=4)
+                        fill_pix = int(BAR_W * pct_val / 100)
+                        if fill_pix > 0:
+                            _gacha_rounded(screen, rc_r,
+                                           pygame.Rect(bar_bg.x, bar_bg.y, fill_pix, 8), radius=4)
+                        # Pourcentage à droite de la barre
+                        pct_str  = f"{pct_val:.0f}%" if pct_val > 0 else "—"
+                        pct_surf = font_xs.render(pct_str, True, rc_r if pct_val > 0 else (50, 50, 60))
+                        screen.blit(pct_surf, (cx_r + BAR_W + 2, row_y + 2))
+
+                # Pitié du niveau actuel
+                pity_y = sep_y + 2 + 10 * (ROW_H + 2) + 4
+                pygame.draw.line(screen, (50, 40, 80), (pr_x + 6, pity_y), (pr_x + pr_w - 6, pity_y))
+                pe_s = font_xs.render(f"Pitié Épique Lv{tower_level_val} : {pity_e} pulls garantis", True, RARITY_COL["Épique"])
+                pl_s = font_xs.render(f"Pitié Légend. Lv{tower_level_val} : {pity_l} pulls garantis", True, RARITY_COL["Légendaire"])
+                screen.blit(pe_s, (pr_x + PAD, pity_y + 4))
+                screen.blit(pl_s, (pr_x + PAD, pity_y + 20))
+
+                if clicked and not pr_rect.collidepoint(mx, my):
+                    gacha_show_rates = False
+
+            # ── POPUP TAUX COFFRE PIÈCES (tableau tous niveaux) ──────────────
+            if gacha_info_popup == "wood":
+                RARITIES_COIN = ["Commun", "Rare", "Épique", "Légendaire", "Mythique"]
+                RARITY_COL_COIN = {
+                    "Commun":    (160, 160, 165),
+                    "Rare":      (60,  130, 255),
+                    "Épique":    (155,  60, 255),
+                    "Légendaire":(240, 175,  20),
+                    "Mythique":  (255,  60, 220),
                 }
-                for li, line in enumerate(pop_lines):
-                    if li == 0:
-                        col = tuple(CHEST_INFO[gacha_info_popup]["color"])
-                        fnt = font_sm
+                ROW_HC  = 20
+                BAR_WC  = 70
+                PAD_C   = 10
+                COL_LVC = 28
+                COL_GAPC = 4
+                COL_RARC = 44
+                pi_w = PAD_C*2 + COL_LVC + COL_GAPC + len(RARITIES_COIN) * (COL_RARC + BAR_WC + COL_GAPC)
+                pi_w = min(pi_w, w - 20)
+                HEADER_HC = 28
+                pi_h = PAD_C*2 + HEADER_HC + 10 * (ROW_HC + 2)
+                pi_x = max(10, min(pct_btn_c.right - pi_w, w - pi_w - 10))
+                pi_y = max(content_y + 4, pct_btn_c.top - pi_h - 6)
+                pi_rect = pygame.Rect(pi_x, pi_y, pi_w, pi_h)
+
+                _gacha_rounded(screen, (20, 17, 8), pi_rect, radius=12, bw=2, bc=G_GOLD)
+
+                t_lbl_c = font_sm.render("Taux par niveau de coffre", True, G_GOLD)
+                screen.blit(t_lbl_c, (pi_x + (pi_w - t_lbl_c.get_width())//2, pi_y + PAD_C))
+
+                hdr_yc = pi_y + PAD_C + HEADER_HC - 4
+                lv_hdr_c = font_xs.render("Lv", True, C_SUBTEXT)
+                screen.blit(lv_hdr_c, (pi_x + PAD_C, hdr_yc))
+                col_xs_c = []
+                cx_hdr_c = pi_x + PAD_C + COL_LVC + COL_GAPC
+                for rar_c2 in RARITIES_COIN:
+                    rc_h2 = RARITY_COL_COIN[rar_c2]
+                    rar_hdr2 = font_xs.render(rar_c2[:4], True, rc_h2)
+                    screen.blit(rar_hdr2, (cx_hdr_c, hdr_yc))
+                    col_xs_c.append(cx_hdr_c)
+                    cx_hdr_c += COL_RARC + BAR_WC + COL_GAPC
+
+                sep_yc = hdr_yc + 18
+                pygame.draw.line(screen, (80, 65, 20), (pi_x + 6, sep_yc), (pi_x + pi_w - 6, sep_yc))
+
+                for lv_c2 in range(1, 11):
+                    row_yc = sep_yc + 2 + (lv_c2 - 1) * (ROW_HC + 2)
+                    if lv_c2 == chest_level_coin:
+                        hl_c = pygame.Rect(pi_x + 4, row_yc, pi_w - 8, ROW_HC)
+                        _gacha_rounded(screen, (55, 42, 10), hl_c, radius=4, bw=1, bc=G_GOLD)
+
+                    lv_col_c = G_GOLD if lv_c2 == chest_level_coin else C_SUBTEXT
+                    lv_t_c = font_xs.render(f"{'▶' if lv_c2 == chest_level_coin else ' '}{lv_c2}", True, lv_col_c)
+                    screen.blit(lv_t_c, (pi_x + PAD_C, row_yc + 2))
+
+                    weights_lv_c = sd.COIN_CHEST_WEIGHTS_BY_LEVEL[lv_c2]
+                    total_lv_c   = sum(weights_lv_c.values()) or 1
+
+                    for ri_c, rar_c3 in enumerate(RARITIES_COIN):
+                        pct_c3  = weights_lv_c.get(rar_c3, 0) / total_lv_c * 100
+                        cx_rc   = col_xs_c[ri_c]
+                        rc_r3   = RARITY_COL_COIN[rar_c3]
+
+                        bar_bg_c = pygame.Rect(cx_rc, row_yc + 5, BAR_WC, 8)
+                        _gacha_rounded(screen, (35, 28, 10), bar_bg_c, radius=4)
+                        fill_pc = int(BAR_WC * pct_c3 / 100)
+                        if fill_pc > 0:
+                            _gacha_rounded(screen, rc_r3,
+                                           pygame.Rect(bar_bg_c.x, bar_bg_c.y, fill_pc, 8), radius=4)
+                        pct_str_c  = f"{pct_c3:.0f}%" if pct_c3 > 0 else "—"
+                        pct_surf_c = font_xs.render(pct_str_c, True, rc_r3 if pct_c3 > 0 else (50, 50, 60))
+                        screen.blit(pct_surf_c, (cx_rc + BAR_WC + 2, row_yc + 2))
+
+                if clicked and not pi_rect.collidepoint(mx, my) and not pct_btn_c.collidepoint(mx, my):
+                    gacha_info_popup = None
+
+            # ── COLLECTION TOURS (en bas) ─────────────────────────────────────
+            coll_y  = content_y + 332 if (gacha_tower_anim <= 0 and gacha_msg_timer <= 0) else content_y + 438
+            coll_h  = h - coll_y - 12
+            if coll_h > 60:
+                coll_panel = pygame.Rect(left_x, coll_y, full_w, coll_h)
+                _gacha_rounded(screen, G_CARD, coll_panel, radius=12, bw=1, bc=G_BORDER)
+                coll_title = font_sm.render("Ma Collection de Tours", True, C_TEXT)
+                screen.blit(coll_title, (coll_panel.x + 14, coll_panel.y + 10))
+
+                towers_unlocked = save.get("towers_unlocked", {})
+                towers_level    = save.get("towers_level", {})
+                towers_copies   = save.get("towers_copies", {})
+
+                cell_size = 80
+                cell_gap  = 8
+                cells_per_row = max(1, (full_w - 20) // (cell_size + cell_gap))
+                all_tower_ids = list(sd.TOWER_POOL.keys())
+
+                clip_area = pygame.Rect(coll_panel.x + 6, coll_panel.y + 36,
+                                         coll_panel.w - 12, coll_panel.h - 42)
+                old_clip = screen.get_clip()
+                screen.set_clip(clip_area)
+
+                # Scroll avec molette
+                if scroll_dy and coll_panel.collidepoint(mx, my):
+                    gacha_tower_scroll = max(0, gacha_tower_scroll - scroll_dy * (cell_size + cell_gap))
+
+                for ti, tid in enumerate(all_tower_ids):
+                    row_i = ti // cells_per_row
+                    col_i = ti % cells_per_row
+                    cx_c  = clip_area.x + col_i * (cell_size + cell_gap)
+                    cy_c  = clip_area.y + row_i * (cell_size + cell_gap) - gacha_tower_scroll
+                    if cy_c + cell_size < clip_area.y or cy_c > clip_area.bottom:
+                        continue
+                    cell_r = pygame.Rect(cx_c, cy_c, cell_size, cell_size)
+                    tinfo  = sd.TOWER_POOL[tid]
+                    is_unl = towers_unlocked.get(tid, False)
+                    rar_c  = RARITY_COL.get(tinfo["rarity"], C_SUBTEXT) if is_unl else (40, 40, 50)
+                    bg_cc  = G_CARD2 if is_unl else (22, 22, 32)
+                    _gacha_rounded(screen, bg_cc, cell_r, radius=8, bw=2, bc=rar_c)
+
+                    if is_unl:
+                        # Nom tour
+                        tn_lbl = font_xs.render(tinfo["label"][:9], True, rar_c)
+                        screen.blit(tn_lbl, (cell_r.x + (cell_r.w - tn_lbl.get_width())//2, cell_r.y + 5))
+                        # Niveau
+                        lv_c  = towers_level.get(tid, 1)
+                        lv_lbl = font_xs.render(f"Niv.{lv_c}", True, C_TEXT)
+                        screen.blit(lv_lbl, (cell_r.x + (cell_r.w - lv_lbl.get_width())//2, cell_r.y + 22))
+                        # Badge rareté (petit cercle coin haut-gauche)
+                        pygame.draw.circle(screen, rar_c, (cell_r.x + 6, cell_r.y + 6), 4)
+
+                        cur_lv     = towers_level.get(tid, 1)
+                        copies_now = towers_copies.get(tid, 0)
+                        if cur_lv <= len(sd.TOWER_UPGRADE_COST):
+                            needed_up = sd.TOWER_UPGRADE_COST[cur_lv - 1]
+                            can_up    = copies_now >= needed_up
+
+                            # Jauge copies (barre fine)
+                            gauge = pygame.Rect(cell_r.x + 6, cell_r.y + 40, cell_r.w - 12, 8)
+                            _gacha_rounded(screen, (40, 35, 60), gauge, radius=4)
+                            fill_ratio = min(1.0, copies_now / max(1, needed_up))
+                            fill_col_g = (100, 255, 140) if can_up else (130, 90, 210)
+                            fw = max(0, int(gauge.w * fill_ratio))
+                            if fw > 0:
+                                _gacha_rounded(screen, fill_col_g,
+                                               pygame.Rect(gauge.x, gauge.y, fw, 8), radius=4)
+                            # Texte copies centré sur la barre
+                            cop_lbl = font_xs.render(f"{copies_now}/{needed_up}", True, C_TEXT)
+                            screen.blit(cop_lbl, (gauge.x + (gauge.w - cop_lbl.get_width())//2,
+                                                   gauge.bottom + 2))
+
+                            # Bouton "▲ Niv. sup." si prêt
+                            if can_up:
+                                up_btn = pygame.Rect(cell_r.x + 5, cell_r.y + 62, cell_r.w - 10, 14)
+                                hov_up_c = up_btn.collidepoint(mx, my)
+                                _gacha_rounded(screen,
+                                               (60, 210, 85) if hov_up_c else (40, 160, 60),
+                                               up_btn, radius=4, bw=1, bc=(100, 255, 130))
+                                up_lbl = font_xs.render("▲ Niv. sup.", True, (10, 10, 10) if hov_up_c else (200, 255, 200))
+                                screen.blit(up_lbl, (up_btn.x + (up_btn.w - up_lbl.get_width())//2,
+                                                      up_btn.y + (up_btn.h - up_lbl.get_height())//2))
+                                if clicked and hov_up_c:
+                                    sd.upgrade_tower(save, tid)
+                        else:
+                            # Niveau max
+                            max_lbl = font_xs.render("✦ MAX", True, G_GOLD)
+                            screen.blit(max_lbl, (cell_r.x + (cell_r.w - max_lbl.get_width())//2, cell_r.y + 44))
                     else:
-                        rarity_name = line.split(" :")[0]
-                        col = rarity_pct_colors.get(rarity_name, C_TEXT)
-                        fnt = font_xs
-                    lbl = fnt.render(line, True, col)
-                    screen.blit(lbl, (pop_x + pad, pop_y + pad + li * line_h))
+                        # Verrou
+                        lock_lbl = font_med.render("🔒", True, (60, 60, 70))
+                        screen.blit(lock_lbl, (cell_r.x + (cell_r.w - lock_lbl.get_width())//2,
+                                                cell_r.y + (cell_r.h - lock_lbl.get_height())//2))
+                        rar_sm = font_xs.render(tinfo["rarity"][0], True, RARITY_COL.get(tinfo["rarity"], C_SUBTEXT))
+                        screen.blit(rar_sm, (cell_r.x + 4, cell_r.y + 4))
 
-                # Fermer popup si clic hors zone
-                if clicked and not pop_rect.collidepoint(mx, my):
-                    all_info_btns = list(info_btn_rects.values())
-                    if not any(b.collidepoint(mx, my) for b in all_info_btns):
-                        gacha_info_popup = None
-
-            # Inventaire équipement scrollable
-            inv_panel = pygame.Rect(w // 2 - panel_w // 2, content_y + 510,
-                                     panel_w, content_h - 530)
-            _draw_rounded_rect(screen, C_PANEL, inv_panel, radius=12)
-            inv_title = font_sm.render(f"Équipements obtenus ({len(save['inventory_equipment'])})",
-                                       True, C_TEXT)
-            screen.blit(inv_title, (inv_panel.x + 16, inv_panel.y + 10))
-
-            _draw_equipment_list(screen, font_sm, font_xs, save,
-                                  pygame.Rect(inv_panel.x + 10, inv_panel.y + 38,
-                                               inv_panel.w - 20, inv_panel.h - 50),
-                                  None, mx, my, clicked,
-                                  select_callback=None, show_equip_btn=False)
+                screen.set_clip(old_clip)
 
         # ────────────────────────────────────────────────────────────────────
         # TAB 2 : ÉQUIPEMENT
@@ -1127,16 +1516,24 @@ def run_menu(screen, clock, save=None):
             tower_loadout = save.get("tower_loadout")
             if not isinstance(tower_loadout, list):
                 tower_loadout = list(tower_loadout or [])
+            # Seules les tours débloquées sont disponibles
+            towers_unlocked_eq = save.get("towers_unlocked", {t: True for t in ["small", "big", "trap"]})
+            unlocked_tower_types = [t for t in ALL_TOWER_TYPES if towers_unlocked_eq.get(t, False)]
+            if not unlocked_tower_types:
+                unlocked_tower_types = ["small", "big", "trap"]
             cleaned_loadout = []
             for tower_type in tower_loadout:
-                if tower_type in ALL_TOWER_TYPES and tower_type not in cleaned_loadout:
+                if tower_type in unlocked_tower_types and tower_type not in cleaned_loadout:
                     cleaned_loadout.append(tower_type)
-            for tower_type in ALL_TOWER_TYPES:
+            for tower_type in unlocked_tower_types:
                 if len(cleaned_loadout) >= TOWER_SLOT_COUNT:
                     break
                 if tower_type not in cleaned_loadout:
                     cleaned_loadout.append(tower_type)
             tower_loadout = cleaned_loadout[:TOWER_SLOT_COUNT]
+            # Garantir exactement TOWER_SLOT_COUNT éléments (None = slot vide)
+            while len(tower_loadout) < TOWER_SLOT_COUNT:
+                tower_loadout.append(None)
             if save.get("tower_loadout") != tower_loadout:
                 save["tower_loadout"] = tower_loadout
                 sd.save(save)
@@ -1154,8 +1551,12 @@ def run_menu(screen, clock, save=None):
                 is_selected = (i == selected_loadout_slot)
                 _draw_rounded_rect(screen, C_BTN_HOV if is_selected else C_BTN, slot_rect, radius=10,
                                    border=2, border_color=C_ACCENT2 if is_selected else C_BTN_BOR)
-                tower_label = ITEM_LABELS.get(tower_loadout[i], tower_loadout[i])
-                lbl = font_xs.render(tower_label, True, C_TEXT)
+                slot_val = tower_loadout[i] if i < len(tower_loadout) else None
+                if slot_val:
+                    tower_label = ITEM_LABELS.get(slot_val, slot_val)
+                    lbl = font_xs.render(tower_label, True, C_TEXT)
+                else:
+                    lbl = font_xs.render("— vide —", True, C_SUBTEXT)
                 screen.blit(lbl, (slot_rect.x + (slot_rect.w - lbl.get_width()) // 2,
                                   slot_rect.y + (slot_rect.h - lbl.get_height()) // 2))
                 if clicked and slot_rect.collidepoint(mx, my):
@@ -1174,17 +1575,35 @@ def run_menu(screen, clock, save=None):
                     cell_w,
                     cell_h,
                 )
+                is_unlocked_lt = towers_unlocked_eq.get(tower_type, False)
                 assigned = tower_type in tower_loadout
-                is_selected = tower_type == tower_loadout[selected_loadout_slot]
+                cur_slot_val = tower_loadout[selected_loadout_slot] if selected_loadout_slot < len(tower_loadout) else None
+                is_selected = tower_type == cur_slot_val
                 assigned_elsewhere = assigned and not is_selected
-                cell_color = C_BTN_HOV if is_selected else ((70, 70, 78) if assigned_elsewhere else (C_PANEL if assigned else C_BTN))
-                _draw_rounded_rect(screen, cell_color, cell, radius=8,
-                                   border=2, border_color=C_ACCENT2 if is_selected else C_BTN_BOR)
+                if not is_unlocked_lt:
+                    cell_color = (22, 22, 30)
+                    bdr_col = (45, 45, 55)
+                elif is_selected:
+                    cell_color = C_BTN_HOV
+                    bdr_col = C_ACCENT2
+                elif assigned_elsewhere:
+                    cell_color = (70, 70, 78)
+                    bdr_col = C_BTN_BOR
+                else:
+                    cell_color = C_BTN
+                    bdr_col = C_BTN_BOR
+                _draw_rounded_rect(screen, cell_color, cell, radius=8, border=2, border_color=bdr_col)
                 tlabel = ITEM_LABELS.get(tower_type, tower_type)
-                text = font_xs.render(tlabel, True, C_SUBTEXT if assigned_elsewhere else C_TEXT)
-                screen.blit(text, (cell.x + (cell.w - text.get_width()) // 2,
-                                   cell.y + (cell.h - text.get_height()) // 2))
-                if clicked and cell.collidepoint(mx, my) and not assigned_elsewhere:
+                if not is_unlocked_lt:
+                    # Tour verrouillée : afficher le nom grisé + cadenas
+                    lock_lbl = font_xs.render(f"🔒 {tlabel[:6]}", True, (55, 55, 65))
+                    screen.blit(lock_lbl, (cell.x + (cell.w - lock_lbl.get_width()) // 2,
+                                           cell.y + (cell.h - lock_lbl.get_height()) // 2))
+                else:
+                    text = font_xs.render(tlabel, True, C_SUBTEXT if assigned_elsewhere else C_TEXT)
+                    screen.blit(text, (cell.x + (cell.w - text.get_width()) // 2,
+                                       cell.y + (cell.h - text.get_height()) // 2))
+                if clicked and cell.collidepoint(mx, my) and not assigned_elsewhere and is_unlocked_lt:
                     tower_loadout[selected_loadout_slot] = tower_type
                     save["tower_loadout"] = tower_loadout
                     sd.save(save)
@@ -1216,19 +1635,51 @@ def run_menu(screen, clock, save=None):
             item_hint = font_xs.render("Cliquez sur une ligne pour commencer à glisser", True, C_SUBTEXT)
             screen.blit(item_hint, (item_area.x + 12, item_area.y + 12))
 
-            category_items = [
-                (idx, item) for idx, item in enumerate(inv_items)
-                if item["slot"] == category_slot
-            ]
+            # Tri par rareté décroissante (Mythique > Légendaire > Épique > Rare > Commun)
+            RARITY_ORDER = {"Mythique": 0, "Légendaire": 1, "Épique": 2, "Rare": 3, "Commun": 4}
+            category_items = sorted(
+                [(idx, item) for idx, item in enumerate(inv_items) if item["slot"] == category_slot],
+                key=lambda x: RARITY_ORDER.get(x[1].get("rarity", "Commun"), 5)
+            )
+
             if not category_items:
                 none_lbl = font_sm.render(f"Aucun {category_labels[selected_equip_category].lower()} trouvé.", True, C_SUBTEXT)
                 screen.blit(none_lbl, (item_area.x + 16, item_area.y + 40))
             else:
-                row_h = 64
+                row_h   = 64
                 row_gap = 8
+                scroll_area = pygame.Rect(item_area.x + 4, item_area.y + 38,
+                                          item_area.w - 8, item_area.h - 42)
+                # Scroll molette
+                if scroll_dy and item_area.collidepoint(mx, my):
+                    equip_scroll_by_cat[selected_equip_category] = max(
+                        0, equip_scroll_by_cat[selected_equip_category] - scroll_dy * (row_h + row_gap)
+                    )
+                equip_scroll = equip_scroll_by_cat[selected_equip_category]
+                total_content_h = len(category_items) * (row_h + row_gap)
+                max_scroll = max(0, total_content_h - scroll_area.h)
+                equip_scroll_by_cat[selected_equip_category] = min(equip_scroll, max_scroll)
+                equip_scroll = equip_scroll_by_cat[selected_equip_category]
+
+                # Scrollbar visuelle
+                if total_content_h > scroll_area.h:
+                    sb_w    = 4
+                    sb_x    = scroll_area.right - sb_w - 2
+                    sb_h    = max(20, int(scroll_area.h * scroll_area.h / total_content_h))
+                    sb_y    = scroll_area.y + int(equip_scroll / total_content_h * scroll_area.h)
+                    pygame.draw.rect(screen, (50, 55, 75),
+                                     pygame.Rect(sb_x, scroll_area.y, sb_w, scroll_area.h), border_radius=2)
+                    pygame.draw.rect(screen, C_BTN_BOR,
+                                     pygame.Rect(sb_x, sb_y, sb_w, sb_h), border_radius=2)
+
+                old_clip_eq = screen.get_clip()
+                screen.set_clip(scroll_area)
+
                 for li, (item_idx, item) in enumerate(category_items):
-                    row_y = item_area.y + 44 + li * (row_h + row_gap)
-                    row = pygame.Rect(item_area.x + 8, row_y, item_area.w - 16, row_h)
+                    row_y = scroll_area.y + li * (row_h + row_gap) - equip_scroll
+                    if row_y + row_h < scroll_area.y or row_y > scroll_area.bottom:
+                        continue
+                    row = pygame.Rect(scroll_area.x + 4, row_y, scroll_area.w - 12, row_h)
                     is_sel = (selected_inv_idx == li)
                     _draw_rounded_rect(screen, C_PANEL if is_sel else C_BTN, row,
                                        radius=8, border=2,
@@ -1244,8 +1695,7 @@ def run_menu(screen, clock, save=None):
                     eq_btn = pygame.Rect(row.right - 90, row.y + 16, 76, 32)
                     already = save["equipped"].get(category_slot) == item_idx
                     btn_color = C_BTN_HOV if eq_btn.collidepoint(mx, my) and not already else C_BTN
-                    _draw_rounded_rect(screen, btn_color, eq_btn, radius=8,
-                                       border=1, border_color=C_ACCENT2)
+                    _draw_rounded_rect(screen, btn_color, eq_btn, radius=8, border=1, border_color=C_ACCENT2)
                     btn_lbl = font_xs.render("Équipé" if already else "Équiper", True, C_TEXT)
                     screen.blit(btn_lbl, (eq_btn.x + (eq_btn.w - btn_lbl.get_width()) // 2,
                                            eq_btn.y + (eq_btn.h - btn_lbl.get_height()) // 2))
@@ -1253,10 +1703,12 @@ def run_menu(screen, clock, save=None):
                     if clicked and eq_btn.collidepoint(mx, my) and not already:
                         save["equipped"][category_slot] = item_idx
                         sd.save(save)
-                    elif clicked and row.collidepoint(mx, my):
+                    elif clicked and row.collidepoint(mx, my) and not eq_btn.collidepoint(mx, my):
                         selected_inv_idx = li
                         dragging_item = item_idx
                         drag_offset = (row.x - mx, row.y - my)
+
+                screen.set_clip(old_clip_eq)
 
             if mouse_released and dragging_item is not None:
                 if drag_item_data is not None:

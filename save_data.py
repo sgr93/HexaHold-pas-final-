@@ -285,6 +285,14 @@ _DEFAULT = {
     "daily_quests_completed": {},
     "events_completed": {},
     "player_icon": "icone0.png",
+    # Gacha tours
+    "tower_chest_total_pulls": 0,
+    "tower_chest_pity_epic":   0,
+    "tower_chest_pity_legend": 0,
+    "towers_unlocked": {t: True for t in ["small", "big", "trap"]},
+    "towers_level":   {"small": 1, "big": 1, "trap": 1},
+    "towers_copies":  {"small": 0, "big": 0, "trap": 0},
+    "coin_chest_pulls": 0,
 }
 
 
@@ -357,8 +365,17 @@ def open_chest(save_data_dict, chest_type):
             return False, f"Pas assez de pièces (coût : {cost})"
         save_data_dict["coins"] -= cost
 
-    weights = RARITY_WEIGHTS[chest_type]
-    rarity  = random.choices(RARITIES, weights=weights, k=1)[0]
+    # Pour le coffre pièces "wood" : utiliser les poids par niveau
+    if chest_type == "wood":
+        save_data_dict["coin_chest_pulls"] = save_data_dict.get("coin_chest_pulls", 0) + 1
+        coin_lvl     = get_coin_chest_level(save_data_dict)
+        weights_dict = COIN_CHEST_WEIGHTS_BY_LEVEL.get(coin_lvl, COIN_CHEST_WEIGHTS_BY_LEVEL[1])
+        rar_list     = list(weights_dict.keys())
+        wt_list      = [weights_dict[r] for r in rar_list]
+        rarity       = random.choices(rar_list, weights=wt_list, k=1)[0]
+    else:
+        weights = RARITY_WEIGHTS[chest_type]
+        rarity  = random.choices(RARITIES, weights=weights, k=1)[0]
 
     slot     = random.choice(EQUIPMENT_SLOTS)
     stat_info = EQUIPMENT_STATS[slot]
@@ -393,6 +410,270 @@ def open_chest(save_data_dict, chest_type):
     save_data_dict["inventory_equipment"].append(item)
     save(save_data_dict)
     return True, item
+
+
+# ─────────────────────────────────────────────────────────────────
+# SYSTÈME NIVEAU COFFRE PIÈCES
+# ─────────────────────────────────────────────────────────────────
+
+# Seuils de pulls pour passer au niveau suivant (identiques au coffre tours)
+COIN_CHEST_LEVEL_THRESHOLDS = [0, 10, 30, 60, 100, 150, 210, 285, 370, 470, 600]
+
+# Poids d'équipement par niveau du coffre pièces (Commun → Mythique)
+# Lv1 : quasi que Commun, Lv10 : beaucoup de Légendaire/Mythique
+COIN_CHEST_WEIGHTS_BY_LEVEL = {
+    1:  {"Commun": 80, "Rare": 17, "Épique":  2, "Légendaire": 1, "Mythique":  0},
+    2:  {"Commun": 65, "Rare": 26, "Épique":  7, "Légendaire": 2, "Mythique":  0},
+    3:  {"Commun": 52, "Rare": 32, "Épique": 12, "Légendaire": 3, "Mythique":  1},
+    4:  {"Commun": 40, "Rare": 35, "Épique": 17, "Légendaire": 6, "Mythique":  2},
+    5:  {"Commun": 30, "Rare": 35, "Épique": 22, "Légendaire": 9, "Mythique":  4},
+    6:  {"Commun": 22, "Rare": 33, "Épique": 26, "Légendaire":13, "Mythique":  6},
+    7:  {"Commun": 15, "Rare": 30, "Épique": 30, "Légendaire":17, "Mythique":  8},
+    8:  {"Commun":  9, "Rare": 25, "Épique": 32, "Légendaire":22, "Mythique": 12},
+    9:  {"Commun":  5, "Rare": 18, "Épique": 32, "Légendaire":28, "Mythique": 17},
+    10: {"Commun":  2, "Rare": 11, "Épique": 27, "Légendaire":35, "Mythique": 25},
+}
+
+
+def get_coin_chest_level(save_data_dict):
+    """Retourne le niveau actuel du coffre pièces (1-10)."""
+    total = save_data_dict.get("coin_chest_pulls", 0)
+    level = 1
+    for i, threshold in enumerate(COIN_CHEST_LEVEL_THRESHOLDS):
+        if total >= threshold:
+            level = i + 1
+        else:
+            break
+    return min(level, 10)
+
+
+def get_coin_chest_progress(save_data_dict):
+    """Retourne (pulls_dans_ce_niveau, pulls_pour_prochain_niveau, niveau_actuel)."""
+    total = save_data_dict.get("coin_chest_pulls", 0)
+    level = get_coin_chest_level(save_data_dict)
+    if level >= 10:
+        return total, total, 10
+    current_threshold = COIN_CHEST_LEVEL_THRESHOLDS[level - 1]
+    next_threshold    = COIN_CHEST_LEVEL_THRESHOLDS[level]
+    pulls_in_level    = total - current_threshold
+    pulls_needed      = next_threshold - current_threshold
+    return pulls_in_level, pulls_needed, level
+
+# Raretés des tours
+TOWER_RARITIES = ["Commun", "Rare", "Épique", "Légendaire"]
+TOWER_RARITY_COLORS = {
+    "Commun":    (180, 180, 180),
+    "Rare":      (60,  120, 255),
+    "Épique":    (160,  60, 255),
+    "Légendaire":(255, 180,   0),
+}
+
+# Les 12 tours avec leur rareté de base (détermine la difficulté à obtenir)
+TOWER_POOL = {
+    "small":   {"rarity": "Commun",    "label": "Tour Rapide",   "desc": "Tour basique, tir rapide"},
+    "big":     {"rarity": "Commun",    "label": "Tour Lourde",   "desc": "Plus de dégâts, moins rapide"},
+    "trap":    {"rarity": "Commun",    "label": "Piège",         "desc": "Piège au sol, ralentit"},
+    "frost":   {"rarity": "Rare",      "label": "Gèleuse",       "desc": "Ralentit les ennemis"},
+    "poison":  {"rarity": "Rare",      "label": "Venimeuse",     "desc": "Dégâts sur la durée"},
+    "burst":   {"rarity": "Rare",      "label": "Fusée",         "desc": "Dégâts de zone"},
+    "mine":    {"rarity": "Rare",      "label": "Mine",          "desc": "Explose au contact"},
+    "mortar":  {"rarity": "Épique",    "label": "Mortier",       "desc": "Longue portée, gros dégâts"},
+    "sniper":  {"rarity": "Épique",    "label": "Sniper",        "desc": "Très longue portée"},
+    "tesla":   {"rarity": "Épique",    "label": "Tesla",         "desc": "Chaîne l'électricité"},
+    "cannon":  {"rarity": "Légendaire","label": "Canon",         "desc": "Puissance maximale"},
+    "laser":   {"rarity": "Légendaire","label": "Laser lourd",   "desc": "Rayon continu dévastateur"},
+    "beam":    {"rarity": "Légendaire","label": "Laser",         "desc": "Faisceaux d'énergie"},
+}
+
+# Poids de tirage par niveau du coffre (Commun, Rare, Épique, Légendaire)
+# Lv1 : presque que Commun, très rare Épique, pas de Légendaire
+# Plus le niveau monte, plus les hautes raretés deviennent accessibles
+TOWER_CHEST_WEIGHTS_BY_LEVEL = {
+    1:  {"Commun": 80, "Rare": 18, "Épique":  2, "Légendaire":  0},
+    2:  {"Commun": 70, "Rare": 24, "Épique":  5, "Légendaire":  1},
+    3:  {"Commun": 58, "Rare": 30, "Épique": 10, "Légendaire":  2},
+    4:  {"Commun": 48, "Rare": 33, "Épique": 15, "Légendaire":  4},
+    5:  {"Commun": 38, "Rare": 35, "Épique": 20, "Légendaire":  7},
+    6:  {"Commun": 28, "Rare": 35, "Épique": 26, "Légendaire": 11},
+    7:  {"Commun": 20, "Rare": 33, "Épique": 30, "Légendaire": 17},
+    8:  {"Commun": 13, "Rare": 29, "Épique": 33, "Légendaire": 25},
+    9:  {"Commun":  7, "Rare": 23, "Épique": 35, "Légendaire": 35},
+    10: {"Commun":  3, "Rare": 17, "Épique": 35, "Légendaire": 45},
+}
+# Alias pour compatibilité (utilise le niveau 1 par défaut)
+TOWER_CHEST_WEIGHTS = TOWER_CHEST_WEIGHTS_BY_LEVEL[1]
+
+# Niveau du coffre : seuils pour passer au niveau suivant
+# Index = niveau actuel (0-based), valeur = nb de pulls nécessaires pour atteindre ce niveau
+# Niveau 1 = 0 pulls, niveau 2 = 10, niveau 3 = 20, niveau 4 = 35, niveau 5 = 55, niveau 6 = 80...
+TOWER_CHEST_LEVEL_THRESHOLDS = [0, 10, 30, 60, 100, 150, 210, 285, 370, 470, 600]
+
+# Pitié : garantis selon le niveau du coffre
+# Niveau -> (nb pulls pour garantir Épique, nb pulls pour garantir Légendaire)
+TOWER_CHEST_PITY = {
+    1: (22, 100),
+    2: (20, 90),
+    3: (18, 80),
+    4: (16, 70),
+    5: (14, 60),
+    6: (12, 50),
+    7: (10, 40),
+    8: (8,  30),
+    9: (6,  25),
+    10: (5, 20),
+}
+
+# Coût du coffre tour (en gemmes), réduit à chaque niveau
+TOWER_CHEST_COSTS = {1: 5, 2: 5, 3: 4, 4: 4, 5: 3, 6: 3, 7: 2, 8: 2, 9: 1, 10: 1}
+
+# Montée de niveau des tours possédées
+# Tour niveau X nécessite X copies supplémentaires pour passer au niveau X+1
+TOWER_UPGRADE_COST = [1, 2, 3, 5, 8]  # coût en copies pour niveau 1→2, 2→3, etc.
+
+# Tours débloquées dès le départ (avant tout tirage)
+TOWER_DEFAULT_UNLOCKED = ["small", "big", "trap"]
+
+
+def _get_tower_chest_level(save_data_dict):
+    """Retourne le niveau actuel du coffre tours (1-10)."""
+    total_pulls = save_data_dict.get("tower_chest_total_pulls", 0)
+    level = 1
+    for i, threshold in enumerate(TOWER_CHEST_LEVEL_THRESHOLDS):
+        if total_pulls >= threshold:
+            level = i + 1
+        else:
+            break
+    return min(level, 10)
+
+
+def _get_tower_chest_progress(save_data_dict):
+    """Retourne (pulls_dans_ce_niveau, pulls_pour_prochain_niveau, niveau_actuel)."""
+    total = save_data_dict.get("tower_chest_total_pulls", 0)
+    level = _get_tower_chest_level(save_data_dict)
+    if level >= 10:
+        return total, total, 10
+    current_threshold = TOWER_CHEST_LEVEL_THRESHOLDS[level - 1]
+    next_threshold = TOWER_CHEST_LEVEL_THRESHOLDS[level]
+    pulls_in_level = total - current_threshold
+    pulls_needed = next_threshold - current_threshold
+    return pulls_in_level, pulls_needed, level
+
+
+def _ensure_tower_data(save_data_dict):
+    """Initialise les données de tours si absentes."""
+    save_data_dict.setdefault("tower_chest_total_pulls", 0)
+    save_data_dict.setdefault("tower_chest_pity_epic", 0)    # pulls depuis dernier Épique+
+    save_data_dict.setdefault("tower_chest_pity_legend", 0)  # pulls depuis dernier Légendaire
+    save_data_dict.setdefault("towers_unlocked", {t: True for t in TOWER_DEFAULT_UNLOCKED})
+    save_data_dict.setdefault("towers_level", {t: 1 for t in TOWER_DEFAULT_UNLOCKED})
+    save_data_dict.setdefault("towers_copies", {t: 0 for t in TOWER_DEFAULT_UNLOCKED})
+
+
+def open_tower_chest(save_data_dict, count=1):
+    """
+    Ouvre 1 ou 5 coffres tour (en gemmes).
+    Retourne (success, [résultats]) — résultats = liste de dicts {tower_id, rarity, is_new, ...}
+    """
+    _ensure_tower_data(save_data_dict)
+    level = _get_tower_chest_level(save_data_dict)
+    cost_per = TOWER_CHEST_COSTS.get(level, 5)
+    total_cost = cost_per * count
+
+    if save_data_dict.get("gems", 0) < total_cost:
+        return False, f"Pas assez de gemmes (coût : {total_cost} 💎)"
+
+    save_data_dict["gems"] -= total_cost
+    results = []
+
+    pity_epic   = save_data_dict["tower_chest_pity_epic"]
+    pity_legend = save_data_dict["tower_chest_pity_legend"]
+    epic_threshold, legend_threshold = TOWER_CHEST_PITY.get(level, (22, 100))
+
+    for _ in range(count):
+        save_data_dict["tower_chest_total_pulls"] += 1
+        pity_epic   += 1
+        pity_legend += 1
+
+        # Poids selon le niveau actuel du coffre
+        weights_lv = TOWER_CHEST_WEIGHTS_BY_LEVEL.get(level, TOWER_CHEST_WEIGHTS_BY_LEVEL[1])
+
+        # Déterminer la rareté (avec pitié)
+        if pity_legend >= legend_threshold:
+            rarity = "Légendaire"
+            pity_legend = 0
+            pity_epic   = 0
+        elif pity_epic >= epic_threshold:
+            rarity = "Épique"
+            pity_epic = 0
+        else:
+            pool_rarities = list(weights_lv.keys())
+            pool_weights  = [weights_lv[r] for r in pool_rarities]
+            rarity = random.choices(pool_rarities, weights=pool_weights, k=1)[0]
+            if rarity in ("Épique", "Légendaire"):
+                pity_epic = 0
+            if rarity == "Légendaire":
+                pity_legend = 0
+
+        # Choisir une tour de cette rareté
+        candidates = [tid for tid, td in TOWER_POOL.items() if td["rarity"] == rarity]
+        if not candidates:
+            candidates = list(TOWER_POOL.keys())
+        tower_id = random.choice(candidates)
+        tower_info = TOWER_POOL[tower_id]
+
+        towers_unlocked = save_data_dict["towers_unlocked"]
+        towers_copies   = save_data_dict["towers_copies"]
+        towers_level    = save_data_dict["towers_level"]
+
+        is_new = tower_id not in towers_unlocked or not towers_unlocked.get(tower_id)
+        if is_new:
+            towers_unlocked[tower_id] = True
+            towers_level[tower_id]    = 1
+            towers_copies[tower_id]   = 0
+        else:
+            # Ajouter la copie — la montée de niveau est MANUELLE (via upgrade_tower)
+            towers_copies[tower_id] = towers_copies.get(tower_id, 0) + 1
+
+        cur_lvl   = towers_level.get(tower_id, 1)
+        copies_now = towers_copies.get(tower_id, 0)
+        needed     = TOWER_UPGRADE_COST[cur_lvl - 1] if cur_lvl <= len(TOWER_UPGRADE_COST) else None
+        can_upgrade = (needed is not None) and (copies_now >= needed)
+
+        results.append({
+            "tower_id":    tower_id,
+            "label":       tower_info["label"],
+            "rarity":      rarity,
+            "rarity_color": list(TOWER_RARITY_COLORS[rarity]),
+            "is_new":      is_new,
+            "level":       cur_lvl,
+            "copies":      copies_now,
+            "needed":      needed,
+            "can_upgrade": can_upgrade,
+            "desc":        tower_info["desc"],
+        })
+
+    save_data_dict["tower_chest_pity_epic"]   = pity_epic
+    save_data_dict["tower_chest_pity_legend"] = pity_legend
+    save(save_data_dict)
+    return True, results
+
+
+def upgrade_tower(save_data_dict, tower_id):
+    """Essaie de monter de niveau une tour manuellement. Retourne (success, msg)."""
+    _ensure_tower_data(save_data_dict)
+    if not save_data_dict["towers_unlocked"].get(tower_id):
+        return False, "Tour non débloquée"
+    cur_lvl = save_data_dict["towers_level"].get(tower_id, 1)
+    if cur_lvl > len(TOWER_UPGRADE_COST):
+        return False, "Niveau max atteint"
+    needed = TOWER_UPGRADE_COST[cur_lvl - 1]
+    copies = save_data_dict["towers_copies"].get(tower_id, 0)
+    if copies < needed:
+        return False, f"Besoin de {needed} copies ({copies}/{needed})"
+    save_data_dict["towers_copies"][tower_id] -= needed
+    save_data_dict["towers_level"][tower_id]   = cur_lvl + 1
+    save(save_data_dict)
+    return True, f"Tour montée au niveau {cur_lvl + 1}!"
 
 
 # ─────────────────────────────────────────────────────────────────
