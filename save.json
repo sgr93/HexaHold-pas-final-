@@ -3697,7 +3697,7 @@
   "level": 1,
   "xp": 10,
   "battles_won": 0,
-  "towers_placed": 6,
+  "towers_placed": 7,
   "enemies_killed": 29,
   "max_wave_reached": 0,
   "daily_quests_completed": {},
@@ -3749,5 +3749,12 @@
     "beam": 0,
     "mortar": 0
   },
-  "coin_chest_pulls": 250
+  "coin_chest_pulls": 250,
+  "histoire_unlocked": [
+    0,
+    1
+  ],
+  "histoire_completed": [
+    0
+  ]
 }

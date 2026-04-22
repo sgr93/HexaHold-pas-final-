@@ -17,7 +17,7 @@ from config import (
 )
 from ui import ITEM_LABELS, ITEM_COLORS
 import quetes as quetes_module
-
+from histoire import run_histoire
 # ============================================================
 # COLORS FROM THEME (INLINED)
 # ============================================================
@@ -781,41 +781,66 @@ def run_menu(screen, clock, save=None):
         # TAB 0 : MENU PRINCIPAL — choix du niveau
         # ────────────────────────────────────────────────────────────────────
         if active_tab == 0:
-            panel = pygame.Rect(20, content_y + 20, w - 40, content_h - 40)
+            panel = pygame.Rect(20, content_y + 10, w - 40, content_h - 20)
             _draw_rounded_rect(screen, C_PANEL, panel, radius=12)
 
-            subtitle = font_med.render("Choisissez un niveau", True, C_TEXT)
-            screen.blit(subtitle, (panel.x + (panel.w - subtitle.get_width()) // 2, panel.y + 18))
+            subtitle = font_med.render("Choisissez un mode de jeu", True, C_TEXT)
+            screen.blit(subtitle, (panel.x + (panel.w - subtitle.get_width()) // 2, panel.y + 16))
 
-            btn_h = 70
+            # ── Trois boutons de mode ──
+            mode_buttons = [
+                ("◈  Mode Histoire",  (138, 106, 30), (196, 154, 46)),
+                ("∞  Mode Infini",    (30,  90, 130), (60, 160, 220)),
+                ("⚔  Mode Guerre",   (110,  30,  30), (200,  60,  60)),
+            ]
+            btn_h   = 64
             btn_gap = 14
-            start_y = panel.y + 70
-            for lvl, info in DIFFICULTY_LEVELS.items():
-                btn = pygame.Rect(panel.x + 30, start_y, panel.w - 60, btn_h)
+            btn_w   = panel.w - 60
+            start_y = panel.y + 60
+
+            for i, (label, col_n, col_h) in enumerate(mode_buttons):
+                btn = pygame.Rect(panel.x + 30, start_y + i * (btn_h + btn_gap), btn_w, btn_h)
                 hov = btn.collidepoint(mx, my)
-                col = C_BTN_HOV if hov else C_BTN
-                _draw_rounded_rect(screen, col, btn, radius=10,
-                                   border=2, border_color=DIFF_COLORS[lvl])
+                border_col = col_h if hov else col_n
+                _draw_rounded_rect(screen, C_BTN_HOV if hov else C_BTN, btn,
+                                radius=10, border=2, border_color=border_col)
+                lbl = font_med.render(label, True, col_h if hov else C_TEXT)
+                screen.blit(lbl, (btn.x + 22, btn.y + (btn_h - lbl.get_height()) // 2))
 
-                name_lbl = font_med.render(f"Niveau {lvl} — {info['name']}", True, DIFF_COLORS[lvl])
-                screen.blit(name_lbl, (btn.x + 18, btn.y + 8))
+                if clicked and hov:
+                    if i == 0:   # Mode Histoire
+                        result = run_histoire(screen, clock, save)
+                        if isinstance(result, dict):
+                            chosen_level = result.get("difficulty", 1)
+                            running = False
+                    elif i == 1: # Mode Infini — à implémenter
+                        pass
+                    elif i == 2: # Mode Guerre — à implémenter
+                        pass
 
+            # ── Sélection rapide de difficulté (toujours accessible) ──
+            diff_y = start_y + len(mode_buttons) * (btn_h + btn_gap) + 16
+            diff_lbl = font_sm.render("— Partie rapide : choisissez une difficulté —", True, C_SUBTEXT)
+            screen.blit(diff_lbl, (panel.x + panel.w//2 - diff_lbl.get_width()//2, diff_y))
+            diff_y += diff_lbl.get_height() + 8
+
+            for lvl, info in DIFFICULTY_LEVELS.items():
+                if diff_y + 46 > panel.bottom - 10:
+                    break
+                btn = pygame.Rect(panel.x + 30, diff_y, btn_w, 46)
+                hov = btn.collidepoint(mx, my)
+                _draw_rounded_rect(screen, C_BTN_HOV if hov else C_BTN, btn,
+                                   radius=8, border=2, border_color=DIFF_COLORS[lvl])
+                name_lbl = font_sm.render(f"Niv. {lvl} — {info['name']}", True, DIFF_COLORS[lvl])
+                screen.blit(name_lbl, (btn.x + 14, btn.y + 6))
                 detail = font_xs.render(
-                    f"{info['waves']} vagues  |  Mult. ennemis x{info['enemy_hp_mult']}  |  Recompense : {info['coins_reward']}",
-                    True, C_SUBTEXT
-                )
-                screen.blit(detail, (btn.x + 18, btn.y + 38))
-                _coin_ico_d = _get_icon("coin", 14)
-                screen.blit(_coin_ico_d, (btn.x + 18 + detail.get_width() + 4, btn.y + 38))
-
+                    f"{info['waves']} vagues  |  x{info['enemy_hp_mult']} HP  |  {info['coins_reward']} pièces",
+                    True, C_SUBTEXT)
+                screen.blit(detail, (btn.x + 14, btn.y + 26))
                 if clicked and hov:
                     chosen_level = lvl
                     running = False
-
-                start_y += btn_h + btn_gap
-
-            note = font_xs.render("Sélectionnez vos tours dans l'onglet Équipement avant de jouer.", True, C_SUBTEXT)
-            screen.blit(note, (panel.x + 30, panel.y + panel.h - 40))
+                diff_y += 46 + 8
 
         # ────────────────────────────────────────────────────────────────────
         # TAB 1 : GACHA (refonte complète avec 2 coffres + système tours)
