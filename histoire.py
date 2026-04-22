@@ -15,6 +15,10 @@ import pygame
 import math
 import save_data as sd
 
+# Import des fonctions d'API définies en bas du fichier (forward reference via module)
+# Elles sont utilisées dans Popup.draw() — disponibles à l'exécution car Python charge tout
+# le module avant d'exécuter les classes.
+
 # ─────────────────────────────────────────────────────────────────
 # PALETTE
 # ─────────────────────────────────────────────────────────────────
@@ -372,15 +376,17 @@ class Popup:
     WIDTH = 260
 
     def __init__(self):
-        self.visible     = False
-        self.chapter_idx = None
-        self.scroll      = 0
-        self._anim       = 0.0   # 0=fermé 1=ouvert
+        self.visible          = False
+        self.chapter_idx      = None
+        self.scroll           = 0
+        self._anim            = 0.0
+        self.selected_mission = 0
 
     def open(self, idx):
-        self.chapter_idx = idx
-        self.visible     = True
-        self.scroll      = 0
+        self.chapter_idx      = idx
+        self.visible          = True
+        self.scroll           = 0
+        self.selected_mission = 0   # mission sélectionnée par défaut
 
     def close(self):
         self.visible     = False
@@ -485,15 +491,18 @@ class Popup:
                 if ry + row_h < 0 or ry > clip_h:
                     continue
                 row = pygame.Rect(8, ry, pw-16, row_h)
-                locked = m.get("locked", False)
-                stars_done = sum(1 for o in m.get("objectives",[]) if o["done"])
+                locked = not is_mission_unlocked(save, self.chapter_idx, i)
+                stars_done = get_mission_best_stars(save, self.chapter_idx, i)
                 n_obj = len(m.get("objectives",[]))
 
                 # Fond
-                col = (24, 18, 8) if not locked else (18, 14, 6)
+                col = (30, 22, 10) if not locked else (18, 14, 6)
+                is_sel = (i == self.selected_mission) and not locked
+                if is_sel:
+                    col = (44, 32, 10)
                 pygame.draw.rect(clip_surf, col, row, border_radius=4)
-                border_col = (80, 60, 20) if not locked else (50, 38, 14)
-                pygame.draw.rect(clip_surf, border_col, row, 1, border_radius=4)
+                border_col = (196, 154, 46) if is_sel else ((80, 60, 20) if not locked else (50, 38, 14))
+                pygame.draw.rect(clip_surf, border_col, row, 2 if is_sel else 1, border_radius=4)
 
                 # Numéro + nom
                 num = f_xs.render(f"{i+1}.", True, C_GOLD)
@@ -934,9 +943,30 @@ def run_histoire(screen, clock, save):
                     pass  # Rien à lancer
 
                 else:
-                    # Lancer le jeu (retourner les infos au menu)
-                    sd.save(save)
-                    return {"chapter": idx, "mission": 0, "difficulty": 1}
+                    # Vérifier que la mission sélectionnée est bien déverrouillée
+                    mission_idx = popup.selected_mission
+                    if is_mission_unlocked(save, idx, mission_idx):
+                        sd.save(save)
+                        return {"chapter": idx, "mission": mission_idx, "difficulty": 1}
+
+            # Clic sur une ligne de mission dans le popup (pour la sélectionner)
+            if popup.visible and popup.chapter_idx is not None:
+                ch = CHAPTERS[popup.chapter_idx]
+                if ch.get("missions"):
+                    pw   = Popup.WIDTH
+                    px_p = int(sw - pw * popup._anim)
+                    py_p = 50
+                    # Zone de la liste des missions dans le popup
+                    content_y = 68
+                    row_h, row_gap = 82, 8
+                    clip_y = py_p + content_y
+                    for i in range(len(ch["missions"])):
+                        row_y_abs = clip_y + i * (row_h + row_gap) - popup.scroll
+                        row_rect  = pygame.Rect(px_p + 8, row_y_abs, pw - 16, row_h)
+                        if row_rect.collidepoint(mx, my):
+                            if is_mission_unlocked(save, popup.chapter_idx, i):
+                                popup.selected_mission = i
+                            break
 
             # Clic sur un point de chapitre
             if not popup.visible or not pygame.Rect(sw - int(Popup.WIDTH * popup._anim), 50,
@@ -980,3 +1010,119 @@ def _complete_chapter(idx, save, chapter_points, notif, unlocked_set, completed_
         notif.show(f"Nouveau chapitre débloqué : {CHAPTERS[next_idx]['label']}")
 
     sd.save(save)
+
+# ─────────────────────────────────────────────────────────────────
+# API PUBLIQUE — utilisée par game.py
+# ─────────────────────────────────────────────────────────────────
+
+def get_mission_objectives(chapter_idx, mission_idx):
+    """
+    Retourne la liste des objectifs d'une mission (copies fraîches).
+    Chaque objectif : {"text": str, "done": bool}
+    """
+    ch = CHAPTERS.get(chapter_idx, {})
+    missions = ch.get("missions", [])
+    if 0 <= mission_idx < len(missions):
+        import copy
+        return copy.deepcopy(missions[mission_idx].get("objectives", []))
+    return []
+
+
+def get_mission_name(chapter_idx, mission_idx):
+    ch = CHAPTERS.get(chapter_idx, {})
+    missions = ch.get("missions", [])
+    if 0 <= mission_idx < len(missions):
+        return missions[mission_idx].get("name", "Mission")
+    return "Mission"
+
+
+def has_next_mission(chapter_idx, mission_idx):
+    """Retourne True si une mission suivante existe (même chapitre ou chapitre suivant)."""
+    ch = CHAPTERS.get(chapter_idx, {})
+    missions = ch.get("missions", [])
+    if mission_idx + 1 < len(missions):
+        return True
+    # Chapitre suivant avec missions
+    next_ch = CHAPTERS.get(chapter_idx + 1, {})
+    return bool(next_ch.get("missions"))
+
+
+def get_next_mission(chapter_idx, mission_idx):
+    """
+    Retourne (chapter_idx, mission_idx) de la mission suivante.
+    """
+    ch = CHAPTERS.get(chapter_idx, {})
+    missions = ch.get("missions", [])
+    if mission_idx + 1 < len(missions):
+        return chapter_idx, mission_idx + 1
+    # Chercher dans le chapitre suivant
+    next_ch_idx = chapter_idx + 1
+    while next_ch_idx in CHAPTERS:
+        next_ch = CHAPTERS[next_ch_idx]
+        if next_ch.get("missions"):
+            return next_ch_idx, 0
+        next_ch_idx += 1
+    return chapter_idx, mission_idx  # fallback
+
+
+def save_mission_result(save, chapter_idx, mission_idx, objectives):
+    """
+    Sauvegarde le résultat d'une mission :
+    - Enregistre les étoiles (objectifs complétés)
+    - Déverrouille la mission suivante si ≥1 objectif accompli
+    - Marque le chapitre complété si toutes missions faites
+    """
+    stars_done = sum(1 for o in objectives if o.get("done", False))
+
+    # Stockage des étoiles par mission
+    key = f"ch{chapter_idx}_m{mission_idx}_stars"
+    prev_best = save.get(key, 0)
+    save[key] = max(prev_best, stars_done)
+
+    # Marquer la mission comme terminée (dans la liste histoire_missions_done)
+    done_key = f"ch{chapter_idx}_m{mission_idx}_done"
+    save[done_key] = True
+
+    # Déverrouiller la mission suivante si au moins 1 étoile
+    if stars_done >= 1:
+        ch = CHAPTERS.get(chapter_idx, {})
+        missions = ch.get("missions", [])
+        next_mission_idx = mission_idx + 1
+
+        if next_mission_idx < len(missions):
+            # Mission suivante dans le même chapitre
+            unlock_key = f"ch{chapter_idx}_m{next_mission_idx}_unlocked"
+            save[unlock_key] = True
+        else:
+            # Fin du chapitre : débloquer le chapitre suivant
+            next_ch_idx = ch.get("unlock_next")
+            if next_ch_idx is not None:
+                hist_unl = save.get("histoire_unlocked", [0])
+                if next_ch_idx not in hist_unl:
+                    hist_unl.append(next_ch_idx)
+                    save["histoire_unlocked"] = hist_unl
+                # Débloquer la première mission du chapitre suivant
+                unlock_key = f"ch{next_ch_idx}_m0_unlocked"
+                save[unlock_key] = True
+
+            # Marquer le chapitre comme complété
+            hist_comp = save.get("histoire_completed", [])
+            if chapter_idx not in hist_comp:
+                hist_comp.append(chapter_idx)
+            save["histoire_completed"] = hist_comp
+
+    sd.save(save)
+    return stars_done
+
+
+def is_mission_unlocked(save, chapter_idx, mission_idx):
+    """La mission 0 de chaque chapitre est toujours accessible si le chapitre est débloqué."""
+    if mission_idx == 0:
+        return chapter_idx in save.get("histoire_unlocked", [0])
+    key = f"ch{chapter_idx}_m{mission_idx}_unlocked"
+    return save.get(key, False)
+
+
+def get_mission_best_stars(save, chapter_idx, mission_idx):
+    key = f"ch{chapter_idx}_m{mission_idx}_stars"
+    return save.get(key, 0)

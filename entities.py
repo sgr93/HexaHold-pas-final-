@@ -18,6 +18,9 @@ from config import (
 import sprites as spr
 import os
 
+# Taille max du cache de frames scalées (évite fuite mémoire)
+_SCALED_FRAME_CACHE_MAX = 512
+
 # Chemin de base vers les assets (relatif au fichier main.py)
 _ASSETS_BASE = os.path.join(os.path.dirname(__file__), "assets", "sprites")
 
@@ -65,6 +68,12 @@ class Player:
         self.hp     = PLAYER_HP
         self.max_hp = PLAYER_HP
         self.alive  = True
+
+        # Stats de combat avancées (alimentées par skill tree / équipements)
+        self.crit_chance  = 0.0   # 0.0 → 1.0
+        self.crit_damage  = 1.5   # multiplicateur sur coup critique
+        self.dodge_chance = 0.0   # 0.0 → 1.0
+        self.defense      = 0.0   # réduction % des dégâts reçus (0.0 → 1.0)
 
         self._anim_state = 'idle'
         self._anim_dir   = 'down'
@@ -164,7 +173,10 @@ class Player:
                     target = e
                     best_dist_sq = dist_sq
             if target:
-                projectiles.append(Projectile(self.x, self.y, target, self.damage,
+                damage = self.damage
+                if self.crit_chance > 0 and random.random() < self.crit_chance:
+                    damage = int(damage * self.crit_damage)
+                projectiles.append(Projectile(self.x, self.y, target, damage,
                                               proj_type="player"))
                 self.attack_timer      = self.attack_cooldown
                 self.attack_anim_timer = 5
@@ -200,7 +212,14 @@ class Player:
             self.spriteset.update()
 
     def take_damage(self, amount):
-        self.hp = max(0, self.hp - amount)
+        # Esquive : chance de complètement éviter le coup
+        if self.dodge_chance > 0 and random.random() < self.dodge_chance:
+            self._hurt_timer = 3  # petit clignotement visuel sans dégâts
+            return False
+
+        # Réduction par défense
+        effective = max(1, int(amount * (1.0 - min(self.defense, 0.80))))
+        self.hp = max(0, self.hp - effective)
         self._hurt_timer = 8
         if self.spriteset and self._anim_state not in ('death', 'hurt'):
             self.spriteset.set_state('hurt', self._anim_dir)
@@ -659,6 +678,10 @@ class Tower:
                     if cached is None:
                         cropped = _crop_alpha_surface(frame)
                         cached = pygame.transform.scale(cropped, (self._render_w, self._render_h))
+                        # Purge LRU si le cache dépasse la limite
+                        if len(Tower._scaled_frame_cache) >= _SCALED_FRAME_CACHE_MAX:
+                            oldest = next(iter(Tower._scaled_frame_cache))
+                            del Tower._scaled_frame_cache[oldest]
                         Tower._scaled_frame_cache[key] = cached
                     frame = cached
                 screen.blit(

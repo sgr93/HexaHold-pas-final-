@@ -573,3 +573,212 @@ def draw_toasts(screen, toasts):
         pygame.draw.rect(screen, COLORS["border"], rect, 1, border_radius=8)
         screen.blit(lbl, (rect.x + pad, rect.y + pad))
         y += rect.h + 8
+
+# ============================================================
+# ANIMATION SKILL POINT GAGNÉ
+# ============================================================
+
+def draw_skillpoint_anim(screen, timer, total=180):
+    """
+    Affiche une animation centrée indiquant qu'un point de compétence a été gagné.
+    timer va de 180 → 0. Fondu entrant (30 frames) puis sortant (30 frames).
+    """
+    w, h = screen.get_size()
+
+    # Alpha : fondu entrant sur 30 frames, plein pendant 120, fondu sortant sur 30
+    if timer > total - 30:
+        alpha = int(255 * (total - timer) / 30)
+    elif timer < 30:
+        alpha = int(255 * timer / 30)
+    else:
+        alpha = 255
+
+    # Mouvement vers le haut
+    progress = (total - timer) / total
+    base_y = h // 2 - 60
+    anim_y = int(base_y - 30 * progress)
+
+    fnt_big = get_font("lg", bold=True)
+    fnt_sm  = get_font("sm")
+
+    # Fond semi-transparent
+    card_w, card_h = 320, 80
+    card_x = w // 2 - card_w // 2
+    card_surf = pygame.Surface((card_w, card_h), pygame.SRCALPHA)
+    card_surf.fill((20, 10, 40, min(220, alpha)))
+    pygame.draw.rect(card_surf, (*COLORS["accent"], min(255, alpha)),
+                     pygame.Rect(0, 0, card_w, card_h), 3, border_radius=16)
+    screen.blit(card_surf, (card_x, anim_y))
+
+    # Titre "NIVEAU SUPÉRIEUR !"
+    title = fnt_big.render("✦  NIVEAU SUPÉRIEUR !  ✦", True,
+                           (min(255, COLORS["accent"][0]), min(255, COLORS["accent"][1]),
+                            min(255, COLORS["accent"][2]), alpha))
+    title_surf = pygame.Surface(title.get_size(), pygame.SRCALPHA)
+    title_surf.blit(title, (0, 0))
+    title_surf.set_alpha(alpha)
+    screen.blit(title_surf, (w // 2 - title.get_width() // 2, anim_y + 8))
+
+    # Sous-titre
+    sub = fnt_sm.render("+ 1 Point de Compétence obtenu !", True, (180, 220, 255))
+    sub_surf = pygame.Surface(sub.get_size(), pygame.SRCALPHA)
+    sub_surf.blit(sub, (0, 0))
+    sub_surf.set_alpha(alpha)
+    screen.blit(sub_surf, (w // 2 - sub.get_width() // 2, anim_y + 46))
+
+
+# ============================================================
+# OBJECTIFS DE MISSION (panneau droit, en jeu)
+# ============================================================
+
+def draw_mission_objectives(screen, offset_x, offset_y, objectives):
+    """
+    Affiche les objectifs de la mission en cours à droite de la grille.
+    objectives : liste de dicts {"text": str, "done": bool}
+    Chaque objectif complété affiche une étoile jaune, sinon grise.
+    """
+    if not objectives:
+        return
+
+    panel_x = offset_x + GRID_WIDTH + 8
+    panel_y = offset_y
+    panel_w = INTERFACE_WIDTH - 16
+    line_h  = 22
+    pad     = 10
+    panel_h = pad * 2 + len(objectives) * line_h + 24
+
+    # Fond du panneau
+    panel = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
+    panel.fill((20, 24, 40, 200))
+    pygame.draw.rect(panel, COLORS["border"],
+                     pygame.Rect(0, 0, panel_w, panel_h), 1, border_radius=8)
+
+    fnt_title = get_font("sm", bold=True)
+    fnt_obj   = get_font("xs")
+
+    # Titre
+    title = fnt_title.render("Objectifs", True, COLORS["accent"])
+    panel.blit(title, (pad, pad - 2))
+
+    for i, obj in enumerate(objectives):
+        done = obj.get("done", False)
+        # Étoile : jaune si done, grise sinon
+        star_col = (255, 210, 40) if done else (80, 80, 100)
+        star_surf = fnt_obj.render("★", True, star_col)
+        ty = pad + 20 + i * line_h
+        panel.blit(star_surf, (pad, ty))
+
+        text = obj.get("text", "")
+        # Tronquer si trop long pour le panneau
+        txt_col = (200, 220, 200) if done else (160, 160, 180)
+        txt_surf = fnt_obj.render(text, True, txt_col)
+        max_w = panel_w - pad * 2 - 18
+        if txt_surf.get_width() > max_w:
+            while txt_surf.get_width() > max_w and len(text) > 3:
+                text = text[:-1]
+            txt_surf = fnt_obj.render(text + "…", True, txt_col)
+        panel.blit(txt_surf, (pad + 18, ty + 1))
+
+    screen.blit(panel, (panel_x, panel_y))
+
+
+# ============================================================
+# ÉCRAN DE FIN DE MISSION (mode histoire)
+# ============================================================
+
+def draw_mission_complete_screen(screen, big_font, font, objectives,
+                                  reward_coins, has_next_mission,
+                                  mouse_pos, clicked):
+    """
+    Popup de fin de mission mode histoire.
+    Affiche les étoiles obtenues, la récompense, et propose :
+      - Rejouer      → "restart"
+      - Mission suiv → "next"   (si has_next_mission)
+      - Carte        → "histoire"
+
+    Retourne l'action choisie ou None.
+    """
+    w, h = screen.get_size()
+    overlay = pygame.Surface((w, h), pygame.SRCALPHA)
+    overlay.fill((0, 0, 0, 180))
+    screen.blit(overlay, (0, 0))
+
+    stars_done = sum(1 for o in objectives if o.get("done", False))
+    n_obj      = len(objectives)
+
+    # Carte centrale
+    card_w, card_h = 420, 360 if has_next_mission else 310
+    cx = (w - card_w) // 2
+    cy = (h - card_h) // 2
+    card = pygame.Surface((card_w, card_h), pygame.SRCALPHA)
+    card.fill((20, 26, 42, 240))
+    pygame.draw.rect(card, (100, 120, 200), pygame.Rect(0, 0, card_w, card_h), 2, border_radius=14)
+    screen.blit(card, (cx, cy))
+
+    # Titre
+    title = big_font.render("MISSION TERMINÉE", True, (255, 220, 60))
+    screen.blit(title, (cx + card_w // 2 - title.get_width() // 2, cy + 18))
+
+    # Étoiles
+    star_fnt  = pygame.font.SysFont("arial", 40, bold=True)
+    star_y    = cy + 72
+    total_star_w = n_obj * 48
+    star_start   = cx + card_w // 2 - total_star_w // 2
+    for i in range(n_obj):
+        done = i < stars_done
+        col  = (255, 210, 40) if done else (50, 50, 70)
+        s    = star_fnt.render("★", True, col)
+        screen.blit(s, (star_start + i * 48, star_y))
+
+    # Résumé étoiles
+    summary_fnt = get_font("sm")
+    summary = summary_fnt.render(f"{stars_done} / {n_obj} objectifs accomplis", True, (200, 210, 230))
+    screen.blit(summary, (cx + card_w // 2 - summary.get_width() // 2, star_y + 48))
+
+    # Objectifs détaillés
+    obj_fnt = get_font("xs")
+    for i, obj in enumerate(objectives):
+        done   = obj.get("done", False)
+        prefix = "★ " if done else "✗ "
+        col    = (160, 230, 160) if done else (200, 100, 100)
+        t      = obj_fnt.render(prefix + obj.get("text", ""), True, col)
+        screen.blit(t, (cx + 24, star_y + 80 + i * 18))
+
+    # Récompense
+    reward_y = star_y + 80 + n_obj * 18 + 10
+    if reward_coins > 0:
+        rw = summary_fnt.render(f"+{reward_coins} pièces", True, (255, 205, 92))
+        screen.blit(rw, (cx + card_w // 2 - rw.get_width() // 2, reward_y))
+        btn_base_y = reward_y + 34
+    else:
+        btn_base_y = reward_y + 6
+
+    # Boutons
+    mx, my = mouse_pos
+    btn_w, btn_h = 160, 42
+    gap = 12
+    action = None
+
+    buttons = []
+    if has_next_mission:
+        buttons.append(("Mission suivante →", "next",    (50, 140, 80),  (120, 255, 150)))
+    buttons.append(    ("Rejouer",             "restart", (50, 80,  160), (120, 160, 255)))
+    buttons.append(    ("← Carte",             "histoire",(80, 50,  80),  (180, 120, 180)))
+
+    total_btn_w = len(buttons) * btn_w + (len(buttons) - 1) * gap
+    btn_start_x = cx + card_w // 2 - total_btn_w // 2
+
+    for i, (label, key, col_n, col_h) in enumerate(buttons):
+        bx   = btn_start_x + i * (btn_w + gap)
+        by   = cy + btn_base_y
+        rect = pygame.Rect(bx, by, btn_w, btn_h)
+        hov  = rect.collidepoint(mx, my)
+        pygame.draw.rect(screen, col_h if hov else col_n, rect, border_radius=10)
+        pygame.draw.rect(screen, (200, 200, 255) if hov else (120, 130, 160), rect, 2, border_radius=10)
+        lbl = font.render(label, True, (255, 255, 255))
+        screen.blit(lbl, (bx + (btn_w - lbl.get_width()) // 2,
+                           by + (btn_h - lbl.get_height()) // 2))
+        if clicked and hov:
+            action = key
+
+    return action

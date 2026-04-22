@@ -683,6 +683,9 @@ def run_menu(screen, clock, save=None):
     gacha_tower_result_idx = 0
     gacha_show_rates       = False
     gacha_tower_scroll     = 0
+    # Overlay coffre pièces (fullscreen)
+    chest_overlay_item    = None   # item dict affiché en overlay
+    chest_overlay_timer   = 0      # frames restantes (240 = 4s)
     sd._ensure_tower_data(save)
 
     # État équipement
@@ -922,15 +925,20 @@ def run_menu(screen, clock, save=None):
                 screen.blit(chest_ico, (chest_img_rect.centerx - chest_ico.get_width()//2,
                                          chest_img_rect.centery - chest_ico.get_height()//2))
 
-            # Texte pitié
-            pity_epic_coin   = 30
-            pity_legend_coin = 100
-            pe_lbl = font_xs.render(f"{pity_epic_coin} tirages garantissent un objet ", True, (220, 80, 80))
+            # Texte pitié — affiche le nombre de tirages restants pour la garantie
+            coin_lvl_now = sd.get_coin_chest_level(save)
+            epic_thr_c, legend_thr_c = sd.COIN_CHEST_PITY.get(coin_lvl_now, (30, 100))
+            cur_pity_epic_c   = save.get("coin_chest_pity_epic", 0)
+            cur_pity_legend_c = save.get("coin_chest_pity_legend", 0)
+            remaining_epic_c   = max(0, epic_thr_c - cur_pity_epic_c)
+            remaining_legend_c = max(0, legend_thr_c - cur_pity_legend_c)
+
+            pe_lbl = font_xs.render(f"{remaining_epic_c} tirages restants avant objet garanti ", True, (220, 80, 80))
             screen.blit(pe_lbl, (coin_card.x + 10, coin_card.y + 178))
             epic_col_lbl = font_xs.render("Épique", True, RARITY_COL["Épique"])
             screen.blit(epic_col_lbl, (coin_card.x + 10 + pe_lbl.get_width(), coin_card.y + 178))
 
-            pl_lbl = font_xs.render(f"{pity_legend_coin} tirages garantissent un objet ", True, (220, 80, 80))
+            pl_lbl = font_xs.render(f"{remaining_legend_c} tirages restants avant objet garanti ", True, (220, 80, 80))
             screen.blit(pl_lbl, (coin_card.x + 10, coin_card.y + 200))
             leg_col_lbl = font_xs.render("Légendaire", True, RARITY_COL["Légendaire"])
             screen.blit(leg_col_lbl, (coin_card.x + 10 + pl_lbl.get_width(), coin_card.y + 200))
@@ -963,6 +971,8 @@ def run_menu(screen, clock, save=None):
                         ok, result = sd.open_chest(save, "wood")
                         if ok:
                             last_item_obtained = result
+                            chest_overlay_item  = result
+                            chest_overlay_timer = 240
                             gacha_msg       = f"Obtenu : {result['name']} (+{result['value']} {result['label']})"
                             gacha_msg_timer = 240
                     if not ok:
@@ -1021,13 +1031,18 @@ def run_menu(screen, clock, save=None):
                 screen.blit(q_ico, (chest_img_rect_g.centerx - q_ico.get_width()//2,
                                      chest_img_rect_g.centery - q_ico.get_height()//2))
 
-            # Pitié
-            pe_g_lbl = font_xs.render(f"{pity_e} tirages garantissent une tour ", True, (220, 80, 80))
+            # Pitié tours — affiche le nombre de tirages restants
+            cur_pity_epic_g   = save.get("tower_chest_pity_epic", 0)
+            cur_pity_legend_g = save.get("tower_chest_pity_legend", 0)
+            remaining_epic_g   = max(0, pity_e - cur_pity_epic_g)
+            remaining_legend_g = max(0, pity_l - cur_pity_legend_g)
+
+            pe_g_lbl = font_xs.render(f"{remaining_epic_g} tirages restants avant tour garantie ", True, (220, 80, 80))
             screen.blit(pe_g_lbl, (gem_card.x + 10, gem_card.y + 178))
             epic_g_lbl = font_xs.render("Épique", True, RARITY_COL["Épique"])
             screen.blit(epic_g_lbl, (gem_card.x + 10 + pe_g_lbl.get_width(), gem_card.y + 178))
 
-            pl_g_lbl = font_xs.render(f"{pity_l} tirages garantissent une tour ", True, (220, 80, 80))
+            pl_g_lbl = font_xs.render(f"{remaining_legend_g} tirages restants avant tour garantie ", True, (220, 80, 80))
             screen.blit(pl_g_lbl, (gem_card.x + 10, gem_card.y + 200))
             leg_g_lbl = font_xs.render("Légendaire", True, RARITY_COL["Légendaire"])
             screen.blit(leg_g_lbl, (gem_card.x + 10 + pl_g_lbl.get_width(), gem_card.y + 200))
@@ -1426,6 +1441,72 @@ def run_menu(screen, clock, save=None):
 
                 screen.set_clip(old_clip)
 
+            # ── OVERLAY PLEIN ÉCRAN — résultat de l'ouverture du coffre ─────
+            if chest_overlay_timer > 0:
+                chest_overlay_timer -= 1
+                _ov_total = 240
+                # Alpha : fondu entrant 20f, plein, fondu sortant 40f
+                if chest_overlay_timer > _ov_total - 20:
+                    _ov_alpha = int(200 * ((_ov_total - chest_overlay_timer) / 20))
+                elif chest_overlay_timer < 40:
+                    _ov_alpha = int(200 * (chest_overlay_timer / 40))
+                else:
+                    _ov_alpha = 200
+
+                # Fond grisé sur tout l'écran
+                _ov_surf = pygame.Surface((w, h), pygame.SRCALPHA)
+                _ov_surf.fill((0, 0, 0, _ov_alpha))
+                screen.blit(_ov_surf, (0, 0))
+
+                if chest_overlay_item:
+                    _it = chest_overlay_item
+                    _rar = _it.get("rarity", "Commun")
+                    _rar_col = tuple(RARITY_COL.get(_rar, (160, 160, 160)))
+                    _card_w, _card_h = 380, 220
+                    _cx = w // 2 - _card_w // 2
+                    _cy = h // 2 - _card_h // 2
+
+                    _card = pygame.Surface((_card_w, _card_h), pygame.SRCALPHA)
+                    _card.fill((18, 14, 32, min(240, _ov_alpha + 30)))
+                    _card_rect = pygame.Rect(0, 0, _card_w, _card_h)
+                    pygame.draw.rect(_card, (*_rar_col, min(255, _ov_alpha + 55)),
+                                     _card_rect, 3, border_radius=18)
+                    screen.blit(_card, (_cx, _cy))
+
+                    # Rareté badge
+                    _rbadge = font_sm.render(f"✦ {_rar} ✦", True, _rar_col)
+                    screen.blit(_rbadge, (w // 2 - _rbadge.get_width() // 2, _cy + 16))
+
+                    # Nom de l'objet
+                    _name_lbl = font_med.render(_it.get("name", "Objet"), True, (255, 255, 255))
+                    screen.blit(_name_lbl, (w // 2 - _name_lbl.get_width() // 2, _cy + 52))
+
+                    # Stat
+                    _stat_lbl = font_sm.render(
+                        f"+{_it['value']} {_it['label']}", True, _rar_col)
+                    screen.blit(_stat_lbl, (w // 2 - _stat_lbl.get_width() // 2, _cy + 92))
+
+                    # Icône équipement
+                    _eq_icon = _get_equipment_icon_surface(_it) if hasattr(pygame, '_eq_icon_fn') else None
+                    try:
+                        from menu_screen import _get_equipment_icon_surface as _eif
+                        _eq_icon = _eif(_it)
+                    except Exception:
+                        _eq_icon = None
+                    if _eq_icon and _eq_icon is not False:
+                        _fitted = _fit_surface(_eq_icon, 80, 80)
+                        if _fitted:
+                            screen.blit(_fitted, (w // 2 - _fitted.get_width() // 2, _cy + 120))
+
+                    # Instruction
+                    _hint = font_xs.render("Cliquez pour continuer", True, C_SUBTEXT)
+                    screen.blit(_hint, (w // 2 - _hint.get_width() // 2, _cy + _card_h - 30))
+
+                # Fermer l'overlay au clic
+                if clicked:
+                    chest_overlay_timer = 0
+                    chest_overlay_item  = None
+
         # ────────────────────────────────────────────────────────────────────
         # TAB 2 : ÉQUIPEMENT
         # ────────────────────────────────────────────────────────────────────
@@ -1725,10 +1806,30 @@ def run_menu(screen, clock, save=None):
                     screen.blit(btn_lbl, (eq_btn.x + (eq_btn.w - btn_lbl.get_width()) // 2,
                                            eq_btn.y + (eq_btn.h - btn_lbl.get_height()) // 2))
 
+                    # Bouton Vendre
+                    sell_btn = pygame.Rect(row.right - 174, row.y + 16, 76, 32)
+                    _rarity = item.get("rarity", "Commun")
+                    _sell_val = sd.EQUIPMENT_SELL_VALUES.get(_rarity, 20)
+                    sell_col = (200, 60, 60) if sell_btn.collidepoint(mx, my) else (140, 40, 40)
+                    _draw_rounded_rect(screen, sell_col, sell_btn, radius=8, border=1, border_color=(255, 100, 100))
+                    sell_txt = font_xs.render(f"Vendre {_sell_val}", True, (255, 210, 210))
+                    screen.blit(sell_txt, (sell_btn.x + (sell_btn.w - sell_txt.get_width()) // 2,
+                                           sell_btn.y + (sell_btn.h - sell_txt.get_height()) // 2))
+
                     if clicked and eq_btn.collidepoint(mx, my) and not already:
                         save["equipped"][category_slot] = item_idx
                         sd.save(save)
-                    elif clicked and row.collidepoint(mx, my) and not eq_btn.collidepoint(mx, my):
+                    elif clicked and sell_btn.collidepoint(mx, my):
+                        ok_sell, coins_got, err = sd.sell_equipment(save, item_idx)
+                        if ok_sell:
+                            gacha_msg = f"Vendu ! +{coins_got} pièces"
+                            gacha_msg_timer = 180
+                            # reset scroll/selection car l'inventaire a changé
+                            selected_inv_idx = None
+                        else:
+                            gacha_msg = err
+                            gacha_msg_timer = 120
+                    elif clicked and row.collidepoint(mx, my) and not eq_btn.collidepoint(mx, my) and not sell_btn.collidepoint(mx, my):
                         selected_inv_idx = li
                         dragging_item = item_idx
                         drag_offset = (row.x - mx, row.y - my)
@@ -2194,6 +2295,21 @@ def run_menu(screen, clock, save=None):
             )
             if should_close:
                 icon_picker_open = False
+
+        # ── Toast messages globaux (vente, erreurs, etc.) ────────────────
+        if gacha_msg_timer > 0:
+            gacha_msg_timer -= 1
+            _alpha_t = min(255, gacha_msg_timer * 4)
+            _t_surf = font_sm.render(gacha_msg, True, (255, 220, 100))
+            _t_bg = pygame.Surface((_t_surf.get_width() + 24, _t_surf.get_height() + 12), pygame.SRCALPHA)
+            _t_bg.fill((20, 20, 30, _alpha_t))
+            pygame.draw.rect(_t_bg, (100, 100, 140, _alpha_t),
+                             _t_bg.get_rect(), 1, border_radius=8)
+            _t_x = w // 2 - _t_bg.get_width() // 2
+            _t_y = h - 80
+            screen.blit(_t_bg, (_t_x, _t_y))
+            _t_surf.set_alpha(_alpha_t)
+            screen.blit(_t_surf, (_t_x + 12, _t_y + 6))
 
         pygame.display.flip()
         clock.tick(60)

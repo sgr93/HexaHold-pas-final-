@@ -8,6 +8,7 @@ Utilise un simple fichier JSON.
 import json
 import os
 import random
+import datetime
 
 _SAVE_FILE = os.path.join(os.path.dirname(__file__), "save.json")
 
@@ -283,6 +284,7 @@ _DEFAULT = {
     "enemies_killed": 0,
     "max_wave_reached": 0,
     "daily_quests_completed": {},
+    "last_daily_reset": "",      # date ISO "YYYY-MM-DD" du dernier reset des quêtes quotidiennes
     "events_completed": {},
     "player_icon": "icone0.png",
     # Gacha tours
@@ -293,6 +295,8 @@ _DEFAULT = {
     "towers_level":   {"small": 1, "big": 1, "trap": 1},
     "towers_copies":  {"small": 0, "big": 0, "trap": 0},
     "coin_chest_pulls": 0,
+    "coin_chest_pity_epic":   0,   # pulls depuis dernier Épique+
+    "coin_chest_pity_legend": 0,   # pulls depuis dernier Légendaire
     "histoire_unlocked": [0],   # chapitres débloqués
     "histoire_completed": []    # chapitres terminés
 }
@@ -332,10 +336,22 @@ def load():
             for k, v in _DEFAULT.items():
                 if k not in data:
                     data[k] = v
+
+            # Reset des quêtes quotidiennes si on est un nouveau jour
+            _maybe_reset_daily_quests(data)
+
             return data
         except Exception:
             pass
     return dict(_DEFAULT)
+
+
+def _maybe_reset_daily_quests(data):
+    """Réinitialise daily_quests_completed si la date a changé depuis le dernier reset."""
+    today = datetime.date.today().isoformat()
+    if data.get("last_daily_reset", "") != today:
+        data["daily_quests_completed"] = {}
+        data["last_daily_reset"] = today
 
 
 def save(data):
@@ -344,6 +360,50 @@ def save(data):
             json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception as e:
         print(f"[save_data] Erreur sauvegarde : {e}")
+
+
+EQUIPMENT_SELL_VALUES = {
+    "Commun":    20,
+    "Rare":      60,
+    "Épique":    150,
+    "Légendaire": 400,
+    "Mythique":  1000,
+}
+
+
+def sell_equipment(save_data_dict, item_idx):
+    """
+    Vend un équipement de l'inventaire.
+    Retourne (success, coins_gained, error_msg).
+    """
+    inv = save_data_dict.get("inventory_equipment", [])
+    if item_idx < 0 or item_idx >= len(inv):
+        return False, 0, "Objet invalide"
+
+    item = inv[item_idx]
+    rarity = item.get("rarity", "Commun")
+    coins = EQUIPMENT_SELL_VALUES.get(rarity, 20)
+
+    # Vérifier que l'objet n'est pas équipé
+    equipped = save_data_dict.get("equipped", {})
+    for slot, idx in equipped.items():
+        if idx == item_idx:
+            return False, 0, "Impossible de vendre un objet équipé"
+
+    # Supprimer l'objet et mettre à jour les indices équipés
+    inv.pop(item_idx)
+    new_equipped = {}
+    for slot, idx in equipped.items():
+        if idx is None:
+            new_equipped[slot] = None
+        elif idx > item_idx:
+            new_equipped[slot] = idx - 1
+        else:
+            new_equipped[slot] = idx
+    save_data_dict["equipped"] = new_equipped
+    save_data_dict["coins"] = save_data_dict.get("coins", 0) + coins
+    save(save_data_dict)
+    return True, coins, ""
 
 
 def open_chest(save_data_dict, chest_type):
@@ -367,14 +427,33 @@ def open_chest(save_data_dict, chest_type):
             return False, f"Pas assez de pièces (coût : {cost})"
         save_data_dict["coins"] -= cost
 
-    # Pour le coffre pièces "wood" : utiliser les poids par niveau
+    # Pour le coffre pièces "wood" : utiliser les poids par niveau + pitié
     if chest_type == "wood":
         save_data_dict["coin_chest_pulls"] = save_data_dict.get("coin_chest_pulls", 0) + 1
+        save_data_dict.setdefault("coin_chest_pity_epic",   0)
+        save_data_dict.setdefault("coin_chest_pity_legend", 0)
+        save_data_dict["coin_chest_pity_epic"]   += 1
+        save_data_dict["coin_chest_pity_legend"] += 1
+
         coin_lvl     = get_coin_chest_level(save_data_dict)
-        weights_dict = COIN_CHEST_WEIGHTS_BY_LEVEL.get(coin_lvl, COIN_CHEST_WEIGHTS_BY_LEVEL[1])
-        rar_list     = list(weights_dict.keys())
-        wt_list      = [weights_dict[r] for r in rar_list]
-        rarity       = random.choices(rar_list, weights=wt_list, k=1)[0]
+        epic_thr, legend_thr = COIN_CHEST_PITY.get(coin_lvl, (30, 100))
+
+        if save_data_dict["coin_chest_pity_legend"] >= legend_thr:
+            rarity = "Légendaire"
+            save_data_dict["coin_chest_pity_epic"]   = 0
+            save_data_dict["coin_chest_pity_legend"] = 0
+        elif save_data_dict["coin_chest_pity_epic"] >= epic_thr:
+            rarity = "Épique"
+            save_data_dict["coin_chest_pity_epic"]   = 0
+        else:
+            weights_dict = COIN_CHEST_WEIGHTS_BY_LEVEL.get(coin_lvl, COIN_CHEST_WEIGHTS_BY_LEVEL[1])
+            rar_list     = list(weights_dict.keys())
+            wt_list      = [weights_dict[r] for r in rar_list]
+            rarity       = random.choices(rar_list, weights=wt_list, k=1)[0]
+            if rarity in ("Épique", "Légendaire"):
+                save_data_dict["coin_chest_pity_epic"]   = 0
+            if rarity == "Légendaire":
+                save_data_dict["coin_chest_pity_legend"] = 0
     else:
         weights = RARITY_WEIGHTS[chest_type]
         rarity  = random.choices(RARITIES, weights=weights, k=1)[0]
@@ -447,6 +526,21 @@ def get_coin_chest_level(save_data_dict):
         else:
             break
     return min(level, 10)
+
+
+# Pitié coffre pièces : (epic_threshold, legend_threshold) par niveau
+COIN_CHEST_PITY = {
+    1:  (30, 100),
+    2:  (28,  90),
+    3:  (25,  80),
+    4:  (22,  70),
+    5:  (20,  60),
+    6:  (17,  50),
+    7:  (15,  40),
+    8:  (12,  30),
+    9:  (10,  25),
+    10: ( 8,  20),
+}
 
 
 def get_coin_chest_progress(save_data_dict):
@@ -765,3 +859,44 @@ def get_active_bonuses(save_data_dict):
                 bonuses[bonus_key] = bonuses.get(bonus_key, 0) + bonus_value
     
     return bonuses
+
+
+def apply_skill_bonuses_to_player(save_data_dict, player):
+    """
+    Applique tous les bonus du skill tree et des équipements sur l'objet Player.
+    À appeler après build_initial_state() quand les équipements ont déjà été traités
+    (pour ne pas doubler les bonus d'équipement).
+    Seuls les bonus de compétences pures sont appliqués ici.
+    """
+    bonuses = get_active_bonuses(save_data_dict)
+
+    # Dégâts joueur
+    player.damage += bonuses.get("player_damage", 0)
+
+    # Vitesse de déplacement
+    player.speed += bonuses.get("player_speed", 0)
+
+    # HP max (et HP courants proportionnellement)
+    hp_bonus = bonuses.get("max_hp", 0)
+    if hp_bonus:
+        player.max_hp += hp_bonus
+        player.hp     += hp_bonus  # on donne aussi les HP directement
+
+    # Vitesse d'attaque : bonus = réduction du cooldown en frames
+    atk_spd = bonuses.get("attack_speed", 0)
+    if atk_spd:
+        player.attack_cooldown = max(5, player.attack_cooldown - int(atk_spd))
+
+    # Chance de coup critique (0.0 → 1.0)
+    player.crit_chance  = min(0.95, player.crit_chance + bonuses.get("crit_chance", 0))
+
+    # Multiplicateur de dégâts critiques
+    crit_dmg_bonus = bonuses.get("crit_damage", 0)
+    if crit_dmg_bonus:
+        player.crit_damage += crit_dmg_bonus
+
+    # Esquive (0.0 → max 0.80 pour éviter l'invincibilité)
+    player.dodge_chance = min(0.80, player.dodge_chance + bonuses.get("dodge_chance", 0))
+
+    # Défense (réduction des dégâts reçus, plafonnée à 80%)
+    player.defense = min(0.80, player.defense + bonuses.get("defense", 0))

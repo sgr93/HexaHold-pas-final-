@@ -33,7 +33,7 @@ QUETES = {
         "xp": 15,
         "pieces": 30,
         "gemmes": 0,
-        "condition": lambda save, game_state: save.get("daily_quests_completed", {}).get("quotidienne_combat_1", False)
+        "condition": lambda save, gs: save.get("daily_quests_completed", {}).get("quotidienne_combat_1", False)
     },
     "quotidienne_combat_3": {
         "nom": "Guerrier du jour",
@@ -43,7 +43,7 @@ QUETES = {
         "xp": 25,
         "pieces": 75,
         "gemmes": 0,
-        "condition": lambda save, game_state: save.get("daily_quests_completed", {}).get("quotidienne_combat_3", False)
+        "condition": lambda save, gs: save.get("daily_quests_completed", {}).get("quotidienne_combat_3", False)
     },
     "quotidienne_niveau": {
         "nom": "Augmentation de puissance",
@@ -53,7 +53,7 @@ QUETES = {
         "xp": 20,
         "pieces": 50,
         "gemmes": 0,
-        "condition": lambda save, game_state: save.get("daily_quests_completed", {}).get("quotidienne_niveau", False)
+        "condition": lambda save, gs: save.get("daily_quests_completed", {}).get("quotidienne_niveau", False)
     },
 
     # ────────────────────────────────────────────────────────────────
@@ -256,6 +256,16 @@ def mark_quest_completed(save, quest_id):
             save["quests_completed"] = {}
         save["quests_completed"][quest_id] = True
     return True
+
+
+def mark_daily_quest_done(save, quest_id):
+    """
+    Marque une quête quotidienne comme accomplie pour aujourd'hui.
+    Le reset automatique est géré dans save_data.load() via _maybe_reset_daily_quests.
+    """
+    if "daily_quests_completed" not in save:
+        save["daily_quests_completed"] = {}
+    save["daily_quests_completed"][quest_id] = True
 
 
 def has_quest_been_completed(save, quest_id):

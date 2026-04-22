@@ -35,10 +35,16 @@ from ui import (
     draw_levelup_banner,
     draw_toasts,
     draw_pause_button,
+    draw_mission_objectives,
+    draw_mission_complete_screen,
 )
 from walls import apply_map_walls
 import save_data as sd
 import quetes
+import histoire as hist_mod
+
+# Seuils de sauvegarde : on ne sauvegarde qu'en fin de vague, pas à chaque kill
+_DIRTY_SAVE = False   # True = save nécessaire, effectuée en fin de frame sûre
 
 
 # ============================================================
@@ -329,6 +335,14 @@ def build_initial_state(difficulty=2, save=None):
     apply_map_walls(grid)
     grid.recompute()
 
+    # Appliquer les bonus du skill tree sur le joueur (après équipements)
+    if save:
+        sd.apply_skill_bonuses_to_player(save, player)
+
+    # HP de la base : constants, la difficulté joue sur les ennemis pas sur la base
+    goal_hp = 100
+    goal.hp = goal_hp
+
     return {
         # Progression
         "level":                    LEVEL_START,
@@ -385,10 +399,18 @@ def build_initial_state(difficulty=2, save=None):
         "difficulty":               difficulty,
         "coins_reward":             diff_info["coins_reward"],
         "reward_collected":          False,
+        "goal_max_hp":              goal_hp,
 
         # Référence save
         "save":                     save,
         "toasts":                   [],
+
+        # Contexte mission histoire (None si hors mode histoire)
+        "mission_context":          None,   # dict {chapter, mission, objectives} ou None
+        "mission_complete_shown":   False,  # popup de fin affiché
+
+        # Animation skill point gagné
+        "skillpoint_anim_timer":    0,
     }
 
 
@@ -401,6 +423,96 @@ def _make_known_towers(save):
         return set(ALL_TOWER_TYPES[:TOWER_SLOT_COUNT])
     loadout = save.get("tower_loadout", []) or ALL_TOWER_TYPES
     return set(loadout[:TOWER_SLOT_COUNT])
+
+
+def _evaluate_mission_objectives(gs):
+    """
+    Évalue les objectifs de la mission en cours et met à jour objective["done"].
+    Appelée à chaque frame (légère car pas d'I/O).
+    """
+    import re
+    mc = gs.get("mission_context")
+    if not mc:
+        return
+    objs = mc["objectives"]
+
+    for obj in objs:
+        if obj.get("done"):
+            continue
+        text = obj["text"].lower()
+
+        # "Survivre à N vagues"
+        if "survivre" in text and "vague" in text:
+            m = re.search(r"(\d+)", text)
+            if m and (gs.get("wave_number", 1) > int(m.group(1)) or gs.get("game_win", False)):
+                obj["done"] = True
+
+        # "Ne pas perdre plus de N PV"
+        elif "ne pas perdre" in text and "pv" in text:
+            m = re.search(r"(\d+)", text)
+            player = gs.get("player")
+            if m and player:
+                if player.max_hp - player.hp <= int(m.group(1)):
+                    obj["done"] = True
+
+        # "Finir avec tous ses PV"
+        elif "tous ses pv" in text or "tous les pv" in text:
+            player = gs.get("player")
+            if player and gs.get("game_win") and player.hp >= player.max_hp:
+                obj["done"] = True
+
+        # "Placer N tours"
+        elif "placer" in text and "tour" in text:
+            m = re.search(r"(\d+)", text)
+            if m:
+                towers = [t for t in gs.get("towers", []) if hasattr(t, "tower_type")]
+                if len(towers) >= int(m.group(1)):
+                    obj["done"] = True
+
+        # "Éliminer / Tuer N ennemis"
+        elif any(w in text for w in ("éliminer", "tuer", "battez")):
+            m = re.search(r"(\d+)", text)
+            if m and gs.get("save"):
+                if gs["save"].get("enemies_killed", 0) >= int(m.group(1)):
+                    obj["done"] = True
+
+        # "Vaincre le boss"
+        elif "vaincre" in text and "boss" in text:
+            if gs.get("game_win", False):
+                obj["done"] = True
+
+        # Victoire générale
+        elif any(w in text for w in ("terminer", "compléter", "survivre")) and gs.get("game_win"):
+            obj["done"] = True
+
+
+def _check_and_notify_quests(gs):
+    """
+    Vérifie les quêtes nouvellement complétées et émet des toasts.
+    Utilise gs["quests_notified"] pour ne jamais afficher deux fois le même toast.
+    NE sauvegarde PAS sur disque — la sauvegarde est faite en dehors des boucles chaudes.
+    """
+    save = gs.get("save")
+    if save is None:
+        return
+    # Set en mémoire : quêtes déjà notifiées cette session (reset à chaque nouvelle partie)
+    notified = gs.setdefault("quests_notified", set())
+
+    for q_id, quest in quetes.QUETES.items():
+        if q_id in notified:
+            continue
+        if save.get("quests_completed", {}).get(q_id, False):
+            # Déjà réclamée — on marque notifiée pour ne plus la re-checker
+            notified.add(q_id)
+            continue
+        if quetes.check_quest_completion(q_id, save, gs):
+            notified.add(q_id)
+            gs["toasts"].append({
+                "text": f"Quête: {quest['nom']} !",
+                "ttl": 300,
+                "max_ttl": 300,
+                "color": (255, 215, 0)
+            })
 
 
 def main():
@@ -441,6 +553,16 @@ def main():
     gs         = build_initial_state(chosen_level, current_save)
     grid_cache.invalidate()
 
+    # Si on vient du mode histoire, charger les objectifs de la mission
+    if isinstance(chosen_level, dict):
+        ch_idx  = chosen_level.get("chapter", 0)
+        m_idx   = chosen_level.get("mission", 0)
+        gs["mission_context"] = {
+            "chapter":    ch_idx,
+            "mission":    m_idx,
+            "objectives": hist_mod.get_mission_objectives(ch_idx, m_idx),
+        }
+
     # Choix initial de tour au lancement du niveau
     gs["levelup_pending"] = True
     start_loadout = (gs.get("save") or {}).get("tower_loadout", []) or ALL_TOWER_TYPES
@@ -479,6 +601,24 @@ def main():
                         gs["selected_item"] = None
                     elif not gs["levelup_pending"]:
                         running = False
+
+                elif event.key == pygame.K_p:
+                    # Touche P : bascule pause (uniquement si le jeu est en cours)
+                    if (gs["game_started"] and not gs["game_over"]
+                            and not gs["game_win"] and not gs["levelup_pending"]):
+                        if not gs["paused"]:
+                            gs["paused"] = True
+                            _pause_start = time.time()
+                        else:
+                            gs["paused"] = False
+                            if _pause_start is not None:
+                                paused_duration = time.time() - _pause_start
+                                gs["last_wave_time"]   += paused_duration
+                                gs["last_enemy_spawn"] += paused_duration
+                                gs["last_regen_time"]  += paused_duration
+                                if gs["boss_start_time"] > 0:
+                                    gs["boss_start_time"] += paused_duration
+                                _pause_start = None
 
 
 
@@ -528,23 +668,16 @@ def main():
             gs["save"]["coins"] = gs["save"].get("coins", 0) + gs["coins_reward"]
             gs["save"]["battles_won"] = gs["save"].get("battles_won", 0) + 1
             gs["reward_collected"] = True
+
+            # Marquer les quêtes quotidiennes de combat accomplies
+            quetes.mark_daily_quest_done(gs["save"], "quotidienne_combat_1")
+            # quotidienne_combat_3 nécessite 3 victoires : géré via battles_won
+            battles = gs["save"].get("battles_won", 0)
+            if battles > 0 and battles % 3 == 0:
+                quetes.mark_daily_quest_done(gs["save"], "quotidienne_combat_3")
+
+            _check_and_notify_quests(gs)
             sd.save(gs["save"])
-            
-            # Vérifier les quêtes complétées après la victoire
-            completed_quests = []
-            for q_id, quest in quetes.QUETES.items():
-                if not gs["save"].get("quests_completed", {}).get(q_id, False):
-                    if quetes.check_quest_completion(q_id, gs["save"], gs):
-                        completed_quests.append(quest["nom"])
-            
-            # Ajouter des toasts pour les quêtes complétées
-            for quest_name in completed_quests:
-                gs["toasts"].append({
-                    "text": f"Quête complétée: {quest_name}!",
-                    "ttl": 300,  # Plus long pour les quêtes importantes
-                    "max_ttl": 300,
-                    "color": (255, 215, 0)  # Or pour les quêtes
-                })
 
         # ----------------------------------------------------
         # GESTION DES VAGUES / BOSS
@@ -614,7 +747,8 @@ def main():
             # Timer boss
             if gs["boss_active"]:
                 gs["boss_timer"] = max(0, BOSS_DURATION - (current_time - gs["boss_start_time"]))
-                if gs["boss_timer"] <= 0 and has_boss:
+                # Game over uniquement si le boss est vraiment toujours vivant (pas de race condition)
+                if gs["boss_timer"] <= 0 and has_boss and not has_final_boss:
                     gs["game_over"] = True
 
             # Fin de boss
@@ -662,7 +796,8 @@ def main():
             else:
                 gs["last_regen_time"] = current_time
 
-            # Ennemis
+            # Ennemis — on accumule les kills et on ne sauvegarde qu'une fois
+            kills_this_frame = 0
             for e in gs_enemies[:]:
                 e.update(gs_grid, gs_goal, player=gs_player)
 
@@ -677,29 +812,17 @@ def main():
                         gs["mobs_killed_this_wave"] += 1
                     else:
                         gs["player_buff_tokens"] += 1
-                    
-                    # Incrémenter le compteur d'ennemis tués
-                    if gs.get("save") is not None:
-                        gs["save"]["enemies_killed"] = gs["save"].get("enemies_killed", 0) + 1
-                        sd.save(gs["save"])
-                        
-                        # Vérifier les quêtes complétées après avoir tué un ennemi
-                        completed_quests = []
-                        for q_id, quest in quetes.QUETES.items():
-                            if not gs["save"].get("quests_completed", {}).get(q_id, False):
-                                if quetes.check_quest_completion(q_id, gs["save"], gs):
-                                    completed_quests.append(quest["nom"])
-                        
-                        # Ajouter des toasts pour les quêtes complétées
-                        for quest_name in completed_quests:
-                            gs["toasts"].append({
-                                "text": f"Quête complétée: {quest_name}!",
-                                "ttl": 300,
-                                "max_ttl": 300,
-                                "color": (255, 215, 0)
-                            })
-                    
+
+                    kills_this_frame += 1
                     gs_enemies.remove(e)
+
+            # Mise à jour save + quêtes une seule fois par frame si des kills ont eu lieu
+            if kills_this_frame > 0 and gs.get("save") is not None:
+                gs["save"]["enemies_killed"] = gs["save"].get("enemies_killed", 0) + kills_this_frame
+                # Vérification quêtes déclenchée une seule fois (pas à chaque kill)
+                _check_and_notify_quests(gs)
+                # Sauvegarde différée : une seule écriture disque par frame max
+                sd.save(gs["save"])
 
             # Goal
             gs_goal.update()
@@ -728,6 +851,16 @@ def main():
             gs["levelup_pending"]   = True
 
             gs["levelup_choices"] = pick_levelup_choices(known_towers, count=3)
+
+            # Donner 1 point de compétence et mettre à jour la save globale
+            if gs.get("save") is not None:
+                gs["save"]["skill_points"] = gs["save"].get("skill_points", 0) + 1
+                gs["save"]["level"]        = gs["save"].get("level", 1) + 1
+                xp_next_save = gs["save"].get("xp_next", 30)
+                gs["save"]["xp_next"]      = int(xp_next_save * XP_GROWTH_FACTOR)
+                sd.save(gs["save"])
+            # Activer l'animation skill point
+            gs["skillpoint_anim_timer"] = 180  # 3 secondes à 60fps
 
             if not gs["paused"]:
                 _pause_start = time.time()
@@ -772,6 +905,9 @@ def main():
         # Projectiles
         for p in gs_projectiles:
             p.draw(render.screen, offset_x, offset_y)
+
+        # Évaluation des objectifs de mission (légère, chaque frame)
+        _evaluate_mission_objectives(gs)
 
         # Joueur
         gs_player.draw(render.screen, offset_x, offset_y)
@@ -974,29 +1110,14 @@ def main():
                         cooldown_bonus=gs['tower_cooldown_bonus'],
                     )
                     if placed:
-                        gs["toasts"].append({"text": "Tour placee", "ttl": 140, "max_ttl": 140, "color": (120, 235, 140)})
+                        gs["toasts"].append({"text": "Tour placée", "ttl": 140, "max_ttl": 140, "color": (120, 235, 140)})
                         gs["game_started"] = True
-                        
+
                         # Incrémenter le compteur de tours placées
                         if gs.get("save") is not None:
                             gs["save"]["towers_placed"] = gs["save"].get("towers_placed", 0) + 1
+                            _check_and_notify_quests(gs)
                             sd.save(gs["save"])
-                            
-                            # Vérifier les quêtes complétées après avoir placé une tour
-                            completed_quests = []
-                            for q_id, quest in quetes.QUETES.items():
-                                if not gs["save"].get("quests_completed", {}).get(q_id, False):
-                                    if quetes.check_quest_completion(q_id, gs["save"], gs):
-                                        completed_quests.append(quest["nom"])
-                            
-                            # Ajouter des toasts pour les quêtes complétées
-                            for quest_name in completed_quests:
-                                gs["toasts"].append({
-                                    "text": f"Quête complétée: {quest_name}!",
-                                    "ttl": 300,
-                                    "max_ttl": 300,
-                                    "color": (255, 215, 0)
-                                })
                         
                         if sel in gs["inventory"]:
                             gs["inventory"][sel] -= 1
@@ -1049,43 +1170,133 @@ def main():
                 known_towers = _make_known_towers(current_save)
         draw_toasts(render.screen, gs.get("toasts", []))
 
+        # Animation skill point gagné (après level-up)
+        if gs.get("skillpoint_anim_timer", 0) > 0 and not gs.get("levelup_pending"):
+            from ui import draw_skillpoint_anim
+            draw_skillpoint_anim(render.screen, gs["skillpoint_anim_timer"])
+            gs["skillpoint_anim_timer"] -= 1
+
+        # Panneau objectifs de mission (mode histoire)
+        mc = gs.get("mission_context")
+        if mc and mc.get("objectives"):
+            draw_mission_objectives(render.screen, offset_x, offset_y, mc["objectives"])
+
         if gs["game_over"] or gs["game_win"]:
-            action = draw_gameover_screen(
-                render.screen,
-                render.big_font,
-                render.font,
-                gs["game_win"],
-                (mx, my),
-                mouse_clicked_left,
-                gs["coins_reward"] if gs["game_win"] else 0,
-            )
-            if action == "restart":
-                gs = build_initial_state(chosen_level, current_save)
-                grid_cache.invalidate()
-                gs["levelup_pending"] = True
-                loadout = (gs.get("save") or {}).get("tower_loadout", []) or ALL_TOWER_TYPES
-                gs["levelup_choices"] = pick_starting_tower_choices(loadout[:TOWER_SLOT_COUNT])
+            mc = gs.get("mission_context")
 
-                known_towers = _make_known_towers(current_save)
-                _pause_start = None
-                continue
-            elif action == "menu":
-                play_menu_music(current_save.get("music_volume", 0.8))
-                result = run_menu(render.screen, render.clock, current_save)
-                if result is None or result[0] is None:
-                    running = False
+            # --- Mode histoire : popup de fin de mission ---
+            if gs["game_win"] and mc and not gs.get("mission_complete_shown"):
+                gs["mission_complete_shown"] = True
+                # Sauvegarder le résultat de mission
+                if gs.get("save") is not None:
+                    hist_mod.save_mission_result(
+                        gs["save"], mc["chapter"], mc["mission"], mc["objectives"]
+                    )
+
+            if gs["game_win"] and mc:
+                has_next = hist_mod.has_next_mission(mc["chapter"], mc["mission"])
+                action = draw_mission_complete_screen(
+                    render.screen, render.big_font, render.font,
+                    mc["objectives"],
+                    gs["coins_reward"] if gs.get("reward_collected") else gs["coins_reward"],
+                    has_next,
+                    (mx, my), mouse_clicked_left,
+                )
+                if action == "next":
+                    next_ch, next_m = hist_mod.get_next_mission(mc["chapter"], mc["mission"])
+                    play_game_music(current_save.get("music_volume", 0.8))
+                    gs = build_initial_state(chosen_level, current_save)
+                    gs["mission_context"] = {
+                        "chapter":    next_ch,
+                        "mission":    next_m,
+                        "objectives": hist_mod.get_mission_objectives(next_ch, next_m),
+                    }
+                    grid_cache.invalidate()
+                    gs["levelup_pending"] = True
+                    loadout = (gs.get("save") or {}).get("tower_loadout", []) or ALL_TOWER_TYPES
+                    gs["levelup_choices"] = pick_starting_tower_choices(loadout[:TOWER_SLOT_COUNT])
+                    known_towers = _make_known_towers(current_save)
+                    _pause_start = None
+                elif action == "restart":
+                    gs = build_initial_state(chosen_level, current_save)
+                    gs["mission_context"] = {
+                        "chapter":    mc["chapter"],
+                        "mission":    mc["mission"],
+                        "objectives": hist_mod.get_mission_objectives(mc["chapter"], mc["mission"]),
+                    }
+                    grid_cache.invalidate()
+                    gs["levelup_pending"] = True
+                    loadout = (gs.get("save") or {}).get("tower_loadout", []) or ALL_TOWER_TYPES
+                    gs["levelup_choices"] = pick_starting_tower_choices(loadout[:TOWER_SLOT_COUNT])
+                    known_towers = _make_known_towers(current_save)
+                    _pause_start = None
+                elif action == "histoire":
+                    play_menu_music(current_save.get("music_volume", 0.8))
+                    from histoire import run_histoire
+                    hist_result = run_histoire(render.screen, render.clock, current_save)
+                    if hist_result is None:
+                        # Retour au menu principal
+                        result = run_menu(render.screen, render.clock, current_save)
+                        if result is None or result[0] is None:
+                            running = False
+                            continue
+                        chosen_level, current_save = result
+                    else:
+                        chosen_level = hist_result
+                        current_save = sd.load()
+                    play_game_music(current_save.get("music_volume", 0.8))
+                    gs = build_initial_state(chosen_level, current_save)
+                    if isinstance(chosen_level, dict):
+                        ch_idx = chosen_level.get("chapter", 0)
+                        m_idx  = chosen_level.get("mission", 0)
+                        gs["mission_context"] = {
+                            "chapter":    ch_idx,
+                            "mission":    m_idx,
+                            "objectives": hist_mod.get_mission_objectives(ch_idx, m_idx),
+                        }
+                    grid_cache.invalidate()
+                    gs["levelup_pending"] = True
+                    loadout = (gs.get("save") or {}).get("tower_loadout", []) or ALL_TOWER_TYPES
+                    gs["levelup_choices"] = pick_starting_tower_choices(loadout[:TOWER_SLOT_COUNT])
+                    known_towers = _make_known_towers(current_save)
+                    _pause_start = None
+
+            # --- Mode normal : écran game over classique ---
+            else:
+                action = draw_gameover_screen(
+                    render.screen,
+                    render.big_font,
+                    render.font,
+                    gs["game_win"],
+                    (mx, my),
+                    mouse_clicked_left,
+                    gs["coins_reward"] if gs["game_win"] else 0,
+                )
+                if action == "restart":
+                    gs = build_initial_state(chosen_level, current_save)
+                    grid_cache.invalidate()
+                    gs["levelup_pending"] = True
+                    loadout = (gs.get("save") or {}).get("tower_loadout", []) or ALL_TOWER_TYPES
+                    gs["levelup_choices"] = pick_starting_tower_choices(loadout[:TOWER_SLOT_COUNT])
+                    known_towers = _make_known_towers(current_save)
+                    _pause_start = None
                     continue
-                chosen_level, current_save = result
-                play_game_music(current_save.get("music_volume", 0.8))
-                gs = build_initial_state(chosen_level, current_save)
-                grid_cache.invalidate()
-                gs["levelup_pending"] = True
-                loadout = (gs.get("save") or {}).get("tower_loadout", []) or ALL_TOWER_TYPES
-                gs["levelup_choices"] = pick_starting_tower_choices(loadout[:TOWER_SLOT_COUNT])
-
-                known_towers = _make_known_towers(current_save)
-                _pause_start = None
-                continue
+                elif action == "menu":
+                    play_menu_music(current_save.get("music_volume", 0.8))
+                    result = run_menu(render.screen, render.clock, current_save)
+                    if result is None or result[0] is None:
+                        running = False
+                        continue
+                    chosen_level, current_save = result
+                    play_game_music(current_save.get("music_volume", 0.8))
+                    gs = build_initial_state(chosen_level, current_save)
+                    grid_cache.invalidate()
+                    gs["levelup_pending"] = True
+                    loadout = (gs.get("save") or {}).get("tower_loadout", []) or ALL_TOWER_TYPES
+                    gs["levelup_choices"] = pick_starting_tower_choices(loadout[:TOWER_SLOT_COUNT])
+                    known_towers = _make_known_towers(current_save)
+                    _pause_start = None
+                    continue
 
         pygame.display.flip()
 
