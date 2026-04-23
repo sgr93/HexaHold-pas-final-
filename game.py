@@ -37,11 +37,14 @@ from ui import (
     draw_pause_button,
     draw_mission_objectives,
     draw_mission_complete_screen,
+    draw_mission_failed_screen,
+    draw_skillpoint_anim,
 )
 from walls import apply_map_walls
 import save_data as sd
 import quetes
 import histoire as hist_mod
+from histoire import run_histoire
 
 # Seuils de sauvegarde : on ne sauvegarde qu'en fin de vague, pas à chaque kill
 _DIRTY_SAVE = False   # True = save nécessaire, effectuée en fin de frame sûre
@@ -286,8 +289,16 @@ def start_new_wave(state):
 def build_initial_state(difficulty=2, save=None):
     """
     Crée l'état initial complet du jeu selon la difficulté choisie.
-    Inventaire vide au début, tours gagnées uniquement via level-up.
+    difficulty peut être un int (difficulté classique) ou un dict {chapter, mission, difficulty}
+    provenant du mode histoire.
     """
+    # Extraire chapitre/mission si mode histoire
+    chapter = None
+    mission = None
+    if isinstance(difficulty, dict):
+        chapter    = difficulty.get("chapter")
+        mission    = difficulty.get("mission")
+        difficulty = difficulty.get("difficulty", 2)
     diff_info      = DIFFICULTY_LEVELS.get(difficulty, DIFFICULTY_LEVELS[2])
     max_waves      = diff_info["waves"]
     spawn_interval = diff_info["spawn_interval"]
@@ -331,9 +342,12 @@ def build_initial_state(difficulty=2, save=None):
     # Inventaire initial : vide au début du niveau
     inventory = {}
 
-    # Murs de la carte
-    apply_map_walls(grid)
+    # Murs de la carte (spécifiques à la mission si mode histoire)
+    apply_map_walls(grid, chapter=chapter, mission=mission)
     grid.recompute()
+
+    # Tileset visuel (sol + murs) selon le chapitre
+    render.load_tileset(chapter=chapter)
 
     # Appliquer les bonus du skill tree sur le joueur (après équipements)
     if save:
@@ -406,8 +420,8 @@ def build_initial_state(difficulty=2, save=None):
         "toasts":                   [],
 
         # Contexte mission histoire (None si hors mode histoire)
-        "mission_context":          None,   # dict {chapter, mission, objectives} ou None
-        "mission_complete_shown":   False,  # popup de fin affiché
+        "mission_context":          None,
+        "mission_complete_shown":   False,
 
         # Animation skill point gagné
         "skillpoint_anim_timer":    0,
@@ -470,10 +484,14 @@ def _evaluate_mission_objectives(gs):
                     obj["done"] = True
 
         # "Éliminer / Tuer N ennemis"
+        # BUG4 FIX : comparer les kills depuis le début de la mission,
+        # pas le total cumulé depuis le début du compte.
         elif any(w in text for w in ("éliminer", "tuer", "battez")):
             m = re.search(r"(\d+)", text)
             if m and gs.get("save"):
-                if gs["save"].get("enemies_killed", 0) >= int(m.group(1)):
+                kills_total = gs["save"].get("enemies_killed", 0)
+                kills_at_start = mc.get("enemies_killed_at_start", 0)
+                if kills_total - kills_at_start >= int(m.group(1)):
                     obj["done"] = True
 
         # "Vaincre le boss"
@@ -519,6 +537,7 @@ def main():
     render.init_pygame()
     # Chargement des sprites optionnels (silencieux si les fichiers sont absents)
     render.load_wall_image()
+    render.load_goal_image()
     Tower.load_sprites()
     Trap.load_sprites()
     # Préchargement des sprites de projectiles (silencieux si fichiers absents)
@@ -561,6 +580,7 @@ def main():
             "chapter":    ch_idx,
             "mission":    m_idx,
             "objectives": hist_mod.get_mission_objectives(ch_idx, m_idx),
+            "enemies_killed_at_start": (current_save or {}).get("enemies_killed", 0),
         }
 
     # Choix initial de tour au lancement du niveau
@@ -849,18 +869,16 @@ def main():
             gs["level"]            += 1
             gs["xp_to_next_level"]  = int(gs["xp_to_next_level"] * XP_GROWTH_FACTOR)
             gs["levelup_pending"]   = True
-
             gs["levelup_choices"] = pick_levelup_choices(known_towers, count=3)
 
-            # Donner 1 point de compétence et mettre à jour la save globale
+            # +1 point de compétence dans la save persistante
             if gs.get("save") is not None:
                 gs["save"]["skill_points"] = gs["save"].get("skill_points", 0) + 1
                 gs["save"]["level"]        = gs["save"].get("level", 1) + 1
-                xp_next_save = gs["save"].get("xp_next", 30)
-                gs["save"]["xp_next"]      = int(xp_next_save * XP_GROWTH_FACTOR)
+                xp_next_s = gs["save"].get("xp_next", 30)
+                gs["save"]["xp_next"]      = int(xp_next_s * XP_GROWTH_FACTOR)
                 sd.save(gs["save"])
-            # Activer l'animation skill point
-            gs["skillpoint_anim_timer"] = 180  # 3 secondes à 60fps
+            gs["skillpoint_anim_timer"] = 180  # animation 3s
 
             if not gs["paused"]:
                 _pause_start = time.time()
@@ -1146,7 +1164,24 @@ def main():
             elif pause_action == "restart":
                 gs["paused"] = False
                 _pause_start = None
+                # Conserver le mission_context courant avant de reconstruire l'état
+                _prev_mc = gs.get("mission_context")
+                # BUG2 FIX : s'assurer que chosen_level reflète bien la mission en cours
+                if _prev_mc:
+                    chosen_level = {
+                        "chapter":    _prev_mc["chapter"],
+                        "mission":    _prev_mc["mission"],
+                        "difficulty": gs.get("difficulty", 2),
+                    }
                 gs = build_initial_state(chosen_level, current_save)
+                # BUG1 FIX : réinjecter le mission_context après build_initial_state
+                if _prev_mc:
+                    gs["mission_context"] = {
+                        "chapter":    _prev_mc["chapter"],
+                        "mission":    _prev_mc["mission"],
+                        "objectives": hist_mod.get_mission_objectives(_prev_mc["chapter"], _prev_mc["mission"]),
+                        "enemies_killed_at_start": (current_save or {}).get("enemies_killed", 0),
+                    }
                 grid_cache.invalidate()
                 gs["levelup_pending"] = True
                 loadout = (gs.get("save") or {}).get("tower_loadout", []) or ALL_TOWER_TYPES
@@ -1163,6 +1198,16 @@ def main():
                 chosen_level, current_save = result
                 play_game_music(current_save.get("music_volume", 0.8))
                 gs = build_initial_state(chosen_level, current_save)
+                # BUG3 FIX : réinjecter le mission_context si on revient sur une mission histoire
+                if isinstance(chosen_level, dict) and "chapter" in chosen_level:
+                    _ch = chosen_level["chapter"]
+                    _m  = chosen_level["mission"]
+                    gs["mission_context"] = {
+                        "chapter":    _ch,
+                        "mission":    _m,
+                        "objectives": hist_mod.get_mission_objectives(_ch, _m),
+                        "enemies_killed_at_start": (current_save or {}).get("enemies_killed", 0),
+                    }
                 grid_cache.invalidate()
                 gs["levelup_pending"] = True
                 loadout = (gs.get("save") or {}).get("tower_loadout", []) or ALL_TOWER_TYPES
@@ -1170,9 +1215,8 @@ def main():
                 known_towers = _make_known_towers(current_save)
         draw_toasts(render.screen, gs.get("toasts", []))
 
-        # Animation skill point gagné (après level-up)
+        # Animation skill point gagné
         if gs.get("skillpoint_anim_timer", 0) > 0 and not gs.get("levelup_pending"):
-            from ui import draw_skillpoint_anim
             draw_skillpoint_anim(render.screen, gs["skillpoint_anim_timer"])
             gs["skillpoint_anim_timer"] -= 1
 
@@ -1184,32 +1228,36 @@ def main():
         if gs["game_over"] or gs["game_win"]:
             mc = gs.get("mission_context")
 
-            # --- Mode histoire : popup de fin de mission ---
-            if gs["game_win"] and mc and not gs.get("mission_complete_shown"):
-                gs["mission_complete_shown"] = True
-                # Sauvegarder le résultat de mission
-                if gs.get("save") is not None:
-                    hist_mod.save_mission_result(
-                        gs["save"], mc["chapter"], mc["mission"], mc["objectives"]
-                    )
-
+            # --- Mode histoire : victoire → popup étoiles ---
             if gs["game_win"] and mc:
+                # Sauvegarder le résultat une seule fois
+                if not gs.get("mission_complete_shown"):
+                    gs["mission_complete_shown"] = True
+                    if gs.get("save") is not None:
+                        hist_mod.save_mission_result(
+                            gs["save"], mc["chapter"], mc["mission"], mc["objectives"]
+                        )
+                        current_save = gs["save"]  # synchroniser
+
                 has_next = hist_mod.has_next_mission(mc["chapter"], mc["mission"])
                 action = draw_mission_complete_screen(
                     render.screen, render.big_font, render.font,
                     mc["objectives"],
-                    gs["coins_reward"] if gs.get("reward_collected") else gs["coins_reward"],
+                    gs["coins_reward"],
                     has_next,
                     (mx, my), mouse_clicked_left,
                 )
                 if action == "next":
                     next_ch, next_m = hist_mod.get_next_mission(mc["chapter"], mc["mission"])
+                    # Mettre à jour chosen_level pour la nouvelle mission
+                    chosen_level = {"chapter": next_ch, "mission": next_m, "difficulty": gs.get("difficulty", 2)}
                     play_game_music(current_save.get("music_volume", 0.8))
                     gs = build_initial_state(chosen_level, current_save)
                     gs["mission_context"] = {
                         "chapter":    next_ch,
                         "mission":    next_m,
                         "objectives": hist_mod.get_mission_objectives(next_ch, next_m),
+                        "enemies_killed_at_start": (current_save or {}).get("enemies_killed", 0),
                     }
                     grid_cache.invalidate()
                     gs["levelup_pending"] = True
@@ -1223,6 +1271,7 @@ def main():
                         "chapter":    mc["chapter"],
                         "mission":    mc["mission"],
                         "objectives": hist_mod.get_mission_objectives(mc["chapter"], mc["mission"]),
+                        "enemies_killed_at_start": (current_save or {}).get("enemies_killed", 0),
                     }
                     grid_cache.invalidate()
                     gs["levelup_pending"] = True
@@ -1232,10 +1281,8 @@ def main():
                     _pause_start = None
                 elif action == "histoire":
                     play_menu_music(current_save.get("music_volume", 0.8))
-                    from histoire import run_histoire
                     hist_result = run_histoire(render.screen, render.clock, current_save)
                     if hist_result is None:
-                        # Retour au menu principal
                         result = run_menu(render.screen, render.clock, current_save)
                         if result is None or result[0] is None:
                             running = False
@@ -1253,6 +1300,7 @@ def main():
                             "chapter":    ch_idx,
                             "mission":    m_idx,
                             "objectives": hist_mod.get_mission_objectives(ch_idx, m_idx),
+                            "enemies_killed_at_start": (current_save or {}).get("enemies_killed", 0),
                         }
                     grid_cache.invalidate()
                     gs["levelup_pending"] = True
@@ -1261,7 +1309,58 @@ def main():
                     known_towers = _make_known_towers(current_save)
                     _pause_start = None
 
-            # --- Mode normal : écran game over classique ---
+            # --- Mode histoire : DÉFAITE → écran game over avec option rejouer/carte ---
+            elif gs["game_over"] and mc:
+                action = draw_mission_failed_screen(
+                    render.screen, render.big_font, render.font,
+                    mc["objectives"],
+                    (mx, my), mouse_clicked_left,
+                )
+                if action == "restart":
+                    gs = build_initial_state(chosen_level, current_save)
+                    gs["mission_context"] = {
+                        "chapter":    mc["chapter"],
+                        "mission":    mc["mission"],
+                        "objectives": hist_mod.get_mission_objectives(mc["chapter"], mc["mission"]),
+                        "enemies_killed_at_start": (current_save or {}).get("enemies_killed", 0),
+                    }
+                    grid_cache.invalidate()
+                    gs["levelup_pending"] = True
+                    loadout = (gs.get("save") or {}).get("tower_loadout", []) or ALL_TOWER_TYPES
+                    gs["levelup_choices"] = pick_starting_tower_choices(loadout[:TOWER_SLOT_COUNT])
+                    known_towers = _make_known_towers(current_save)
+                    _pause_start = None
+                elif action == "histoire":
+                    play_menu_music(current_save.get("music_volume", 0.8))
+                    hist_result = run_histoire(render.screen, render.clock, current_save)
+                    if hist_result is None:
+                        result = run_menu(render.screen, render.clock, current_save)
+                        if result is None or result[0] is None:
+                            running = False
+                            continue
+                        chosen_level, current_save = result
+                    else:
+                        chosen_level = hist_result
+                        current_save = sd.load()
+                    play_game_music(current_save.get("music_volume", 0.8))
+                    gs = build_initial_state(chosen_level, current_save)
+                    if isinstance(chosen_level, dict):
+                        ch_idx = chosen_level.get("chapter", 0)
+                        m_idx  = chosen_level.get("mission", 0)
+                        gs["mission_context"] = {
+                            "chapter":    ch_idx,
+                            "mission":    m_idx,
+                            "objectives": hist_mod.get_mission_objectives(ch_idx, m_idx),
+                            "enemies_killed_at_start": (current_save or {}).get("enemies_killed", 0),
+                        }
+                    grid_cache.invalidate()
+                    gs["levelup_pending"] = True
+                    loadout = (gs.get("save") or {}).get("tower_loadout", []) or ALL_TOWER_TYPES
+                    gs["levelup_choices"] = pick_starting_tower_choices(loadout[:TOWER_SLOT_COUNT])
+                    known_towers = _make_known_towers(current_save)
+                    _pause_start = None
+
+            # --- Mode normal (hors histoire) ---
             else:
                 action = draw_gameover_screen(
                     render.screen,

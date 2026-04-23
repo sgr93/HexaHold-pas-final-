@@ -481,19 +481,60 @@ class Popup:
         # ── Missions ──
         else:
             missions = ch.get("missions", [])
-            row_h  = 82
             row_gap = 8
             clip_h = ph - content_y - 55
+            from ui import draw_star
+
+            # Pré-calculer la hauteur de chaque ligne de mission selon le texte
+            def _wrap_text(font, text, max_w):
+                """Retourne une liste de lignes qui tiennent dans max_w."""
+                words = text.split()
+                lines, cur = [], ""
+                for w in words:
+                    test = (cur + " " + w).strip()
+                    if font.render(test, True, (0,0,0)).get_width() <= max_w:
+                        cur = test
+                    else:
+                        if cur:
+                            lines.append(cur)
+                        cur = w
+                if cur:
+                    lines.append(cur)
+                return lines if lines else [text]
+
+            obj_line_h = 14
+            obj_start_y = 36
+            max_obj_w = pw - 32  # largeur dispo pour le texte (après étoile)
+
+            def _mission_row_h(m, locked):
+                if locked:
+                    return 50
+                total = obj_start_y
+                for obj in m.get("objectives", []):
+                    lines = _wrap_text(f_xs, obj["text"], max_obj_w - 16)
+                    total += max(1, len(lines)) * obj_line_h + 2
+                return max(60, total + 8)
+
             clip_surf = pygame.Surface((pw, clip_h), pygame.SRCALPHA)
 
+            # Calculer et stocker les hauteurs pour le clic
+            computed_heights = [_mission_row_h(m, not is_mission_unlocked(save, self.chapter_idx, i))
+                                 for i, m in enumerate(missions)]
+            self.mission_row_heights = computed_heights
+
+            y_cursor = 0
             for i, m in enumerate(missions):
-                ry = i * (row_h + row_gap) - self.scroll
+                locked = not is_mission_unlocked(save, self.chapter_idx, i)
+                row_h = _mission_row_h(m, locked)
+                ry = y_cursor - self.scroll
+                y_cursor += row_h + row_gap
+
                 if ry + row_h < 0 or ry > clip_h:
                     continue
+
                 row = pygame.Rect(8, ry, pw-16, row_h)
-                locked = not is_mission_unlocked(save, self.chapter_idx, i)
                 stars_done = get_mission_best_stars(save, self.chapter_idx, i)
-                n_obj = len(m.get("objectives",[]))
+                n_obj = len(m.get("objectives", []))
 
                 # Fond
                 col = (30, 22, 10) if not locked else (18, 14, 6)
@@ -508,26 +549,28 @@ class Popup:
                 num = f_xs.render(f"{i+1}.", True, C_GOLD)
                 clip_surf.blit(num, (row.x+6, row.y+6))
                 name_col = C_MUTED if locked else C_PARCHMENT
-                nm = f_xs.render(m["name"] + (" 🔒" if locked else ""), True, name_col)
+                nm = f_xs.render(m["name"] + (" \U0001f512" if locked else ""), True, name_col)
                 clip_surf.blit(nm, (row.x+22, row.y+6))
 
-                # Étoiles
-                star_x = row.x + 22
-                for si in range(n_obj):
-                    sc = C_STAR_ON if si < stars_done else C_STAR_OFF
-                    st = f_xs.render("*", True, sc)
-                    clip_surf.blit(st, (star_x + si*14, row.y+22))
-
-                # Objectifs (si pas verrouillé)
+                # Étoiles de progression : UNIQUEMENT à gauche des objectifs (pas en haut)
+                # Objectifs avec texte multi-ligne
                 if not locked:
-                    for oi, obj in enumerate(m.get("objectives",[])):
-                        oc = C_GOLD if obj["done"] else C_MUTED
-                        ot = f_xs.render(("+ " if obj["done"] else "- ") + obj["text"], True, oc)
-                        # Tronquer si trop long
-                        if ot.get_width() > pw - 28:
-                            txt = obj["text"][:26] + "..."
-                            ot = f_xs.render(("+ " if obj["done"] else "- ") + txt, True, oc)
-                        clip_surf.blit(ot, (row.x+22, row.y+38+oi*14))
+                    oy = row.y + obj_start_y
+                    # Charger les états d'objectifs depuis la save (persistants)
+                    obj_key = f"ch{self.chapter_idx}_m{i}_objectives"
+                    saved_obj_states = save.get(obj_key, [])
+                    for oi, obj in enumerate(m.get("objectives", [])):
+                        # Utiliser l'état sauvegardé si disponible, sinon l'état en mémoire
+                        done_o = saved_obj_states[oi] if oi < len(saved_obj_states) else obj.get("done", False)
+                        star_sz = 12
+                        # Étoile à gauche, centrée sur la première ligne de texte
+                        draw_star(clip_surf, row.x + 8, oy + 1, star_sz, done_o)
+                        oc = C_GOLD if done_o else C_MUTED
+                        lines = _wrap_text(f_xs, obj["text"], max_obj_w - 16)
+                        for li, line in enumerate(lines):
+                            lt = f_xs.render(line, True, oc)
+                            clip_surf.blit(lt, (row.x + 22, oy + li * obj_line_h))
+                        oy += len(lines) * obj_line_h + 2
 
             panel.blit(clip_surf, (0, content_y))
 
@@ -620,11 +663,13 @@ class ChapterPoint:
         # Texte ou étoile si complété
         fnt = pygame.font.SysFont("arial", 10, bold=True)
         if completed:
-            label = fnt.render("*", True, C_STAR_ON)
+            from ui import draw_star
+            star_sz = max(10, r * 2 - 4)
+            draw_star(surf, self.cx - star_sz // 2, self.cy - star_sz // 2, star_sz, True)
         else:
             label = fnt.render(str(self.idx), True, C_PARCHMENT)
-        surf.blit(label, (self.cx - label.get_width()//2,
-                          self.cy - label.get_height()//2))
+            surf.blit(label, (self.cx - label.get_width()//2,
+                              self.cy - label.get_height()//2))
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -953,20 +998,23 @@ def run_histoire(screen, clock, save):
             if popup.visible and popup.chapter_idx is not None:
                 ch = CHAPTERS[popup.chapter_idx]
                 if ch.get("missions"):
-                    pw   = Popup.WIDTH
-                    px_p = int(sw - pw * popup._anim)
+                    pw_p = Popup.WIDTH
+                    px_p = int(sw - pw_p * popup._anim)
                     py_p = 50
-                    # Zone de la liste des missions dans le popup
-                    content_y = 68
-                    row_h, row_gap = 82, 8
-                    clip_y = py_p + content_y
+                    content_y_p = 68
+                    row_gap_p = 8
+                    clip_y = py_p + content_y_p
+                    # Utiliser les hauteurs dynamiques si disponibles, sinon fallback 82
+                    row_heights = getattr(popup, "mission_row_heights", None)
+                    y_cur = clip_y - popup.scroll
                     for i in range(len(ch["missions"])):
-                        row_y_abs = clip_y + i * (row_h + row_gap) - popup.scroll
-                        row_rect  = pygame.Rect(px_p + 8, row_y_abs, pw - 16, row_h)
+                        rh = row_heights[i] if row_heights and i < len(row_heights) else 82
+                        row_rect = pygame.Rect(px_p + 8, y_cur, pw_p - 16, rh)
                         if row_rect.collidepoint(mx, my):
                             if is_mission_unlocked(save, popup.chapter_idx, i):
                                 popup.selected_mission = i
                             break
+                        y_cur += rh + row_gap_p
 
             # Clic sur un point de chapitre
             if not popup.visible or not pygame.Rect(sw - int(Popup.WIDTH * popup._anim), 50,
@@ -1069,6 +1117,7 @@ def save_mission_result(save, chapter_idx, mission_idx, objectives):
     """
     Sauvegarde le résultat d'une mission :
     - Enregistre les étoiles (objectifs complétés)
+    - Sauvegarde l'état de chaque objectif individuellement
     - Déverrouille la mission suivante si ≥1 objectif accompli
     - Marque le chapitre complété si toutes missions faites
     """
@@ -1078,6 +1127,18 @@ def save_mission_result(save, chapter_idx, mission_idx, objectives):
     key = f"ch{chapter_idx}_m{mission_idx}_stars"
     prev_best = save.get(key, 0)
     save[key] = max(prev_best, stars_done)
+
+    # Sauvegarder l'état de chaque objectif individuellement
+    # On ne rétrograde jamais un objectif déjà accompli (max entre ancien et nouveau)
+    obj_key = f"ch{chapter_idx}_m{mission_idx}_objectives"
+    prev_obj_states = save.get(obj_key, [])
+    new_states = [o.get("done", False) for o in objectives]
+    # Fusionner : un objectif déjà accompli reste accompli
+    merged = []
+    for i, done in enumerate(new_states):
+        prev_done = prev_obj_states[i] if i < len(prev_obj_states) else False
+        merged.append(done or prev_done)
+    save[obj_key] = merged
 
     # Marquer la mission comme terminée (dans la liste histoire_missions_done)
     done_key = f"ch{chapter_idx}_m{mission_idx}_done"
@@ -1126,3 +1187,13 @@ def is_mission_unlocked(save, chapter_idx, mission_idx):
 def get_mission_best_stars(save, chapter_idx, mission_idx):
     key = f"ch{chapter_idx}_m{mission_idx}_stars"
     return save.get(key, 0)
+
+
+def get_mission_objective_states(save, chapter_idx, mission_idx):
+    """
+    Retourne la liste des états d'objectifs sauvegardés pour une mission.
+    Ex : [True, False, True] — index aligné sur les objectifs de get_mission_objectives().
+    Retourne [] si aucune donnée sauvegardée.
+    """
+    key = f"ch{chapter_idx}_m{mission_idx}_objectives"
+    return save.get(key, [])

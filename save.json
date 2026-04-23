@@ -1,5 +1,5 @@
 {
-  "coins": 9992240,
+  "coins": 9993465,
   "inventory_equipment": [
     {
       "slot": "tour",
@@ -7892,24 +7892,30 @@
     "hybrid_tower_power": false,
     "hybrid_power_force": false
   },
-  "gems": 2,
+  "gems": 5,
   "quests_completed": {
     "mission_premiere_tour": true,
     "quotidienne_combat_1": true,
     "event_guerre_1": true,
     "mission_10_tours": true,
-    "mission_3_combats": true
+    "mission_3_combats": true,
+    "mission_5_combats": true,
+    "quotidienne_combat_3": true,
+    "event_guerre_2": true
   },
-  "level": 3,
-  "xp": 75,
-  "battles_won": 3,
-  "towers_placed": 16,
-  "enemies_killed": 123,
+  "level": 4,
+  "xp": 130,
+  "battles_won": 12,
+  "towers_placed": 34,
+  "enemies_killed": 325,
   "max_wave_reached": 0,
-  "daily_quests_completed": {},
+  "daily_quests_completed": {
+    "quotidienne_combat_1": true,
+    "quotidienne_combat_3": true
+  },
   "events_completed": {},
   "player_icon": "icone0.png",
-  "xp_next": 120,
+  "xp_next": 240,
   "tower_chest_total_pulls": 123,
   "tower_chest_pity_epic": 0,
   "tower_chest_pity_legend": 24,
@@ -7958,12 +7964,46 @@
   "coin_chest_pulls": 657,
   "histoire_unlocked": [
     0,
-    1
+    1,
+    2
   ],
   "histoire_completed": [
-    0
+    0,
+    1
   ],
   "last_daily_reset": "2026-04-23",
   "coin_chest_pity_epic": 0,
-  "coin_chest_pity_legend": 0
+  "coin_chest_pity_legend": 0,
+  "ch1_m0_stars": 2,
+  "ch1_m0_done": true,
+  "ch1_m1_unlocked": true,
+  "ch1_m1_stars": 1,
+  "ch1_m1_objectives": [
+    false,
+    true,
+    false
+  ],
+  "ch1_m1_done": true,
+  "ch1_m2_unlocked": true,
+  "ch1_m2_stars": 1,
+  "ch1_m2_objectives": [
+    true,
+    false,
+    false
+  ],
+  "ch1_m2_done": true,
+  "ch2_m0_unlocked": true,
+  "ch2_m0_stars": 1,
+  "ch2_m0_objectives": [
+    true,
+    false,
+    false
+  ],
+  "ch2_m0_done": true,
+  "ch2_m1_unlocked": true,
+  "ch1_m0_objectives": [
+    true,
+    true,
+    false
+  ]
 }

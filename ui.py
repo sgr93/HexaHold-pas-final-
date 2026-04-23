@@ -11,6 +11,72 @@ import pygame
 from config import ALL_TOWER_TYPES, GRID_WIDTH, GRID_HEIGHT, GRID_SIZE, COLS, ROWS, INTERFACE_WIDTH
 
 # ============================================================
+# STAR SPRITE HELPER
+# ============================================================
+
+_star_cache = {}
+_objectif_bg_cache = {}
+
+def _load_objectif_bg(w, h):
+    """
+    Charge assets/sprites/objectif.png redimensionné à (w, h).
+    Résultat mis en cache par taille. Retourne None si absent.
+    """
+    key = (w, h)
+    if key in _objectif_bg_cache:
+        return _objectif_bg_cache[key]
+    path = os.path.join(os.path.dirname(__file__), "assets", "sprites", "objectif.png")
+    result = None
+    if os.path.isfile(path):
+        try:
+            img = pygame.image.load(path).convert_alpha()
+            result = pygame.transform.smoothscale(img, (w, h))
+        except Exception:
+            result = None
+    _objectif_bg_cache[key] = result
+    return result
+
+def draw_star(screen, x, y, size, done):
+    """
+    Dessine une étoile à la position (x, y) en utilisant assets/sprites/etoiles.png.
+    Si done=True → couleur normale. Si done=False → image grisée.
+    Fallback sur le caractère ★ si le fichier est absent.
+    """
+    key = (size, done)
+    if key not in _star_cache:
+        path = os.path.join(os.path.dirname(__file__), "assets", "sprites", "etoiles.png")
+        if os.path.isfile(path):
+            try:
+                img = pygame.image.load(path).convert_alpha()
+                img = pygame.transform.smoothscale(img, (size, size))
+                if not done:
+                    # Appliquer un filtre gris : désaturer + assombrir
+                    grey = img.copy()
+                    grey.fill((0, 0, 0, 0))  # reset
+                    for px in range(size):
+                        for py in range(size):
+                            r, g, b, a = img.get_at((px, py))
+                            lum = int(0.3 * r + 0.59 * g + 0.11 * b)
+                            grey.set_at((px, py), (lum // 2, lum // 2, lum // 2, a))
+                    _star_cache[key] = grey
+                else:
+                    _star_cache[key] = img
+            except Exception:
+                _star_cache[key] = None
+        else:
+            _star_cache[key] = None
+    surf = _star_cache[key]
+    if surf is not None:
+        screen.blit(surf, (x, y))
+        return True
+    # Fallback texte ★
+    fnt = pygame.font.SysFont("arial", size, bold=True)
+    col = (255, 210, 40) if done else (60, 60, 80)
+    lbl = fnt.render("★", True, col)
+    screen.blit(lbl, (x, y))
+    return False
+
+# ============================================================
 # COLORS & UI CONSTANTS
 # ============================================================
 COLORS = {
@@ -575,110 +641,92 @@ def draw_toasts(screen, toasts):
         y += rect.h + 8
 
 # ============================================================
-# ANIMATION SKILL POINT GAGNÉ
-# ============================================================
-
-def draw_skillpoint_anim(screen, timer, total=180):
-    """
-    Affiche une animation centrée indiquant qu'un point de compétence a été gagné.
-    timer va de 180 → 0. Fondu entrant (30 frames) puis sortant (30 frames).
-    """
-    w, h = screen.get_size()
-
-    # Alpha : fondu entrant sur 30 frames, plein pendant 120, fondu sortant sur 30
-    if timer > total - 30:
-        alpha = int(255 * (total - timer) / 30)
-    elif timer < 30:
-        alpha = int(255 * timer / 30)
-    else:
-        alpha = 255
-
-    # Mouvement vers le haut
-    progress = (total - timer) / total
-    base_y = h // 2 - 60
-    anim_y = int(base_y - 30 * progress)
-
-    fnt_big = get_font("lg", bold=True)
-    fnt_sm  = get_font("sm")
-
-    # Fond semi-transparent
-    card_w, card_h = 320, 80
-    card_x = w // 2 - card_w // 2
-    card_surf = pygame.Surface((card_w, card_h), pygame.SRCALPHA)
-    card_surf.fill((20, 10, 40, min(220, alpha)))
-    pygame.draw.rect(card_surf, (*COLORS["accent"], min(255, alpha)),
-                     pygame.Rect(0, 0, card_w, card_h), 3, border_radius=16)
-    screen.blit(card_surf, (card_x, anim_y))
-
-    # Titre "NIVEAU SUPÉRIEUR !"
-    title = fnt_big.render("✦  NIVEAU SUPÉRIEUR !  ✦", True,
-                           (min(255, COLORS["accent"][0]), min(255, COLORS["accent"][1]),
-                            min(255, COLORS["accent"][2]), alpha))
-    title_surf = pygame.Surface(title.get_size(), pygame.SRCALPHA)
-    title_surf.blit(title, (0, 0))
-    title_surf.set_alpha(alpha)
-    screen.blit(title_surf, (w // 2 - title.get_width() // 2, anim_y + 8))
-
-    # Sous-titre
-    sub = fnt_sm.render("+ 1 Point de Compétence obtenu !", True, (180, 220, 255))
-    sub_surf = pygame.Surface(sub.get_size(), pygame.SRCALPHA)
-    sub_surf.blit(sub, (0, 0))
-    sub_surf.set_alpha(alpha)
-    screen.blit(sub_surf, (w // 2 - sub.get_width() // 2, anim_y + 46))
-
-
-# ============================================================
 # OBJECTIFS DE MISSION (panneau droit, en jeu)
 # ============================================================
 
 def draw_mission_objectives(screen, offset_x, offset_y, objectives):
     """
     Affiche les objectifs de la mission en cours à droite de la grille.
-    objectives : liste de dicts {"text": str, "done": bool}
-    Chaque objectif complété affiche une étoile jaune, sinon grise.
+    Le fond utilise assets/sprites/objectif.png si présent.
+    Titre en noir, objectifs en gris foncé, étoiles à gauche du texte.
+    Les textes longs sont retournés à la ligne automatiquement.
     """
     if not objectives:
         return
 
     panel_x = offset_x + GRID_WIDTH + 8
-    panel_y = offset_y
     panel_w = INTERFACE_WIDTH - 16
-    line_h  = 22
     pad     = 10
-    panel_h = pad * 2 + len(objectives) * line_h + 24
-
-    # Fond du panneau
-    panel = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
-    panel.fill((20, 24, 40, 200))
-    pygame.draw.rect(panel, COLORS["border"],
-                     pygame.Rect(0, 0, panel_w, panel_h), 1, border_radius=8)
-
     fnt_title = get_font("sm", bold=True)
     fnt_obj   = get_font("xs")
+    max_text_w = panel_w - pad * 2 - 18  # largeur dispo après étoile
 
-    # Titre
-    title = fnt_title.render("Objectifs", True, COLORS["accent"])
-    panel.blit(title, (pad, pad - 2))
+    # Fonction de découpage en lignes
+    def _wrap(text, font, max_w):
+        words = text.split()
+        lines, cur = [], ""
+        for w in words:
+            test = (cur + " " + w).strip()
+            if font.render(test, True, (0, 0, 0)).get_width() <= max_w:
+                cur = test
+            else:
+                if cur:
+                    lines.append(cur)
+                cur = w
+        if cur:
+            lines.append(cur)
+        return lines if lines else [text]
 
+    obj_line_h = fnt_obj.get_height() + 2
+    title_h    = fnt_title.get_height() + 6
+
+    # Calculer la hauteur totale du panneau selon le contenu réel
+    total_content_h = title_h
+    wrapped_cache = []
+    for obj in objectives:
+        lines = _wrap(obj.get("text", ""), fnt_obj, max_text_w)
+        wrapped_cache.append(lines)
+        total_content_h += max(1, len(lines)) * obj_line_h + 4
+
+    panel_h = pad * 2 + total_content_h
+
+    # ── Fond : objectif.png redimensionné avec coins arrondis ──
+    panel = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
+
+    _obj_bg = _load_objectif_bg(panel_w, panel_h)
+    if _obj_bg is not None:
+        mask = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
+        mask.fill((0, 0, 0, 0))
+        pygame.draw.rect(mask, (255, 255, 255, 255),
+                         pygame.Rect(0, 0, panel_w, panel_h), border_radius=12)
+        _obj_bg_rounded = _obj_bg.copy()
+        _obj_bg_rounded.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+        panel.blit(_obj_bg_rounded, (0, 0))
+    else:
+        panel.fill((20, 24, 40, 200))
+        pygame.draw.rect(panel, COLORS["border"],
+                         pygame.Rect(0, 0, panel_w, panel_h), 1, border_radius=12)
+
+    # Titre en noir
+    title = fnt_title.render("Objectifs", True, (0, 0, 0))
+    panel.blit(title, (pad, pad))
+
+    ty = pad + title_h
     for i, obj in enumerate(objectives):
-        done = obj.get("done", False)
-        # Étoile : jaune si done, grise sinon
-        star_col = (255, 210, 40) if done else (80, 80, 100)
-        star_surf = fnt_obj.render("★", True, star_col)
-        ty = pad + 20 + i * line_h
-        panel.blit(star_surf, (pad, ty))
+        done  = obj.get("done", False)
+        lines = wrapped_cache[i]
+        # Étoile à gauche, centrée sur la hauteur du bloc de texte
+        block_h = len(lines) * obj_line_h
+        star_y_c = ty + (block_h - 14) // 2
+        draw_star(panel, pad, star_y_c, 14, done)
 
-        text = obj.get("text", "")
-        # Tronquer si trop long pour le panneau
-        txt_col = (200, 220, 200) if done else (160, 160, 180)
-        txt_surf = fnt_obj.render(text, True, txt_col)
-        max_w = panel_w - pad * 2 - 18
-        if txt_surf.get_width() > max_w:
-            while txt_surf.get_width() > max_w and len(text) > 3:
-                text = text[:-1]
-            txt_surf = fnt_obj.render(text + "…", True, txt_col)
-        panel.blit(txt_surf, (pad + 18, ty + 1))
+        txt_col = (40, 40, 40) if done else (70, 70, 70)
+        for li, line in enumerate(lines):
+            lt = fnt_obj.render(line, True, txt_col)
+            panel.blit(lt, (pad + 18, ty + li * obj_line_h))
+        ty += block_h + 4
 
+    panel_y = offset_y
     screen.blit(panel, (panel_x, panel_y))
 
 
@@ -719,16 +767,14 @@ def draw_mission_complete_screen(screen, big_font, font, objectives,
     title = big_font.render("MISSION TERMINÉE", True, (255, 220, 60))
     screen.blit(title, (cx + card_w // 2 - title.get_width() // 2, cy + 18))
 
-    # Étoiles
-    star_fnt  = pygame.font.SysFont("arial", 40, bold=True)
+    # Étoiles image
+    star_size = 42
     star_y    = cy + 72
-    total_star_w = n_obj * 48
+    total_star_w = n_obj * (star_size + 6)
     star_start   = cx + card_w // 2 - total_star_w // 2
     for i in range(n_obj):
         done = i < stars_done
-        col  = (255, 210, 40) if done else (50, 50, 70)
-        s    = star_fnt.render("★", True, col)
-        screen.blit(s, (star_start + i * 48, star_y))
+        draw_star(screen, star_start + i * (star_size + 6), star_y, star_size, done)
 
     # Résumé étoiles
     summary_fnt = get_font("sm")
@@ -739,10 +785,10 @@ def draw_mission_complete_screen(screen, big_font, font, objectives,
     obj_fnt = get_font("xs")
     for i, obj in enumerate(objectives):
         done   = obj.get("done", False)
-        prefix = "★ " if done else "✗ "
+        draw_star(screen, cx + 24, star_y + 80 + i * 20, 14, done)
         col    = (160, 230, 160) if done else (200, 100, 100)
-        t      = obj_fnt.render(prefix + obj.get("text", ""), True, col)
-        screen.blit(t, (cx + 24, star_y + 80 + i * 18))
+        t      = obj_fnt.render(obj.get("text", ""), True, col)
+        screen.blit(t, (cx + 24 + 18, star_y + 80 + i * 20 + 1))
 
     # Récompense
     reward_y = star_y + 80 + n_obj * 18 + 10
@@ -782,3 +828,115 @@ def draw_mission_complete_screen(screen, big_font, font, objectives,
             action = key
 
     return action
+
+# ============================================================
+# ÉCRAN DE DÉFAITE — MODE HISTOIRE
+# ============================================================
+
+def draw_mission_failed_screen(screen, big_font, font, objectives, mouse_pos, clicked):
+    """
+    Popup de défaite en mode histoire.
+    Propose : Rejouer → "restart" | ← Carte → "histoire"
+    """
+    w, h = screen.get_size()
+    overlay = pygame.Surface((w, h), pygame.SRCALPHA)
+    overlay.fill((0, 0, 0, 180))
+    screen.blit(overlay, (0, 0))
+
+    stars_done = sum(1 for o in objectives if o.get("done", False))
+    n_obj = len(objectives)
+
+    card_w, card_h = 420, 310
+    cx = (w - card_w) // 2
+    cy = (h - card_h) // 2
+    card = pygame.Surface((card_w, card_h), pygame.SRCALPHA)
+    card.fill((30, 12, 12, 240))
+    pygame.draw.rect(card, (180, 60, 60), pygame.Rect(0, 0, card_w, card_h), 2, border_radius=14)
+    screen.blit(card, (cx, cy))
+
+    title = big_font.render("MISSION ECHOUEE", True, (255, 80, 80))
+    screen.blit(title, (cx + card_w // 2 - title.get_width() // 2, cy + 16))
+
+    star_size = 36
+    star_y    = cy + 72
+    total_star_w = n_obj * (star_size + 6)
+    star_start   = cx + card_w // 2 - total_star_w // 2
+    for i in range(n_obj):
+        done = i < stars_done
+        draw_star(screen, star_start + i * (star_size + 6), star_y, star_size, done)
+
+    obj_fnt = get_font("xs")
+    for i, obj in enumerate(objectives):
+        done = obj.get("done", False)
+        draw_star(screen, cx + 24, star_y + 50 + i * 20, 14, done)
+        col = (160, 230, 160) if done else (200, 100, 100)
+        t   = obj_fnt.render(obj.get("text", ""), True, col)
+        screen.blit(t, (cx + 24 + 18, star_y + 50 + i * 20 + 1))
+
+    mx, my = mouse_pos
+    btn_w, btn_h = 160, 42
+    gap = 14
+    buttons = [
+        ("Rejouer",  "restart",  (50, 80, 160),  (120, 160, 255)),
+        ("<- Carte", "histoire", (80, 50, 80),   (180, 120, 180)),
+    ]
+    total_btn_w = len(buttons) * btn_w + (len(buttons) - 1) * gap
+    btn_start_x = cx + card_w // 2 - total_btn_w // 2
+    btn_y = cy + card_h - btn_h - 18
+    action = None
+    for i, (label, key, col_n, col_h) in enumerate(buttons):
+        bx   = btn_start_x + i * (btn_w + gap)
+        rect = pygame.Rect(bx, btn_y, btn_w, btn_h)
+        hov  = rect.collidepoint(mx, my)
+        pygame.draw.rect(screen, col_h if hov else col_n, rect, border_radius=10)
+        pygame.draw.rect(screen, (200, 200, 255) if hov else (120, 130, 160), rect, 2, border_radius=10)
+        lbl = font.render(label, True, (255, 255, 255))
+        screen.blit(lbl, (bx + (btn_w - lbl.get_width()) // 2,
+                          btn_y + (btn_h - lbl.get_height()) // 2))
+        if clicked and hov:
+            action = key
+    return action
+
+
+# ============================================================
+# ANIMATION SKILL POINT GAGNE
+# ============================================================
+
+def draw_skillpoint_anim(screen, timer, total=180):
+    """
+    Affiche une animation indiquant un point de competence gagne.
+    timer : 180 -> 0
+    """
+    w, h = screen.get_size()
+    if timer > total - 30:
+        alpha = int(255 * (total - timer) / 30)
+    elif timer < 30:
+        alpha = int(255 * timer / 30)
+    else:
+        alpha = 255
+
+    progress = (total - timer) / total
+    anim_y = int(h // 2 - 80 - 20 * progress)
+
+    card_w, card_h = 320, 80
+    card_x = w // 2 - card_w // 2
+    card_surf = pygame.Surface((card_w, card_h), pygame.SRCALPHA)
+    card_surf.fill((20, 10, 40, min(220, alpha)))
+    pygame.draw.rect(card_surf, (255, 205, 92, min(255, alpha)),
+                     pygame.Rect(0, 0, card_w, card_h), 3, border_radius=16)
+    screen.blit(card_surf, (card_x, anim_y))
+
+    fnt_big = get_font("lg", bold=True)
+    fnt_sm  = get_font("sm")
+
+    title_surf = fnt_big.render("NIVEAU SUPERIEUR !", True, COLORS["accent"])
+    ts = pygame.Surface(title_surf.get_size(), pygame.SRCALPHA)
+    ts.blit(title_surf, (0, 0))
+    ts.set_alpha(alpha)
+    screen.blit(ts, (w // 2 - title_surf.get_width() // 2, anim_y + 8))
+
+    sub = fnt_sm.render("+ 1 Point de Competence obtenu !", True, (180, 220, 255))
+    ss = pygame.Surface(sub.get_size(), pygame.SRCALPHA)
+    ss.blit(sub, (0, 0))
+    ss.set_alpha(alpha)
+    screen.blit(ss, (w // 2 - sub.get_width() // 2, anim_y + 46))

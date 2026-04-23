@@ -15,7 +15,7 @@ from config import (
     EQUIPMENT_SLOTS, EQUIPMENT_STATS, ALL_TOWER_TYPES, TOWER_SLOT_COUNT,
     LEVEL_START, XP_START, XP_TO_NEXT_LVL_START, XP_GROWTH_FACTOR,
 )
-from ui import ITEM_LABELS, ITEM_COLORS
+from ui import ITEM_LABELS, ITEM_COLORS, draw_skillpoint_anim
 import quetes as quetes_module
 from histoire import run_histoire
 # ============================================================
@@ -707,6 +707,13 @@ def run_menu(screen, clock, save=None):
     running = True
     chosen_level = None
 
+    # Animation "Niveau supérieur" — déclenchée si une partie a accordé un skill point
+    skillpoint_anim_timer = 0
+    if save.get("pending_skillpoint_anim"):
+        skillpoint_anim_timer = 180
+        save["pending_skillpoint_anim"] = False
+        sd.save(save)
+
     while running:
         w, h = screen.get_size()
         screen.fill(C_BG)
@@ -814,7 +821,7 @@ def run_menu(screen, clock, save=None):
                     if i == 0:   # Mode Histoire
                         result = run_histoire(screen, clock, save)
                         if isinstance(result, dict):
-                            chosen_level = result.get("difficulty", 1)
+                            chosen_level = result   # passer le dict entier — game.py extraira chapter/mission
                             running = False
                     elif i == 1: # Mode Infini — à implémenter
                         pass
@@ -2310,6 +2317,11 @@ def run_menu(screen, clock, save=None):
             screen.blit(_t_bg, (_t_x, _t_y))
             _t_surf.set_alpha(_alpha_t)
             screen.blit(_t_surf, (_t_x + 12, _t_y + 6))
+
+        # Animation "Niveau supérieur / Skill point obtenu"
+        if skillpoint_anim_timer > 0:
+            draw_skillpoint_anim(screen, skillpoint_anim_timer)
+            skillpoint_anim_timer -= 1
 
         pygame.display.flip()
         clock.tick(60)
