@@ -78,7 +78,7 @@ def make_can_place(grid, start_cell, item_type=None):
                 return False
 
         # 2) Cas spécial : pièges (pas de chevauchement)
-        if item_type == "trap":
+        if item_type in ("trap", "mine"):
             occupied = set()
             for t in grid.towers_ref:
                 if hasattr(t, "trap_type"):
@@ -117,6 +117,8 @@ def _is_matching_upgrade_target(tower, item_type, cells):
     t_type = getattr(tower, "tower_type", getattr(tower, "trap_type", None))
     match_type = (t_type == item_type) or (
         item_type == "trap" and t_type == "spikes"
+    ) or (
+        item_type == "mine" and t_type == "mine"
     )
     return match_type and set(tower.cells) == set(cells)
 
@@ -125,26 +127,10 @@ def cells_for_item(item_type, gx, gy):
     """
     Retourne la liste des cellules occupées par un type de tour donné.
     """
-    if item_type == "small":
-        return [(gx, gy), (gx+1, gy), (gx, gy+1), (gx+1, gy+1)]
-    elif item_type == "big":
-        return [
-            (gx, gy), (gx+1, gy), (gx+2, gy),
-            (gx, gy+1), (gx+1, gy+1), (gx+2, gy+1),
-        ]
-    elif item_type == "trap":
+    if item_type == "trap":
         return [(gx+i, gy+j) for i in range(2) for j in range(4)]
-    elif item_type in {"sniper", "rocket", "laser", "cannon"}:
-        return [
-            (gx, gy), (gx+1, gy),
-            (gx, gy+1), (gx+1, gy+1),
-        ]
-    elif item_type in {
-        "mortar", "beam", "tesla", "storm", "arcane", "crystal",
-        "flamethrower", "shock", "burst", "swarm", "mine", "poison", "frost"
-    }:
-        return [(gx, gy), (gx+1, gy), (gx, gy+1), (gx+1, gy+1)]
-    return []
+    # Toutes les tours : 2x2
+    return [(gx, gy), (gx+1, gy), (gx, gy+1), (gx+1, gy+1)]
 
 
 def place_tower_on_grid(grid, towers, cells, item_type, grid_cache,
@@ -160,17 +146,24 @@ def place_tower_on_grid(grid, towers, cells, item_type, grid_cache,
             if t.level < TOWER_MAX_LEVEL:
                 t.level += 1
                 t.set_stats(damage_bonus=damage_bonus, cooldown_bonus=cooldown_bonus)
-                if item_type != "trap":
+                if item_type not in ("trap", "mine"):
                     grid.recompute()
                     grid_cache.invalidate()
                 return True
             return False
 
-    # Nouveau piège
+    # Nouveau piège (trap ou mine)
     if item_type == "trap":
         trap = Trap(cells, trap_type="spikes")
         trap.set_stats()
         towers.append(trap)
+        grid.recompute()
+        grid_cache.invalidate()
+        return True
+    if item_type == "mine":
+        mine = Trap(cells, trap_type="mine")
+        mine.set_stats()
+        towers.append(mine)
         grid.recompute()
         grid_cache.invalidate()
         return True
@@ -292,7 +285,7 @@ def build_initial_state(difficulty=2, save=None):
     difficulty peut être un int (difficulté classique) ou un dict {chapter, mission, difficulty}
     provenant du mode histoire.
     """
-    # Extraire chapitre/mission si mode histoire
+    # Extraire chapitre/mission/difficulté si mode histoire
     chapter = None
     mission = None
     if isinstance(difficulty, dict):
@@ -342,11 +335,11 @@ def build_initial_state(difficulty=2, save=None):
     # Inventaire initial : vide au début du niveau
     inventory = {}
 
-    # Murs de la carte (spécifiques à la mission si mode histoire)
+    # Murs de la carte (spécifiques au chapitre/mission si mode histoire)
     apply_map_walls(grid, chapter=chapter, mission=mission)
     grid.recompute()
 
-    # Tileset visuel (sol + murs) selon le chapitre
+    # Tileset visuel selon le chapitre
     render.load_tileset(chapter=chapter)
 
     # Appliquer les bonus du skill tree sur le joueur (après équipements)
@@ -537,7 +530,6 @@ def main():
     render.init_pygame()
     # Chargement des sprites optionnels (silencieux si les fichiers sont absents)
     render.load_wall_image()
-    render.load_goal_image()
     Tower.load_sprites()
     Trap.load_sprites()
     # Préchargement des sprites de projectiles (silencieux si fichiers absents)
@@ -688,6 +680,19 @@ def main():
             gs["save"]["coins"] = gs["save"].get("coins", 0) + gs["coins_reward"]
             gs["save"]["battles_won"] = gs["save"].get("battles_won", 0) + 1
             gs["reward_collected"] = True
+
+            # XP de compte : monte le niveau du menu et donne des skill points
+            xp_gain = gs["coins_reward"] // 2  # XP proportionnelle à la difficulté
+            save = gs["save"]
+            save["xp"] = save.get("xp", 0) + xp_gain
+            xp_next = save.get("xp_next", 30)
+            while save["xp"] >= xp_next:
+                save["xp"] -= xp_next
+                save["level"] = save.get("level", 1) + 1
+                save["skill_points"] = save.get("skill_points", 0) + 1
+                save["pending_skillpoint_anim"] = True
+                xp_next = int(xp_next * XP_GROWTH_FACTOR)
+            save["xp_next"] = xp_next
 
             # Marquer les quêtes quotidiennes de combat accomplies
             quetes.mark_daily_quest_done(gs["save"], "quotidienne_combat_1")
@@ -871,14 +876,8 @@ def main():
             gs["levelup_pending"]   = True
             gs["levelup_choices"] = pick_levelup_choices(known_towers, count=3)
 
-            # +1 point de compétence dans la save persistante
-            if gs.get("save") is not None:
-                gs["save"]["skill_points"] = gs["save"].get("skill_points", 0) + 1
-                gs["save"]["level"]        = gs["save"].get("level", 1) + 1
-                xp_next_s = gs["save"].get("xp_next", 30)
-                gs["save"]["xp_next"]      = int(xp_next_s * XP_GROWTH_FACTOR)
-                sd.save(gs["save"])
-            gs["skillpoint_anim_timer"] = 180  # animation 3s
+            # Le level in-game ne donne PAS de skill point
+            # Les skill points sont donnés uniquement lors du level-up du compte (menu)
 
             if not gs["paused"]:
                 _pause_start = time.time()

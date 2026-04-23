@@ -285,11 +285,19 @@ class GridCache:
                         pygame.draw.rect(surf, (34, 45, 34), cell_rect)
 
                 else:
-                    # ── Case bloquée : tile de mur ──
-                    if (x, y) not in tower_cells:
+                    # ── Case bloquée ──
+                    if (x, y) in tower_cells:
+                        # Case occupée par une tour : sol en dessous seulement
+                        # (le sprite de la tour sera dessiné par-dessus après)
+                        floor_tile = _get_floor_tile(x, y)
+                        if floor_tile:
+                            surf.blit(floor_tile, (px, py))
+                        else:
+                            pygame.draw.rect(surf, (34, 45, 34), cell_rect)
+                    else:
+                        # ── Case bloquée par un mur ──
                         wall_tile = _get_wall_tile(x, y)
                         if wall_tile:
-                            # D'abord le sol en dessous pour les murs transparents
                             floor_tile = _get_floor_tile(x, y)
                             if floor_tile:
                                 surf.blit(floor_tile, (px, py))

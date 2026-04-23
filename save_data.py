@@ -566,19 +566,20 @@ TOWER_RARITY_COLORS = {
 
 # Les 12 tours avec leur rareté de base (détermine la difficulté à obtenir)
 TOWER_POOL = {
-    "small":   {"rarity": "Commun",    "label": "Tour Rapide",   "desc": "Tour basique, tir rapide"},
-    "big":     {"rarity": "Commun",    "label": "Tour Lourde",   "desc": "Plus de dégâts, moins rapide"},
-    "trap":    {"rarity": "Commun",    "label": "Piège",         "desc": "Piège au sol, ralentit"},
-    "frost":   {"rarity": "Rare",      "label": "Gèleuse",       "desc": "Ralentit les ennemis"},
-    "poison":  {"rarity": "Rare",      "label": "Venimeuse",     "desc": "Dégâts sur la durée"},
-    "burst":   {"rarity": "Rare",      "label": "Fusée",         "desc": "Dégâts de zone"},
-    "mine":    {"rarity": "Rare",      "label": "Mine",          "desc": "Explose au contact"},
-    "mortar":  {"rarity": "Épique",    "label": "Mortier",       "desc": "Longue portée, gros dégâts"},
-    "sniper":  {"rarity": "Épique",    "label": "Sniper",        "desc": "Très longue portée"},
-    "tesla":   {"rarity": "Épique",    "label": "Tesla",         "desc": "Chaîne l'électricité"},
-    "cannon":  {"rarity": "Légendaire","label": "Canon",         "desc": "Puissance maximale"},
-    "laser":   {"rarity": "Légendaire","label": "Laser lourd",   "desc": "Rayon continu dévastateur"},
-    "beam":    {"rarity": "Légendaire","label": "Laser",         "desc": "Faisceaux d'énergie"},
+    # Commun
+    "small":   {"rarity": "Commun",    "label": "Tour Rapide",  "desc": "Tour basique, tir rapide"},
+    "big":     {"rarity": "Commun",    "label": "Tour Lourde",  "desc": "Plus de dégâts, moins rapide"},
+    "trap":    {"rarity": "Commun",    "label": "Piège",        "desc": "Piège au sol"},
+    # Rare
+    "frost":   {"rarity": "Rare",      "label": "Gèleuse",      "desc": "Ralentit les ennemis"},
+    "mine":    {"rarity": "Rare",      "label": "Mine",         "desc": "Explose au contact"},
+    # Épique
+    "mortar":  {"rarity": "Épique",    "label": "Mortier",      "desc": "Longue portée, gros dégâts"},
+    "sniper":  {"rarity": "Épique",    "label": "Sniper",       "desc": "Très longue portée"},
+    "tesla":   {"rarity": "Épique",    "label": "Tesla",        "desc": "Chaîne l'électricité"},
+    # Légendaire
+    "cannon":  {"rarity": "Légendaire","label": "Canon",        "desc": "Puissance maximale"},
+    "laser":   {"rarity": "Légendaire","label": "Laser",        "desc": "Rayon continu dévastateur"},
 }
 
 # Poids de tirage par niveau du coffre (Commun, Rare, Épique, Légendaire)

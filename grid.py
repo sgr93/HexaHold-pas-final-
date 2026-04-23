@@ -178,10 +178,10 @@ class Grid:
 
     def recompute(self):
         """
-        Recalcul complet : danger → intégration → flow field.
-        À appeler après tout changement de la grille (tour placée, mur généré).
+        Recalcul complet : intégration → flow field.
+        Le danger_field est désactivé — les ennemis prennent le chemin
+        le plus court sans esquiver les portées de tours.
         """
-        self.update_danger_field()
         self.compute_integration_field()
         self.compute_flow_field()
         self.version += 1

@@ -15,7 +15,7 @@ from config import (
     EQUIPMENT_SLOTS, EQUIPMENT_STATS, ALL_TOWER_TYPES, TOWER_SLOT_COUNT,
     LEVEL_START, XP_START, XP_TO_NEXT_LVL_START, XP_GROWTH_FACTOR,
 )
-from ui import ITEM_LABELS, ITEM_COLORS, draw_skillpoint_anim
+from ui import ITEM_LABELS, ITEM_COLORS
 import quetes as quetes_module
 from histoire import run_histoire
 # ============================================================
@@ -81,18 +81,28 @@ def load_icon(name, size=None):
     _icon_cache[key] = None
     return None
 
-def add_xp(player, amount):
+def add_xp(player, amount, save=None):
+    """
+    Ajoute de l'XP au joueur (niveau de compte).
+    Si le joueur monte de niveau : +1 skill point dans la save + animation déclenchée.
+    """
     player["xp"] += amount
 
-    # Level up en boucle (si gros gain d'XP)
     while player["xp"] >= player["xp_next"]:
         player["xp"] -= player["xp_next"]
         player["level"] += 1
-
-        # Scaling du level (tu peux ajuster)
         player["xp_next"] = int(player["xp_next"] * 1.25)
+        print(f"[Menu] Level UP compte ! Niveau {player['level']}")
 
-        print(f"Level UP ! Niveau {player['level']}")
+        # +1 skill point dans la save persistante
+        if save is not None:
+            save["skill_points"] = save.get("skill_points", 0) + 1
+            save["level"]        = player["level"]
+            save["xp"]           = player["xp"]
+            save["xp_next"]      = player["xp_next"]
+            save["pending_skillpoint_anim"] = True
+            import save_data as sd
+            sd.save(save)
         
 def draw_panel(screen, rect, alt=False):
     """Dessine un panneau stylisé."""
@@ -706,13 +716,6 @@ def run_menu(screen, clock, save=None):
 
     running = True
     chosen_level = None
-
-    # Animation "Niveau supérieur" — déclenchée si une partie a accordé un skill point
-    skillpoint_anim_timer = 0
-    if save.get("pending_skillpoint_anim"):
-        skillpoint_anim_timer = 180
-        save["pending_skillpoint_anim"] = False
-        sd.save(save)
 
     while running:
         w, h = screen.get_size()
@@ -2317,11 +2320,6 @@ def run_menu(screen, clock, save=None):
             screen.blit(_t_bg, (_t_x, _t_y))
             _t_surf.set_alpha(_alpha_t)
             screen.blit(_t_surf, (_t_x + 12, _t_y + 6))
-
-        # Animation "Niveau supérieur / Skill point obtenu"
-        if skillpoint_anim_timer > 0:
-            draw_skillpoint_anim(screen, skillpoint_anim_timer)
-            skillpoint_anim_timer -= 1
 
         pygame.display.flip()
         clock.tick(60)

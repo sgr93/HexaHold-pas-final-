@@ -38,12 +38,12 @@ LEVEL_START            = 1
 XP_START               = 0
 XP_TO_NEXT_LVL_START   = 30
 XP_GROWTH_FACTOR       = 2.0
-XP_REWARD_NORMAL       = 1   # XP gagnée par un ennemi normal
-XP_REWARD_BOSS         = 2   # XP gagnée par un boss (y compris boss final)
+XP_REWARD_NORMAL       = 5   # XP gagnée par un ennemi normal
+XP_REWARD_BOSS         = 15   # XP gagnée par un boss (y compris boss final)
 AVAILABLE_TOWERS_INIT  = ["small", "big", "trap"]
 TOWER_SLOT_COUNT       = 3
 ALL_TOWER_TYPES = [
-    "small", "big", "sniper", "mortar", "frost", "poison", "beam", "tesla", "burst", "cannon", "mine", "laser"
+    "small", "big", "sniper", "mortar", "frost", "tesla", "cannon", "laser", "trap"
 ]
 
 MUSIC_PATH = "assets/music"
