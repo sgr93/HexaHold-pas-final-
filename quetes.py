@@ -13,7 +13,6 @@ Inclut les trois sections : Quotidiennes, Missions, Événements
 #       "nom": "Nom de la quête",
 #       "description": "Description courte",
 #       "section": "quotidiennes" | "missions" | "evenements",
-#       "type_evenement": None | "histoire" | "guerre" | "infini",  (pour événements)
 #       "xp": 10,
 #       "pieces": 50,
 #       "gemmes": 0,  (optionnel, 0 par défaut)
@@ -29,7 +28,6 @@ QUETES = {
         "nom": "Combat du jour",
         "description": "Terminez 1 niveau",
         "section": "quotidiennes",
-        "type_evenement": None,
         "xp": 15,
         "pieces": 30,
         "gemmes": 0,
@@ -39,7 +37,6 @@ QUETES = {
         "nom": "Guerrier du jour",
         "description": "Terminez 3 niveaux",
         "section": "quotidiennes",
-        "type_evenement": None,
         "xp": 25,
         "pieces": 75,
         "gemmes": 0,
@@ -49,7 +46,6 @@ QUETES = {
         "nom": "Augmentation de puissance",
         "description": "Montez de 1 niveau",
         "section": "quotidiennes",
-        "type_evenement": None,
         "xp": 20,
         "pieces": 50,
         "gemmes": 0,
@@ -63,7 +59,6 @@ QUETES = {
         "nom": "Guerrier confirmé",
         "description": "Atteindre le niveau 5",
         "section": "missions",
-        "type_evenement": None,
         "xp": 50,
         "pieces": 200,
         "gemmes": 0,
@@ -73,7 +68,6 @@ QUETES = {
         "nom": "Maître des combats",
         "description": "Atteindre le niveau 10",
         "section": "missions",
-        "type_evenement": None,
         "xp": 100,
         "pieces": 400,
         "gemmes": 1,
@@ -83,7 +77,6 @@ QUETES = {
         "nom": "Triple attaque",
         "description": "Remportez 3 combats",
         "section": "missions",
-        "type_evenement": None,
         "xp": 40,
         "pieces": 150,
         "gemmes": 0,
@@ -93,7 +86,6 @@ QUETES = {
         "nom": "Inarrêtable",
         "description": "Remportez 5 combats",
         "section": "missions",
-        "type_evenement": None,
         "xp": 70,
         "pieces": 300,
         "gemmes": 1,
@@ -103,7 +95,6 @@ QUETES = {
         "nom": "Constructeur",
         "description": "Placez votre première tour",
         "section": "missions",
-        "type_evenement": None,
         "xp": 10,
         "pieces": 50,
         "gemmes": 0,
@@ -113,7 +104,6 @@ QUETES = {
         "nom": "Architecte militaire",
         "description": "Placez 10 tours",
         "section": "missions",
-        "type_evenement": None,
         "xp": 60,
         "pieces": 250,
         "gemmes": 1,
@@ -127,7 +117,6 @@ QUETES = {
         "nom": "Le commencement",
         "description": "Complétez le niveau 1 en difficulté Normal",
         "section": "evenements",
-        "type_evenement": "histoire",
         "xp": 30,
         "pieces": 100,
         "gemmes": 0,
@@ -137,7 +126,6 @@ QUETES = {
         "nom": "Rencontre du boss",
         "description": "Atteignez le boss final en niveau 2",
         "section": "evenements",
-        "type_evenement": "histoire",
         "xp": 50,
         "pieces": 200,
         "gemmes": 1,
@@ -151,7 +139,6 @@ QUETES = {
         "nom": "Premières victimes",
         "description": "Battez 50 ennemis",
         "section": "evenements",
-        "type_evenement": "guerre",
         "xp": 40,
         "pieces": 150,
         "gemmes": 0,
@@ -161,7 +148,6 @@ QUETES = {
         "nom": "Carnage",
         "description": "Battez 200 ennemis",
         "section": "evenements",
-        "type_evenement": "guerre",
         "xp": 80,
         "pieces": 400,
         "gemmes": 2,
@@ -171,7 +157,6 @@ QUETES = {
         "nom": "Généralissime",
         "description": "Complétez le niveau 5 en difficulté Très Difficile",
         "section": "evenements",
-        "type_evenement": "guerre",
         "xp": 100,
         "pieces": 500,
         "gemmes": 2,
@@ -185,7 +170,6 @@ QUETES = {
         "nom": "Commençant l'infini",
         "description": "Atteignez la vague 10",
         "section": "evenements",
-        "type_evenement": "infini",
         "xp": 60,
         "pieces": 300,
         "gemmes": 1,
@@ -195,7 +179,6 @@ QUETES = {
         "nom": "Guerrier sans fin",
         "description": "Atteignez la vague 30",
         "section": "evenements",
-        "type_evenement": "infini",
         "xp": 120,
         "pieces": 600,
         "gemmes": 3,
@@ -205,7 +188,6 @@ QUETES = {
         "nom": "Légende vivante",
         "description": "Atteignez la vague 50",
         "section": "evenements",
-        "type_evenement": "infini",
         "xp": 200,
         "pieces": 1000,
         "gemmes": 5,
@@ -223,19 +205,6 @@ def get_quests_by_section(section):
     return {qid: q for qid, q in QUETES.items() if q["section"] == section}
 
 
-def get_event_quests_by_type(event_type):
-    """Retourne toutes les quêtes d'un type d'événement."""
-    return {qid: q for qid, q in QUETES.items() 
-            if q["section"] == "evenements" and q.get("type_evenement") == event_type}
-
-
-def get_all_event_types():
-    """Retourne tous les types d'événements disponibles."""
-    event_types = set()
-    for q in QUETES.values():
-        if q["section"] == "evenements" and q.get("type_evenement"):
-            event_types.add(q["type_evenement"])
-    return sorted(list(event_types))
 
 
 def check_quest_completion(quest_id, save, game_state=None):

@@ -311,7 +311,6 @@ def build_initial_state(difficulty=2, save=None):
     )
 
     # Bonus d'équipement
-    tower_equipment_bonus = 0
     if save:
         equipped = save.get("equipped", {})
         inv      = save.get("inventory_equipment", [])
@@ -329,8 +328,6 @@ def build_initial_state(difficulty=2, save=None):
                     player.speed += val
                 elif stat == "damage":
                     player.damage += val
-                elif stat == "tower_bonus":
-                    tower_equipment_bonus += val
 
     # Inventaire initial : vide au début du niveau
     inventory = {}
@@ -366,7 +363,6 @@ def build_initial_state(difficulty=2, save=None):
         "player_buff_tokens":       0,
         "tower_damage_bonus":       0,
         "tower_cooldown_bonus":     0,
-        "tower_equipment_bonus":    tower_equipment_bonus,
         "inventory":                inventory,
         "selected_item":            None,
 
@@ -537,7 +533,8 @@ def main():
     for _pt in ALL_TOWER_TYPES + ["player"]:
         Projectile._load_sprite(_pt)
 
-    from menu_screen import run_menu, run_title_screen
+    from title_screen import run_title_screen
+    from main_ui import run_main_ui
     from ui import draw_levelup_banner
 
     current_save = sd.load()
@@ -545,17 +542,16 @@ def main():
 
     # Ecran titre
     title_result, current_save = run_title_screen(render.screen, render.clock, current_save)
-    if title_result is None:
+    if title_result != "play":
         pygame.quit()
         return
 
-    # Menu principal
+    # Interface principale (barre de navigation)
     play_menu_music(current_save.get("music_volume", 0.8))
-    result = run_menu(render.screen, render.clock, current_save)
-    if result is None or result[0] is None:
+    chosen_level, current_save = run_main_ui(render.screen, render.clock, current_save)
+    if chosen_level is None:
         pygame.quit()
         return
-    chosen_level, current_save = result
 
     # Musique de jeu
     play_game_music(current_save.get("music_volume", 0.8))
@@ -1044,10 +1040,10 @@ def main():
                         gs_player.hp = min(gs_player.max_hp, gs_player.hp + 20)
                     elif key == "tower_damage":
                         gs["tower_damage_bonus"] += 1
-                        apply_all_tower_bonuses(gs_towers, gs["tower_damage_bonus"] + gs["tower_equipment_bonus"], gs["tower_cooldown_bonus"])
+                        apply_all_tower_bonuses(gs_towers, gs["tower_damage_bonus"], gs["tower_cooldown_bonus"])
                     elif key == "tower_cooldown":
                         gs["tower_cooldown_bonus"] += 1
-                        apply_all_tower_bonuses(gs_towers, gs["tower_damage_bonus"] + gs["tower_equipment_bonus"], gs["tower_cooldown_bonus"])
+                        apply_all_tower_bonuses(gs_towers, gs["tower_damage_bonus"], gs["tower_cooldown_bonus"])
 
                 gs["levelup_pending"] = False
                 # Recalage des timers après pause forcée
@@ -1123,7 +1119,7 @@ def main():
 
                     placed = place_tower_on_grid(
                         gs_grid, gs_towers, cells, sel, grid_cache,
-                        damage_bonus=(gs['tower_damage_bonus'] + gs.get('tower_equipment_bonus', 0)),
+                        damage_bonus=(gs['tower_damage_bonus']),
                         cooldown_bonus=gs['tower_cooldown_bonus'],
                     )
                     if placed:
@@ -1190,11 +1186,10 @@ def main():
                 gs["paused"] = False
                 _pause_start = None
                 play_menu_music(current_save.get("music_volume", 0.8))
-                result = run_menu(render.screen, render.clock, current_save)
-                if result is None or result[0] is None:
+                chosen_level, current_save = run_main_ui(render.screen, render.clock, current_save)
+                if chosen_level is None:
                     running = False
                     continue
-                chosen_level, current_save = result
                 play_game_music(current_save.get("music_volume", 0.8))
                 gs = build_initial_state(chosen_level, current_save)
                 # BUG3 FIX : réinjecter le mission_context si on revient sur une mission histoire
@@ -1282,11 +1277,10 @@ def main():
                     play_menu_music(current_save.get("music_volume", 0.8))
                     hist_result = run_histoire(render.screen, render.clock, current_save)
                     if hist_result is None:
-                        result = run_menu(render.screen, render.clock, current_save)
-                        if result is None or result[0] is None:
+                        chosen_level, current_save = run_main_ui(render.screen, render.clock, current_save)
+                        if chosen_level is None:
                             running = False
                             continue
-                        chosen_level, current_save = result
                     else:
                         chosen_level = hist_result
                         current_save = sd.load()
@@ -1333,11 +1327,10 @@ def main():
                     play_menu_music(current_save.get("music_volume", 0.8))
                     hist_result = run_histoire(render.screen, render.clock, current_save)
                     if hist_result is None:
-                        result = run_menu(render.screen, render.clock, current_save)
-                        if result is None or result[0] is None:
+                        chosen_level, current_save = run_main_ui(render.screen, render.clock, current_save)
+                        if chosen_level is None:
                             running = False
                             continue
-                        chosen_level, current_save = result
                     else:
                         chosen_level = hist_result
                         current_save = sd.load()
@@ -1381,11 +1374,10 @@ def main():
                     continue
                 elif action == "menu":
                     play_menu_music(current_save.get("music_volume", 0.8))
-                    result = run_menu(render.screen, render.clock, current_save)
-                    if result is None or result[0] is None:
+                    chosen_level, current_save = run_main_ui(render.screen, render.clock, current_save)
+                    if chosen_level is None:
                         running = False
                         continue
-                    chosen_level, current_save = result
                     play_game_music(current_save.get("music_volume", 0.8))
                     gs = build_initial_state(chosen_level, current_save)
                     grid_cache.invalidate()

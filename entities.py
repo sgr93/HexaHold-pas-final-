@@ -60,7 +60,7 @@ class Player:
         self.radius = 12
 
         self.damage            = 5
-        self.range             = 80
+        self.range             = 110
         self.attack_cooldown   = 30
         self.attack_timer      = 0
         self.attack_anim_timer = 0

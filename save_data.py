@@ -270,7 +270,6 @@ _DEFAULT = {
         "veste":   None,
         "bottes": None,
         "arme":     None,
-        "tour":     None,
     },
     "tower_loadout": ["small", "big", "sniper"],
     "music_volume": 0.8,
@@ -467,14 +466,12 @@ def open_chest(save_data_dict, chest_type):
         "veste":   "Veste de garnison",
         "bottes": "Bottes tactique",
         "arme":     "Lames jumelles",
-        "tour":     "Insigne de commandement",
     }
     EQUIPMENT_IMAGES = {
         "cape":   "cape.png",
         "veste":   "veste.png",
         "bottes": "bottes.png",
         "arme":     "lames.png",
-        "tour":     "tour.png",
     }
 
     item = {
