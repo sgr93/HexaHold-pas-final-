@@ -291,8 +291,9 @@ def draw_hud(screen, font, big_font, level, xp, xp_to_next,
     screen.blit(_get_icon("hp", 14, COLORS["accent_alt"]), (offset_x + 4, info_y + 4))
     screen.blit(lvl_txt, (offset_x + 22, info_y))
 
+    wave_max_str = "∞" if max_waves >= 9999 else str(max_waves)
     wave_txt = font.render(
-        f"Vague {wave_number}/{max_waves}  Tués:{mobs_killed}/{max_enemies}",
+        f"Vague {wave_number}/{wave_max_str}  Tues:{mobs_killed}/{max_enemies}",
         True, (255, 255, 180)
     )
     screen.blit(wave_txt, (offset_x + GRID_WIDTH // 2 - wave_txt.get_width() // 2, info_y))

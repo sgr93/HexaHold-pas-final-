@@ -37,7 +37,7 @@ class QuetesScreen:
         w   = area.width - pad * 2
 
         # ── Titre
-        theme.render_text(screen, "Quêtes & Missions", f_sec, theme.GOLD_LIGHT, x, y)
+        theme.render_text(screen, "Quetes et Missions", f_sec, theme.GOLD_LIGHT, x, y)
         theme.draw_gold_rule(screen, x, y + f_sec.get_height() + 2, w)
         y += f_sec.get_height() + 14
 
@@ -135,7 +135,7 @@ class QuetesScreen:
         if quest.get("xp"):     parts.append(f"+{quest['xp']} XP")
         if quest.get("pieces"): parts.append(f"+{quest['pieces']} pièces")
         if quest.get("gemmes"): parts.append(f"+{quest['gemmes']} gemmes")
-        rew_s = f_ti.render("  |  ".join(parts), True, theme.GOLD_DIM)
+        rew_s = f_ti.render(",  ".join(parts), True, theme.GOLD_DIM)
         screen.blit(rew_s, (px, ry))
 
         if claimable:
@@ -144,12 +144,12 @@ class QuetesScreen:
             theme.draw_panel(screen, btn,
                              color=(20,50,20) if bhov else (15,35,15),
                              border_color=theme.GREEN_OK, radius=theme.RADIUS_SM, border_w=2)
-            theme.render_text(screen, "Réclamer", f_ti, theme.GREEN_OK,
+            theme.render_text(screen, "Reclamer", f_ti, theme.GREEN_OK,
                               btn.centerx, btn.centery - f_ti.get_height()//2,
                               center=True, shadow=False)
             if clicked and bhov:
                 qm.claim_quest_reward(save, qid)
                 sd.save(save)
         elif claimed:
-            bdg = f_ti.render("Réclamée", True, theme.GOLD_DIM)
+            bdg = f_ti.render("Reclamee", True, theme.GOLD_DIM)
             screen.blit(bdg, (rect.right - bdg.get_width() - 10, ry))

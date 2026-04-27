@@ -174,12 +174,11 @@ def _run_options(screen, clock, save, w, h, bg):
     f_small = theme.font(theme.SZ_SMALL, body=True)
 
     pop_w = min(480, w - 80)
-    pop_h = 340
+    pop_h = 280
     pop   = pygame.Rect((w - pop_w)//2, (h - pop_h)//2, pop_w, pop_h)
 
     music_vol = save.get("music_volume", 0.8)
     sound_vol = save.get("sound_volume", 0.8)
-    fullscreen = save.get("fullscreen", False)
 
     running = True
     while running:
@@ -228,28 +227,6 @@ def _run_options(screen, clock, save, w, h, bg):
         sound_vol = _slider(screen, f_small, mx, my, clicked, bar2, sound_vol)
         by += 80
 
-        # Toggle plein écran
-        toggle_rect = pygame.Rect(pop.x+24, by, 28, 16)
-        toggle_hov  = toggle_rect.collidepoint(mx, my)
-        pygame.draw.rect(screen, theme.DARK_3, toggle_rect, border_radius=8)
-        pygame.draw.rect(screen, theme.GOLD if fullscreen else theme.GOLD_DIM,
-                         toggle_rect, 1, border_radius=8)
-        if fullscreen:
-            pygame.draw.circle(screen, theme.GOLD_LIGHT,
-                                (toggle_rect.right - 9, toggle_rect.centery), 6)
-        else:
-            pygame.draw.circle(screen, theme.GOLD_DIM,
-                                (toggle_rect.x + 9, toggle_rect.centery), 6)
-        theme.render_text(screen, "Plein écran", f_label, theme.CREAM,
-                          pop.x+60, by, shadow=False)
-        if clicked and toggle_rect.collidepoint(mx, my):
-            fullscreen = not fullscreen
-            try:
-                flags = pygame.FULLSCREEN if fullscreen else pygame.RESIZABLE
-                screen = pygame.display.set_mode((0, 0) if fullscreen else (w, h), flags)
-            except Exception:
-                pass
-
         # Bouton Fermer
         btn = pygame.Rect(pop.centerx-70, pop.bottom-52, 140, 36)
         hov = btn.collidepoint(mx, my)
@@ -267,7 +244,6 @@ def _run_options(screen, clock, save, w, h, bg):
         # Appliquer volumes
         save["music_volume"] = music_vol
         save["sound_volume"] = sound_vol
-        save["fullscreen"]   = fullscreen
         try:
             pygame.mixer.music.set_volume(music_vol)
         except Exception:

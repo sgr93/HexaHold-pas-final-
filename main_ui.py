@@ -93,13 +93,18 @@ def run_main_ui(screen: pygame.Surface,
         # ── Onglets normaux ──
         scr_obj = screens.get(active_tab)
         if scr_obj:
-            # Mettre à jour la save dans l'écran (elle peut avoir changé)
             scr_obj.save = save
             result = scr_obj.draw(screen, content, mx, my, clicked, scroll_dy)
             if result is not None:
-                # AccueilScreen retourne un niveau si "Jouer" cliqué
-                chosen_level = result
-                running = False
+                if result == "infini":
+                    # Mode infini : difficulte normale, vagues infinies
+                    chosen_level = {"infinite": True, "difficulty": 2}
+                    running = False
+                elif result == "histoire":
+                    active_tab = "histoire"
+                else:
+                    chosen_level = result
+                    running = False
 
         # Overlays (picker icône, etc.) — dessinés EN DERNIER, au-dessus de tout
         hud.draw_overlay(screen, save, mx=mx, my=my, clicked=clicked)

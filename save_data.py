@@ -275,7 +275,7 @@ _DEFAULT = {
     "music_volume": 0.8,
     "sound_volume": 0.8,
     "fullscreen": False,
-    "skill_points": 3,
+    "skill_points": 0,
     "skills_unlocked": {sid: False for sid in SKILLS.keys()},
     "quests_completed": {},
     "battles_won": 0,
@@ -405,6 +405,52 @@ def sell_equipment(save_data_dict, item_idx):
     return True, coins, ""
 
 
+def _try_drop_hero(save_data_dict, chest_type):
+    """
+    Tente de dropper un heros dans un coffre gemmes.
+    Taux : gem_common=8%, gem_epic=18%, gem_legendary=35%
+    Retourne un dict heros si drop, None sinon.
+    """
+    import heroes as _hm
+
+    DROP_RATES = {
+        "gem_common":    0.08,
+        "gem_epic":      0.18,
+        "gem_legendary": 0.35,
+    }
+    # Pool de heros par rarity du coffre
+    HERO_POOL = {
+        "gem_common":    ["eren", "armin", "sasha"],
+        "gem_epic":      ["armin", "sasha", "levi", "mikasa"],
+        "gem_legendary": ["levi", "mikasa"],
+    }
+
+    rate = DROP_RATES.get(chest_type, 0)
+    if random.random() > rate:
+        return None
+
+    pool = HERO_POOL.get(chest_type, list(_hm.HEROES.keys()))
+    # Filtrer selon la rarity du coffre : common peut dropper Commun/Rare, legendary = Legendaire seulement
+    hero_id = random.choice(pool)
+    hdef    = _hm.HEROES[hero_id]
+
+    # Ajouter la copie
+    _hm.init_heroes_save(save_data_dict)
+    level = _hm.add_hero_copy(save_data_dict, hero_id)
+
+    return {
+        "type":   "hero",
+        "id":     hero_id,
+        "name":   hdef["name"],
+        "rarity": hdef["rarity"],
+        "level":  level,
+        "copies": save_data_dict["heroes"][hero_id]["copies"],
+        "passive_name": hdef["passive_name"],
+        "sprite_select": hdef["sprite_select"],
+        "color":  list(_hm.RARITY_COLORS.get(hdef["rarity"], (180, 180, 180))),
+    }
+
+
 def open_chest(save_data_dict, chest_type):
     """
     Ouvre un coffre du type donné (wood/silver/gold).
@@ -419,7 +465,7 @@ def open_chest(save_data_dict, chest_type):
     is_gem_chest = chest_type.startswith("gem_")
     if is_gem_chest:
         if save_data_dict.get("gems", 0) < cost:
-            return False, f"Pas assez de gemmes (coût : {cost} 💎)"
+            return False, f"Pas assez de gemmes (cout : {cost} gemmes)"
         save_data_dict["gems"] = save_data_dict.get("gems", 0) - cost
     else:
         if save_data_dict.get("coins", 0) < cost:
@@ -663,6 +709,54 @@ def _ensure_tower_data(save_data_dict):
     save_data_dict.setdefault("towers_copies", {t: 0 for t in TOWER_DEFAULT_UNLOCKED})
 
 
+def _try_drop_hero_for_tower_chest(save_data_dict, rarity):
+    """
+    Tente de dropper un heros dans un coffre tour a gemmes.
+    Filtre par rarity : Legendaire/Epique -> heros Rare/Legendaire, Commun -> heros Commun.
+    Retourne un dict result ou None.
+    """
+    import heroes as _hm
+
+    RARITY_MAP = {
+        "Légendaire": ["levi", "mikasa"],
+        "Épique":     ["armin", "sasha"],
+        "Commun":     ["eren"],
+    }
+    pool = RARITY_MAP.get(rarity, ["eren"])
+    hero_id = random.choice(pool)
+    hdef    = _hm.HEROES[hero_id]
+
+    _hm.init_heroes_save(save_data_dict)
+    level = _hm.add_hero_copy(save_data_dict, hero_id)
+    copies = save_data_dict["heroes"][hero_id]["copies"]
+
+    # Couleur basee sur la rarete du heros (pas du coffre)
+    HERO_RARITY_COLORS = {
+        "Commun":     (180, 180, 180),
+        "Rare":       (80,  140, 255),
+        "Legendaire": (255, 180,   0),
+    }
+    color = HERO_RARITY_COLORS.get(hdef["rarity"], (180, 180, 180))
+
+    return {
+        "type":          "hero",
+        "tower_id":      f"hero_{hero_id}",
+        "id":            hero_id,
+        "label":         hdef["name"],
+        "name":          hdef["name"],
+        "rarity":        hdef["rarity"],
+        "rarity_color":  list(color),
+        "is_new":        copies == 1,
+        "level":         level,
+        "copies":        copies,
+        "needed":        None,
+        "can_upgrade":   False,
+        "desc":          f"Passif : {hdef['passive_name']} - {hdef['passive_desc'].split(chr(10))[0]}",
+        "passive_name":  hdef["passive_name"],
+        "sprite_select": hdef["sprite_select"],
+    }
+
+
 def open_tower_chest(save_data_dict, count=1):
     """
     Ouvre 1 ou 5 coffres tour (en gemmes).
@@ -674,7 +768,7 @@ def open_tower_chest(save_data_dict, count=1):
     total_cost = cost_per * count
 
     if save_data_dict.get("gems", 0) < total_cost:
-        return False, f"Pas assez de gemmes (coût : {total_cost} 💎)"
+        return False, f"Pas assez de gemmes (cout : {total_cost} gemmes)"
 
     save_data_dict["gems"] -= total_cost
     results = []
@@ -709,6 +803,18 @@ def open_tower_chest(save_data_dict, count=1):
                 pity_legend = 0
 
         # Choisir une tour de cette rareté
+        # Chance de dropper un heros a la place
+        hero_drop_chance = 0.30 if rarity in ("Légendaire", "Épique") else 0.10
+        if random.random() < hero_drop_chance:
+            try:
+                hero_res = _try_drop_hero_for_tower_chest(save_data_dict, rarity)
+                if hero_res:
+                    results.append(hero_res)
+                    continue
+            except Exception as e:
+                print(f"[gacha] Erreur drop hero: {e}")
+                import traceback; traceback.print_exc()
+
         candidates = [tid for tid, td in TOWER_POOL.items() if td["rarity"] == rarity]
         if not candidates:
             candidates = list(TOWER_POOL.keys())
@@ -898,3 +1004,152 @@ def apply_skill_bonuses_to_player(save_data_dict, player):
 
     # Défense (réduction des dégâts reçus, plafonnée à 80%)
     player.defense = min(0.80, player.defense + bonuses.get("defense", 0))
+
+    # Appliquer aussi les bonus du NOUVEAU skill tree (talents_screen — skill_tree_nodes)
+    apply_skill_tree_node_bonuses(save_data_dict, player)
+
+
+# ─────────────────────────────────────────────────────────────────
+# NOUVEAU SYSTÈME — BONUS NODES DU SKILL TREE (talents_screen.py)
+# ─────────────────────────────────────────────────────────────────
+
+# Mapping des effets de chaque nœud par personnage
+# index du nœud → dict de bonus appliqués au joueur/tours
+_NODE_BONUSES = {
+    "eren": [
+        {"damage": 3},                                          # 0 Rage
+        {"crit_chance": 0.20},                                 # 1 Instinct
+        {"crit_damage": 0.20},                                 # 2 Furie
+        {"max_hp": 15, "hp_regen": 0.2},                       # 3 Endurance
+        {"crit_damage": 0.20},                                 # 4 Tranche
+        {"damage": 7, "crit_chance": 0.08, "attack_cd": -5},  # 5 Berserker
+        {"speed": 0.5},                                        # 6 Esquive
+        {"damage": 4, "attack_cd": -2},                        # 7 Percée
+        {"defense": 0.08, "max_hp": 20},                       # 8 Acier
+        {},                                                    # 9 ULTIME (géré séparément)
+    ],
+    "mikasa": [
+        {"speed": 0.5},                                        # 0 Rapidité
+        {"crit_chance": 0.10},                                 # 1 Précision
+        {"speed": 2.0},                                        # 2 Acrobatie
+        {"damage": 4, "crit_damage": 0.03},                    # 3 Tranchant
+        {"crit_damage": 0.10},                                 # 4 Asiatique
+        {"attack_cd": -1, "speed": 1.0, "crit_damage": 0.25}, # 5 Ackerman
+        {"damage": 3, "speed": 1.0},                           # 6 Fulgurance
+        {"attack_cd": -2, "damage": 2},                        # 7 Ombre
+        {"max_hp": 20, "defense": 0.05},                       # 8 Résistance
+        {},                                                    # 9 ULTIME (géré séparément)
+    ],
+    "erwin": [
+        {"tower_damage_pct": 0.06},                            # 0 Tactique
+        {"coin_bonus_pct": 0.08},                              # 1 Logistique
+        {"tower_damage_pct": 0.08, "tower_range_pct": 0.05},  # 2 Formation
+        {"trap_damage_pct": 0.12},                             # 3 Embuscade
+        {"coin_bonus_pct": 0.12},                              # 4 Ravitaillement
+        {"tower_damage_pct": 0.12, "tower_cd_pct": -0.08,
+         "tower_range_pct": 0.10},                             # 5 Commandant
+        {"trap_cd_pct": -0.10, "trap_damage_pct": 0.08},      # 6 Piège++
+        {"xp_bonus_pct": 0.15},                               # 7 XP+
+        {"max_hp": 25, "defense": 0.08},                       # 8 Forteresse
+        {},                                                    # 9 ULTIME (géré séparément)
+    ],
+}
+
+
+def apply_skill_tree_node_bonuses(save_data_dict, player):
+    """
+    Lit skill_tree_nodes (nouveau système, talents_screen.py) et applique
+    les bonus correspondants sur l'objet player.
+    Les bonus tours (tower_damage_pct, etc.) sont stockés dans save pour
+    être lus par game.py au moment du placement.
+    """
+    nodes_by_char = save_data_dict.get("skill_tree_nodes", {})
+    if not nodes_by_char:
+        return
+
+    # Réinitialiser les bonus de tours dans la save pour éviter les doublons
+    save_data_dict.setdefault("tree_tower_damage_pct", 0.0)
+    save_data_dict.setdefault("tree_tower_range_pct",  0.0)
+    save_data_dict.setdefault("tree_tower_cd_pct",     0.0)
+    save_data_dict.setdefault("tree_trap_damage_pct",  0.0)
+    save_data_dict.setdefault("tree_trap_cd_pct",      0.0)
+    save_data_dict.setdefault("tree_coin_bonus_pct",   0.0)
+    save_data_dict.setdefault("tree_xp_bonus_pct",     0.0)
+
+    for cid, unlocked_indices in nodes_by_char.items():
+        char_bonuses = _NODE_BONUSES.get(cid, [])
+        for node_idx in unlocked_indices:
+            if node_idx >= len(char_bonuses):
+                continue
+            bn = char_bonuses[node_idx]
+
+            # ── Bonus joueur directs ──
+            if "damage" in bn:
+                player.damage += bn["damage"]
+            if "speed" in bn:
+                player.speed += bn["speed"]
+            if "max_hp" in bn:
+                player.max_hp += bn["max_hp"]
+                player.hp     += bn["max_hp"]
+            if "hp_regen" in bn:
+                player.hp_regen = getattr(player, "hp_regen", 0) + bn["hp_regen"]
+            if "attack_cd" in bn:
+                player.attack_cooldown = max(5, player.attack_cooldown + bn["attack_cd"])
+            if "crit_chance" in bn:
+                player.crit_chance = min(0.95, player.crit_chance + bn["crit_chance"])
+            if "crit_damage" in bn:
+                player.crit_damage = getattr(player, "crit_damage", 1.5) + bn["crit_damage"]
+            if "defense" in bn:
+                player.defense = min(0.80, player.defense + bn["defense"])
+
+            # ── Bonus tours / économie stockés dans save ──
+            if "tower_damage_pct" in bn:
+                save_data_dict["tree_tower_damage_pct"] += bn["tower_damage_pct"]
+            if "tower_range_pct" in bn:
+                save_data_dict["tree_tower_range_pct"]  += bn["tower_range_pct"]
+            if "tower_cd_pct" in bn:
+                save_data_dict["tree_tower_cd_pct"]     += bn["tower_cd_pct"]
+            if "trap_damage_pct" in bn:
+                save_data_dict["tree_trap_damage_pct"]  += bn["trap_damage_pct"]
+            if "trap_cd_pct" in bn:
+                save_data_dict["tree_trap_cd_pct"]      += bn["trap_cd_pct"]
+            if "coin_bonus_pct" in bn:
+                save_data_dict["tree_coin_bonus_pct"]   += bn["coin_bonus_pct"]
+            if "xp_bonus_pct" in bn:
+                save_data_dict["tree_xp_bonus_pct"]     += bn["xp_bonus_pct"]
+
+
+def get_skill_tree_node_bonuses(save_data_dict):
+    """
+    Retourne un dict résumant tous les bonus actifs du skill tree (nouveau système).
+    Utilisé par game.py pour les tours et l'économie.
+    """
+    return {
+        "tower_damage_pct": save_data_dict.get("tree_tower_damage_pct", 0.0),
+        "tower_range_pct":  save_data_dict.get("tree_tower_range_pct",  0.0),
+        "tower_cd_pct":     save_data_dict.get("tree_tower_cd_pct",     0.0),
+        "trap_damage_pct":  save_data_dict.get("tree_trap_damage_pct",  0.0),
+        "trap_cd_pct":      save_data_dict.get("tree_trap_cd_pct",      0.0),
+        "coin_bonus_pct":   save_data_dict.get("tree_coin_bonus_pct",   0.0),
+        "xp_bonus_pct":     save_data_dict.get("tree_xp_bonus_pct",     0.0),
+    }
+
+
+def get_active_ultimate(save_data_dict):
+    """
+    Retourne la competence ultime du personnage choisi.
+    Disponible des que le personnage est selectionne (skill_tree_locked).
+    Le node 9 ameliore les stats mais n'est plus requis pour debloquer l'ultime.
+    """
+    ULTIMATES = {
+        "eren":   {"name": "Titan Assaillant",     "cooldown": 45},
+        "mikasa": {"name": "Lame d'Ackerman",       "cooldown": 40},
+        "erwin":  {"name": "Charge du Bataillon",   "cooldown": 50},
+    }
+    locked_char = save_data_dict.get("skill_tree_locked")
+    if not locked_char:
+        return None
+    ult = ULTIMATES.get(locked_char)
+    if ult:
+        return {"char": locked_char, **ult}
+    return None

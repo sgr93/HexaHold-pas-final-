@@ -83,6 +83,45 @@ class Player:
         if self.spriteset:
             self.spriteset.set_state('idle', 'down')
 
+    def load_hero_sprite(self, hero_id):
+        """
+        Charge le spritesheet RPG Maker du heros selectionne.
+        Cherche dans assets/sprites/player/<hero_id>.png en priorité,
+        puis assets/sprites/player/<sprite_ingame>.
+        """
+        try:
+            import heroes as _hm
+            from sprites import SpriteSet
+
+            hdef  = _hm.HEROES.get(hero_id, {})
+            fname = hdef.get("sprite_ingame", "")
+            if not fname:
+                return
+
+            # Cherche d'abord <hero_id>.png (nom simplifie), puis le nom original
+            candidates = [
+                os.path.join(_ASSETS_BASE, "player", hero_id + ".png"),
+                os.path.join(_ASSETS_BASE, "player", fname),
+                os.path.join(_ASSETS_BASE, fname),
+            ]
+            path = None
+            for c in candidates:
+                if os.path.isfile(c):
+                    path = c
+                    break
+
+            if not path:
+                print(f"[entities] load_hero_sprite({hero_id}): aucun fichier trouve parmi {candidates}")
+                return
+
+            print(f"[entities] Chargement sprite heros : {path}")
+            self.spriteset = SpriteSet.from_rpgmaker_sheet(path, target_size=(40, 40))
+            self.spriteset.set_state('idle', 'down')
+        except Exception as e:
+            import traceback
+            print(f"[entities] load_hero_sprite({hero_id}): {e}")
+            traceback.print_exc()
+
     @property
     def _x_min(self): return self.radius
 
@@ -209,6 +248,8 @@ class Player:
             elif self._anim_dir != self.spriteset._dir:
                 self.spriteset.set_state(new_state, self._anim_dir)
 
+            if new_state == 'walk':
+                self.spriteset.set_walk_speed(self.speed, base_speed=3)
             self.spriteset.update()
 
     def take_damage(self, amount):
@@ -461,6 +502,8 @@ class Enemy:
             else:
                 self._set_anim('walk', self._anim_dir)
 
+            if self.spriteset:
+                self.spriteset.set_walk_speed(self.speed, base_speed=1.0)
             self.spriteset.update()
 
     def receive_damage(self, amount):

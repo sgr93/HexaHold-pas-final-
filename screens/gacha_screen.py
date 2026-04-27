@@ -329,52 +329,6 @@ class GachaScreen:
         # ────────────────────────────────────────────
         if self.tower_anim > 0:
             self.tower_anim -= 1
-            if self.tower_results:
-                idx_show = min(len(self.tower_results)-1,
-                               (300 - self.tower_anim) // max(1, 300 // len(self.tower_results)))
-                res = self.tower_results[idx_show]
-                rc  = tuple(res["rarity_color"])
-                card_h = 130 if not res["is_new"] and res.get("needed") else 90
-                rcard  = pygame.Rect(x + full_w//2 - 200, content_y + 322, 400, card_h)
-                _rr(screen, theme.DARK_2, rcard, radius=12, bw=2, bc=rc)
-
-                badge = "✨ NOUVELLE TOUR !" if res["is_new"] else "🔁 Doublon"
-                bc2   = (100,255,150) if res["is_new"] else (180,150,255)
-                screen.blit(f_sm.render(badge, True, bc2), (rcard.x+14, rcard.y+8))
-
-                if len(self.tower_results) > 1:
-                    nav = f_ti.render(f"{idx_show+1}/{len(self.tower_results)}", True, theme.GOLD_DIM)
-                    screen.blit(nav, (rcard.right - nav.get_width()-10, rcard.y+8))
-
-                screen.blit(f_sm.render(res["label"], True, rc), (rcard.x+14, rcard.y+32))
-                screen.blit(f_ti.render(f"{res['rarity']}  |  Niv. {res['level']}", True, rc), (rcard.x+14, rcard.y+58))
-
-                if not res["is_new"] and res.get("needed") is not None:
-                    copies_now = res.get("copies", 0)
-                    needed_up  = res["needed"]
-                    can_up     = res.get("can_upgrade", False)
-                    gauge = pygame.Rect(rcard.x+14, rcard.y+80, rcard.w-28, 12)
-                    _rr(screen, theme.DARK_3, gauge, radius=6)
-                    fill_col = (100,255,150) if can_up else (140,100,220)
-                    fw3 = int(gauge.w * min(1.0, copies_now/max(1,needed_up)))
-                    if fw3 > 0:
-                        _rr(screen, fill_col, pygame.Rect(gauge.x,gauge.y,fw3,12), radius=6)
-                    gl = f_ti.render(f"{copies_now}/{needed_up}", True, theme.CREAM)
-                    screen.blit(gl, (gauge.centerx - gl.get_width()//2, gauge.centery - gl.get_height()//2))
-                    if can_up:
-                        up_btn = pygame.Rect(rcard.x+14, rcard.y+100, rcard.w-28, 24)
-                        hov_up = up_btn.collidepoint(mx, my)
-                        _rr(screen, (50,180,70) if hov_up else (35,130,50), up_btn, radius=8, bw=2, bc=(100,255,130))
-                        ul = f_ti.render("▲ Niveau supérieur", True, (220,255,220))
-                        screen.blit(ul, (up_btn.centerx-ul.get_width()//2, up_btn.centery-ul.get_height()//2))
-                        if clicked and hov_up:
-                            ok_up, _ = sd.upgrade_tower(save, res["tower_id"])
-                            if ok_up:
-                                lv_new = save["towers_level"].get(res["tower_id"], 1)
-                                cp_new = save["towers_copies"].get(res["tower_id"], 0)
-                                ne_new = sd.TOWER_UPGRADE_COST[lv_new-1] if lv_new <= len(sd.TOWER_UPGRADE_COST) else None
-                                res.update({"level": lv_new, "copies": cp_new, "needed": ne_new,
-                                            "can_upgrade": ne_new is not None and cp_new >= ne_new})
 
         # ────────────────────────────────────────────
         # MESSAGE / ITEM CARD coffre pièces
@@ -389,7 +343,7 @@ class GachaScreen:
         # ────────────────────────────────────────────
         # COLLECTION TOURS (scrollable)
         # ────────────────────────────────────────────
-        coll_y = content_y + (438 if self.tower_anim > 0 or self.gacha_msg_timer > 0 else 326)
+        coll_y = content_y + (438 if self.gacha_msg_timer > 0 else 326)
         coll_h = area.bottom - coll_y - 6
         if coll_h > 60:
             coll_panel = pygame.Rect(x, coll_y, full_w, coll_h)
@@ -596,10 +550,15 @@ class GachaScreen:
         if self.tower_anim > 0 and self.tower_results and not overlay_items:
             for res in self.tower_results:
                 rar = res.get("rarity", "Commun")
+                is_hero = res.get("type") == "hero"
+                if is_hero:
+                    img_name = res.get("sprite_portrait") or res.get("sprite_select") or ""
+                else:
+                    img_name = f"{res.get('tower_id', '')}.png"
                 overlay_items.append({
                     "name":     res.get("label", "Tour"),
                     "rarity":   rar,
-                    "img_name": f"{res.get('tower_id','')}.png",
+                    "img_name": img_name,
                     "rcol":     tuple(RARITY_COL.get(rar, (160,160,160))),
                 })
 

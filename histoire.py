@@ -937,7 +937,7 @@ def run_histoire(screen, clock, save):
         pygame.draw.line(screen, C_GOLD, (0, header_h), (sw, header_h), 1)
         title_t = fonts["md"].render("Mode Histoire", True, C_PARCHMENT)
         screen.blit(title_t, (sw//2 - title_t.get_width()//2, 15))
-        sub_t = fonts["xs"].render("Les Murs — Territoire Humain", True, C_GOLD)
+        sub_t = fonts["xs"].render("Les Murs - Territoire Humain", True, C_GOLD)
         screen.blit(sub_t, (sw - sub_t.get_width() - 16, 18))
 
         # Bouton retour

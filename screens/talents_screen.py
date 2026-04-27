@@ -31,66 +31,78 @@ ICON_COLS  = 8
 
 # Index dans le spritesheet pour chaque skill (par perso)
 SKILL_ICONS = {
-    "eren":   [8, 1, 9, 16, 3, 10, 17, 4, 24, 32],
-    "mikasa": [5, 2, 13, 3, 6, 11, 14, 22, 25, 33],
-    "erwin":  [20, 28, 21, 7, 29, 36, 15, 30, 37, 44],
+    "eren":   [16, 43, 41, 60, 39, 18, 49, 23, 17, 32],
+    "mikasa": [8, 15, 51, 37, 35, 11, 13, 12, 14, 47],
+    "erwin":  [0, 2, 36, 7, 6, 52, 4, 30, 3, 59],
 }
 
 CHARS = {
     "eren": {
-        "name":  "Eren Jäger",
-        "color": (213, 90, 48),
-        "final": "Titan Assaillant",
-        "sprite": "eren_normal.png",
+        "name":        "Eren Jäger",
+        "color":       (213, 90, 48),
+        "style":       "DEGATS BRUTS / RAGE",
+        "style_color": (255, 120, 60),
+        "final":       "Titan Assaillant",
+        "sprite":      "eren_normal.png",
         "nodes": [
-            {"name": "Rage",      "desc": "+3 dégâts",                    "s": "sm", "x": .12, "y": .50},
-            {"name": "Instinct",  "desc": "+5% chance crit",              "s": "sm", "x": .22, "y": .28},
-            {"name": "Furie",     "desc": "+5 dégâts · +3% crit",         "s": "md", "x": .32, "y": .65},
-            {"name": "Endurance", "desc": "+15 HP · +0.2 regen/s",        "s": "sm", "x": .42, "y": .32},
-            {"name": "Tranche",   "desc": "+20% dégâts crit",             "s": "sm", "x": .51, "y": .68},
-            {"name": "Berserker", "desc": "+7 dégâts · +8% crit · -5 cd","s": "lg", "x": .60, "y": .30},
-            {"name": "Esquive",   "desc": "+6% esquive",                  "s": "sm", "x": .69, "y": .65},
-            {"name": "Percée",    "desc": "+4 dégâts · -4 cd att.",       "s": "md", "x": .77, "y": .35},
-            {"name": "Acier",     "desc": "+8% défense · +20 HP",         "s": "sm", "x": .85, "y": .65},
-            {"name": "★ Titan",  "desc": "Burst ×3 dégâts 8s\nEnnemis ralentis à chaque coup", "s": "lg", "x": .93, "y": .45},
+            {"name": "Rage",      "desc": "+3 dégâts",                        "s": "sm", "x": .12, "y": .50},
+            {"name": "Instinct",  "desc": "+20% chance crit",                 "s": "sm", "x": .22, "y": .28},
+            {"name": "Furie",     "desc": "+20% dégâts critiques",            "s": "md", "x": .32, "y": .65},
+            {"name": "Endurance", "desc": "+15 HP  +0.2 regen/s",            "s": "sm", "x": .42, "y": .32},
+            {"name": "Tranche",   "desc": "+20% dégâts critiques",            "s": "sm", "x": .51, "y": .68},
+            {"name": "Berserker", "desc": "+7 degats  +8% crit  -5 cd",    "s": "lg", "x": .60, "y": .30},
+            {"name": "Esquive",   "desc": "+0.5 vitesse",                     "s": "sm", "x": .69, "y": .65},
+            {"name": "Percee",    "desc": "+4 degats  +2 vitesse d'attaque", "s": "md", "x": .77, "y": .35},
+            {"name": "Acier",     "desc": "+8% defense  +20 HP",             "s": "sm", "x": .85, "y": .65},
+            {"name": "ULTIME - Titan Assaillant",
+             "desc": "Burst x3 degats pendant 8s\nChaque coup ralentit les ennemis\nCooldown : 45s",
+             "s": "lg", "x": .93, "y": .45},
         ],
         "edges": [[0,1],[0,2],[1,3],[2,3],[3,4],[3,5],[4,6],[5,6],[6,7],[5,7],[7,8],[7,9],[8,9]],
     },
     "mikasa": {
-        "name":  "Mikasa Ackerman",
-        "color": (127, 119, 221),
-        "final": "Lame d'Ackerman",
-        "sprite": "mikasa_normal.png",
+        "name":        "Mikasa Ackerman",
+        "color":       (127, 119, 221),
+        "style":       "VITESSE & VITESSE D'ATTAQUE",
+        "style_color": (160, 150, 255),
+        "final":       "Lame d'Ackerman",
+        "sprite":      "mikasa_normal.png",
         "nodes": [
-            {"name": "Rapidité",   "desc": "+0.5 vitesse",                "s": "sm", "x": .12, "y": .50},
-            {"name": "Précision",  "desc": "+6% chance crit",             "s": "sm", "x": .22, "y": .28},
-            {"name": "Acrobatie",  "desc": "+0.5 vitesse · +5% esquive",  "s": "sm", "x": .32, "y": .68},
-            {"name": "Tranchant",  "desc": "+4 dégâts · +3% crit",        "s": "md", "x": .42, "y": .32},
-            {"name": "Réflexe",    "desc": "-5 cd attaque",               "s": "sm", "x": .51, "y": .68},
-            {"name": "Ackerman",   "desc": "+8% esquive · +1.0 vit\n+25% dégâts crit", "s": "lg", "x": .60, "y": .30},
-            {"name": "Fulgurance", "desc": "-6 cd · +3 dégâts",           "s": "sm", "x": .69, "y": .65},
-            {"name": "Ombre",      "desc": "+10% esquive · +2 dégâts",    "s": "md", "x": .77, "y": .35},
-            {"name": "Résistance", "desc": "+20 HP · +5% défense",        "s": "sm", "x": .85, "y": .65},
-            {"name": "★ Lame",    "desc": "Vitesse ×2 pendant 10s\n30% esquive passive", "s": "lg", "x": .93, "y": .45},
+            {"name": "Rapidité",   "desc": "+0.5 vitesse",                             "s": "sm", "x": .12, "y": .50},
+            {"name": "Précision",  "desc": "+10% chance crit",                         "s": "sm", "x": .22, "y": .28},
+            {"name": "Acrobatie",  "desc": "+2 vitesse",                               "s": "sm", "x": .32, "y": .68},
+            {"name": "Tranchant",  "desc": "+4 degats  +3% degats critiques",        "s": "md", "x": .42, "y": .32},
+            {"name": "Asiatique",  "desc": "+10% dégâts critiques",                   "s": "sm", "x": .51, "y": .68},
+            {"name": "Ackerman",   "desc": "+1 vit. attaque  +1.0 vitesse\n+25% degats critiques", "s": "lg", "x": .60, "y": .30},
+            {"name": "Fulgurance", "desc": "+3 degats  +1 vitesse",                  "s": "sm", "x": .69, "y": .65},
+            {"name": "Ombre",      "desc": "+2 vitesse d'attaque  +2 degats",        "s": "md", "x": .77, "y": .35},
+            {"name": "Resistance", "desc": "+20 HP  +5% defense",                    "s": "sm", "x": .85, "y": .65},
+            {"name": "ULTIME - Lame d'Ackerman",
+             "desc": "Vitesse x2  Vit. attaque x2\npendant 10s\nCooldown : 40s",
+             "s": "lg", "x": .93, "y": .45},
         ],
         "edges": [[0,1],[0,2],[1,3],[2,3],[3,4],[3,5],[4,6],[5,6],[6,7],[5,7],[7,8],[7,9],[8,9]],
     },
     "erwin": {
-        "name":  "Erwin Smith",
-        "color": (29, 158, 117),
-        "final": "Charge du Bataillon",
-        "sprite": "erwin_normal.png",
+        "name":        "Erwin Smith",
+        "color":       (29, 158, 117),
+        "style":       "SUPPORT & STRATEGIE",
+        "style_color": (80, 200, 160),
+        "final":       "Charge du Bataillon",
+        "sprite":      "erwin_normal.png",
         "nodes": [
-            {"name": "Tactique",   "desc": "+6% dégâts tours",            "s": "sm", "x": .12, "y": .50},
-            {"name": "Logistique", "desc": "+8% pièces/partie",           "s": "sm", "x": .22, "y": .28},
-            {"name": "Formation",  "desc": "+8% dmg tours · +5% portée",  "s": "md", "x": .32, "y": .65},
-            {"name": "Embuscade",  "desc": "+12% dégâts pièges",          "s": "sm", "x": .42, "y": .32},
-            {"name": "Ravitail.",  "desc": "+12% pièces · +1 gemme/5 vagues","s":"sm","x": .51, "y": .68},
-            {"name": "Commandant", "desc": "+12% dmg tours · -8% cd\n+10% portée", "s": "lg", "x": .60, "y": .30},
-            {"name": "Piège++",    "desc": "-10% cd pièges · +8% dmg",    "s": "sm", "x": .69, "y": .65},
-            {"name": "XP+",        "desc": "+15% XP en jeu",              "s": "md", "x": .77, "y": .35},
-            {"name": "Forteresse", "desc": "+25 HP · +8% défense",        "s": "sm", "x": .85, "y": .65},
-            {"name": "★ Bataillon","desc": "Tours tirent 2× 12s\n+20% pièces sur la vague", "s": "lg", "x": .93, "y": .45},
+            {"name": "Tactique",   "desc": "+6% dégâts tours",                       "s": "sm", "x": .12, "y": .50},
+            {"name": "Logistique", "desc": "+8% pièces/partie",                      "s": "sm", "x": .22, "y": .28},
+            {"name": "Formation",  "desc": "+8% dmg tours  +5% portee",             "s": "md", "x": .32, "y": .65},
+            {"name": "Embuscade",  "desc": "+12% degats pieges",                     "s": "sm", "x": .42, "y": .32},
+            {"name": "Ravitail.",  "desc": "+12% pieces  +1 gemme/5 vagues",        "s": "sm", "x": .51, "y": .68},
+            {"name": "Commandant", "desc": "+12% dmg tours  -8% cd\n+10% portee",   "s": "lg", "x": .60, "y": .30},
+            {"name": "Piege++",    "desc": "-10% cd pieges  +8% dmg pieges",        "s": "sm", "x": .69, "y": .65},
+            {"name": "XP+",        "desc": "+15% XP en jeu",                         "s": "md", "x": .77, "y": .35},
+            {"name": "Forteresse", "desc": "+25 HP  +8% defense",                   "s": "sm", "x": .85, "y": .65},
+            {"name": "ULTIME - Charge du Bataillon",
+             "desc": "Tours tirent 2x plus vite\npendant 12s  +50% XP en jeu\nCooldown : 50s",
+             "s": "lg", "x": .93, "y": .45},
         ],
         "edges": [[0,1],[0,2],[1,3],[2,3],[3,4],[3,5],[4,6],[5,6],[5,7],[6,8],[7,8],[7,9],[8,9]],
     },
@@ -195,11 +207,6 @@ class TalentsScreen:
 
         # ── Verrouillé si pas encore niveau 2 ────────────────
         if sp == 0 and not save.get("skill_tree_nodes"):
-            theme.draw_stone_bg(screen)
-            msg  = f_lbl.render("Skill Tree débloqué au niveau 2", True, theme.GOLD_DIM)
-            msg2 = f_sm.render("Gagnez votre premier point de compétence pour accéder à l'arbre.", True, theme.CREAM_DIM)
-            screen.blit(msg,  (area.centerx - msg.get_width()  // 2, area.centery - 20))
-            screen.blit(msg2, (area.centerx - msg2.get_width() // 2, area.centery + 10))
             return None
 
         # ── Popup confirmation premier accès ─────────────────
@@ -260,10 +267,10 @@ class TalentsScreen:
                          radius=theme.RADIUS_MD, border_w=2 if can_reset else 1)
 
         if can_reset:
-            rl = f_sm.render(f"↺  Reset  —  {reset_cost} pièces  ({spent} pts × {RESET_COST_PER_PT})",
+            rl = f_sm.render(f"Reset  --  {reset_cost} pieces  ({spent} pts x {RESET_COST_PER_PT})",
                              True, theme.RED_BADGE if hov_r else (200, 80, 80))
         else:
-            rl = f_sm.render(f"↺  Reset  —  {reset_cost} pièces nécessaires  (vous avez {coins})",
+            rl = f_sm.render(f"Reset  --  {reset_cost} pieces necessaires  (vous avez {coins})",
                              True, theme.GOLD_DIM)
         screen.blit(rl, (rbtn.centerx - rl.get_width() // 2,
                          rbtn.centery - rl.get_height() // 2))
@@ -293,7 +300,7 @@ class TalentsScreen:
         t = f_lbl.render("Choisir votre Skill Tree", True, theme.GOLD_LIGHT)
         screen.blit(t, (pop.centerx - t.get_width() // 2, by + 16))
 
-        w1 = f_sm.render("⚠  Attention — ce choix est irréversible.", True, (220, 160, 60))
+        w1 = f_sm.render("Attention - ce choix est irreversible.", True, (220, 160, 60))
         screen.blit(w1, (pop.centerx - w1.get_width() // 2, by + 44))
 
         w2 = f_ti.render("Investir dans un arbre bloquera définitivement les deux autres.", True, theme.CREAM_DIM)
@@ -351,6 +358,13 @@ class TalentsScreen:
         nc = (70, 60, 50) if is_locked else color
         ns = f_name.render(ch["name"], True, nc)
         screen.blit(ns, (rect.x + 8, rect.y + 5))
+
+        # Style du personnage (dégâts bruts / vitesse / support)
+        f_style = theme.font(theme.SZ_TINY, body=True)
+        style_col = (60, 50, 40) if is_locked else ch.get("style_color", color)
+        sl = f_style.render(ch.get("style", ""), True, style_col)
+        screen.blit(sl, (rect.x + 8, rect.y + 5 + ns.get_height() + 2))
+
         if is_locked:
             lk = f_ti.render("Verrouillé", True, (80, 65, 55))
             screen.blit(lk, (rect.right - lk.get_width() - 8, rect.y + 6))
@@ -421,7 +435,7 @@ class TalentsScreen:
             if icon:
                 screen.blit(icon, (nx - icon_size // 2, ny_ - icon_size // 2))
             elif node_on:
-                ic = f_ti.render("★" if is_final else "✓", True, color)
+                ic = f_ti.render("U" if is_final else "V", True, color)
                 screen.blit(ic, (nx - ic.get_width() // 2, ny_ - ic.get_height() // 2))
 
             # Hover
@@ -475,7 +489,7 @@ class TalentsScreen:
 
         dy += 4
         if node_on:
-            st = f_ti.render("✓ Débloqué", True, theme.GREEN_OK)
+            st = f_ti.render("Debloque", True, theme.GREEN_OK)
         elif is_locked:
             st = f_ti.render("Arbre verrouillé", True, (100, 80, 60))
         elif can_buy:
@@ -514,4 +528,3 @@ class TalentsScreen:
         save["skill_points"]      = save.get("skill_points", 0) + spent
         save["skill_tree_nodes"]  = {}
         save["skill_tree_locked"] = None
-    

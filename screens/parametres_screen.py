@@ -1,7 +1,8 @@
 """
 screens/parametres_screen.py
 -----------------------------
-Écran Paramètres in-game : volume, affichage, réinitialisation.
+Écran Paramètres — volume musique / sons uniquement.
+Le toggle plein écran a été retiré.
 """
 
 import pygame
@@ -11,108 +12,128 @@ import save_data as sd
 
 class ParametresScreen:
     def __init__(self, save):
-        self.save = save
+        self.save           = save
+        self._confirm_reset = False
 
     def draw(self, screen, area, mx, my, clicked, scroll_dy=0):
-        save  = self.save
+        save = self.save
         f_sec = theme.font(theme.SZ_SECTION)
         f_lbl = theme.font(theme.SZ_LABEL, body=True)
         f_sm  = theme.font(theme.SZ_SMALL, body=True)
         f_ti  = theme.font(theme.SZ_TINY,  body=True)
 
-        pad = 16
-        x, y = area.x+pad, area.y+pad
-        w    = area.width - pad*2
+        pad = 24
+        x   = area.x + pad
+        y   = area.y + pad
+        w   = area.width - pad * 2
 
+        # ── Titre ───────────────────────────────────────────────
         theme.render_text(screen, "Paramètres", f_sec, theme.GOLD_LIGHT, x, y)
-        theme.draw_gold_rule(screen, x, y+f_sec.get_height()+2, w)
-        y += f_sec.get_height()+20
+        theme.draw_gold_rule(screen, x, y + f_sec.get_height() + 2, w)
+        y += f_sec.get_height() + 20
 
-        panel_w = min(500, w)
-        px      = area.x + (area.width - panel_w)//2
+        panel_w = min(520, w)
+        panel_h = 200
+        panel   = pygame.Rect(area.centerx - panel_w // 2, y, panel_w, panel_h)
+        theme.draw_panel(screen, panel, color=theme.DARK_2,
+                         border_color=theme.GOLD_DIM, radius=theme.RADIUS_LG)
+        theme.draw_corner_ornaments(screen, panel, size=6)
 
-        # ── Volume musique ───────────────────────────────────
-        theme.render_text(screen, "Volume Musique", f_lbl, theme.CREAM, px, y, shadow=False)
-        y += f_lbl.get_height()+6
-        bar = pygame.Rect(px, y, panel_w, 14)
-        mv  = save.get("music_volume", 0.8)
-        mv  = self._slider(screen, f_ti, mx, my, clicked, bar, mv)
-        save["music_volume"] = mv
-        try:
-            pygame.mixer.music.set_volume(mv)
-        except Exception:
-            pass
-        y += 28
+        py = panel.y + 20
 
-        # ── Volume sons ──────────────────────────────────────
-        theme.render_text(screen, "Volume Sons", f_lbl, theme.CREAM, px, y, shadow=False)
-        y += f_lbl.get_height()+6
-        bar2 = pygame.Rect(px, y, panel_w, 14)
-        sv   = save.get("sound_volume", 0.8)
-        sv   = self._slider(screen, f_ti, mx, my, clicked, bar2, sv)
-        save["sound_volume"] = sv
-        y += 36
+        # ── Volume musique ──────────────────────────────────────
+        lbl_m = f_lbl.render("Volume Musique", True, theme.CREAM)
+        screen.blit(lbl_m, (panel.x + 20, py))
+        py += lbl_m.get_height() + 6
 
-        # ── Plein écran ──────────────────────────────────────
-        toggle = pygame.Rect(px, y, 32, 18)
-        fs     = save.get("fullscreen", False)
-        pygame.draw.rect(screen, theme.DARK_3, toggle, border_radius=9)
-        pygame.draw.rect(screen, theme.GOLD if fs else theme.GOLD_DIM, toggle, 1, border_radius=9)
-        tcx = toggle.right-10 if fs else toggle.x+10
-        pygame.draw.circle(screen, theme.GOLD_LIGHT if fs else theme.GOLD_DIM, (tcx, toggle.centery), 7)
-        theme.render_text(screen, "Plein écran", f_lbl, theme.CREAM,
-                          px+40, y, shadow=False)
-        if clicked and toggle.collidepoint(mx, my):
-            fs = not fs
-            save["fullscreen"] = fs
+        bar_m = pygame.Rect(panel.x + 20, py, panel_w - 40, 14)
+        music_vol = save.get("music_volume", 0.8)
+        new_music = self._slider(screen, f_sm, mx, my, clicked, bar_m, music_vol)
+        if new_music != music_vol:
+            save["music_volume"] = new_music
             try:
-                flags = pygame.FULLSCREEN if fs else pygame.RESIZABLE
-                pygame.display.set_mode((0,0) if fs else (1280,720), flags)
+                pygame.mixer.music.set_volume(new_music)
             except Exception:
                 pass
-        y += 36
+            sd.save(save)
+        py += 30 + 20
 
-        # ── Sauvegarder ─────────────────────────────────────
-        btn_save = pygame.Rect(px, y, 180, 40)
-        hov = btn_save.collidepoint(mx, my)
-        theme.draw_panel(screen, btn_save,
-                         color=(25,18,5) if hov else theme.DARK_2,
-                         border_color=theme.GOLD if hov else theme.GOLD_DIM,
-                         radius=theme.RADIUS_MD, border_w=2)
-        theme.render_text(screen, "Sauvegarder", f_lbl,
-                          theme.GOLD_LIGHT if hov else theme.CREAM,
-                          btn_save.centerx, btn_save.centery-f_lbl.get_height()//2,
-                          center=True, shadow=False)
-        if clicked and hov:
+        # ── Volume sons ─────────────────────────────────────────
+        lbl_s = f_lbl.render("Volume Sons", True, theme.CREAM)
+        screen.blit(lbl_s, (panel.x + 20, py))
+        py += lbl_s.get_height() + 6
+
+        bar_s = pygame.Rect(panel.x + 20, py, panel_w - 40, 14)
+        sound_vol = save.get("sound_volume", 0.8)
+        new_sound = self._slider(screen, f_sm, mx, my, clicked, bar_s, sound_vol)
+        if new_sound != sound_vol:
+            save["sound_volume"] = new_sound
             sd.save(save)
 
-        # ── Réinitialiser ────────────────────────────────────
-        y += 56
-        btn_reset = pygame.Rect(px, y, 220, 40)
-        hov2 = btn_reset.collidepoint(mx, my)
-        theme.draw_panel(screen, btn_reset,
-                         color=(35,10,10) if hov2 else theme.DARK_2,
-                         border_color=theme.RED_BADGE,
+        # ── Note bas ────────────────────────────────────────────
+        note = f_ti.render("Les changements sont sauvegardés automatiquement.", True, theme.GOLD_DIM)
+        screen.blit(note, (area.centerx - note.get_width() // 2,
+                           panel.bottom + 14))
+
+        # ── Bouton Réinitialiser la partie ──────────────────────
+        btn_w  = 280
+        btn_h  = 40
+        btn_y  = panel.bottom + 50
+        btn_x  = area.centerx - btn_w // 2
+        btn    = pygame.Rect(btn_x, btn_y, btn_w, btn_h)
+        hov    = btn.collidepoint(mx, my)
+        theme.draw_panel(screen, btn,
+                         color=(60, 12, 12) if hov else theme.DARK_2,
+                         border_color=theme.RED_BADGE if hov else (80, 40, 40),
                          radius=theme.RADIUS_MD, border_w=2)
-        theme.render_text(screen, "Réinitialiser la sauvegarde", f_sm,
-                          theme.RED_BADGE if hov2 else theme.CREAM_DIM,
-                          btn_reset.centerx, btn_reset.centery-f_sm.get_height()//2,
-                          center=True, shadow=False)
-        if clicked and hov2:
-            sd.reset()
+        bl = f_lbl.render("Reinitialiser la sauvegarde", True,
+                          (255, 100, 100) if hov else (180, 70, 70))
+        screen.blit(bl, (btn.centerx - bl.get_width() // 2,
+                         btn.centery - bl.get_height() // 2))
+
+        # Confirmation sur 2 clics
+        if clicked and hov:
+            if self._confirm_reset:
+                # Deuxieme clic : reset
+                import save_data as _sd
+                import os as _os
+                save_file = _os.path.join(_os.path.dirname(__file__), "..", "save.json")
+                try:
+                    _os.remove(save_file)
+                except Exception:
+                    pass
+                new_save = _sd.load()
+                self.save.clear()
+                self.save.update(new_save)
+                _sd.save(self.save)
+                self._confirm_reset = False
+            else:
+                self._confirm_reset = True
+
+        # Afficher avertissement si premier clic
+        if self._confirm_reset:
+            warn = f_sm.render("Cliquez a nouveau pour confirmer - cette action est irreversible !", True, (255, 160, 60))
+            screen.blit(warn, (area.centerx - warn.get_width() // 2, btn.bottom + 8))
+        else:
+            hint = f_ti.render("Remet les pièces, gemmes, niveaux et progression à zero.", True, (100, 80, 70))
+            screen.blit(hint, (area.centerx - hint.get_width() // 2, btn.bottom + 8))
 
         return None
 
-    def _slider(self, screen, f_ti, mx, my, clicked, rect, value):
+    def _slider(self, screen, f_small, mx, my, clicked, rect, value):
+        """Slider horizontal. Retourne la nouvelle valeur."""
         pygame.draw.rect(screen, theme.DARK_3, rect, border_radius=3)
         pygame.draw.rect(screen, theme.GOLD_DIM, rect, 1, border_radius=3)
         fw = int(rect.width * value)
         if fw > 0:
-            pygame.draw.rect(screen, theme.GOLD, pygame.Rect(rect.x,rect.y,fw,rect.height), border_radius=3)
-        pygame.draw.circle(screen, theme.GOLD_LIGHT, (rect.x+fw, rect.centery), 9)
-        pygame.draw.circle(screen, theme.DARK, (rect.x+fw, rect.centery), 5)
-        pct = f_ti.render(f"{int(value*100)}%", True, theme.GOLD_DIM)
-        screen.blit(pct, (rect.right+8, rect.centery-pct.get_height()//2))
-        if clicked and rect.inflate(0,24).collidepoint(mx, my):
-            value = max(0.0, min(1.0, (mx-rect.x)/rect.width))
+            pygame.draw.rect(screen, theme.GOLD,
+                             pygame.Rect(rect.x, rect.y, fw, rect.height),
+                             border_radius=3)
+        cx = rect.x + fw
+        pygame.draw.circle(screen, theme.GOLD_LIGHT, (cx, rect.centery), 9)
+        pygame.draw.circle(screen, theme.DARK,       (cx, rect.centery), 5)
+        pct = f_small.render(f"{int(value * 100)}%", True, theme.GOLD_DIM)
+        screen.blit(pct, (rect.right + 8, rect.centery - pct.get_height() // 2))
+        if clicked and rect.inflate(0, 24).collidepoint(mx, my):
+            value = max(0.0, min(1.0, (mx - rect.x) / rect.width))
         return value

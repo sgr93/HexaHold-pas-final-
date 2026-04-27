@@ -87,6 +87,10 @@ def draw_overlay(screen: pygame.Surface, save: dict,
         if close:
             _icon_picker_open = False
 
+    # Tooltip talent verrouillé — toujours au-dessus de tout
+    if _talent_tab_rect_global is not None:
+        _draw_talent_locked_tooltip(screen, _talent_tab_rect_global, mx, my)
+
 
 def _draw_icon_picker(screen, save, mx, my, clicked):
     """Popup sélection d'icône — style theme. Retourne True pour fermer."""
@@ -130,7 +134,7 @@ def _draw_icon_picker(screen, save, mx, my, clicked):
     close_hov  = close_rect.collidepoint(mx, my)
     pygame.draw.circle(screen, theme.RED_BADGE if close_hov else (60, 20, 20), (close_cx, close_cy), close_r)
     pygame.draw.circle(screen, theme.GOLD_DIM, (close_cx, close_cy), close_r, 1)
-    x_lbl = f_ti.render("✕", True, theme.CREAM)
+    x_lbl = f_ti.render("X", True, theme.CREAM)
     screen.blit(x_lbl, (close_cx - x_lbl.get_width() // 2, close_cy - x_lbl.get_height() // 2))
     if clicked and close_rect.collidepoint(mx, my):
         return True
@@ -181,7 +185,7 @@ def draw(screen: pygame.Surface, save: dict,
     avatar_clicked = _draw_header(screen, save, mx, my, clicked)
     if avatar_clicked:
         _icon_picker_open = not _icon_picker_open
-    action = _draw_nav(screen, active_tab, badges, mx, my, clicked)
+    action = _draw_nav(screen, active_tab, badges, mx, my, clicked, save)
     return action
 
 
@@ -300,9 +304,65 @@ def _draw_hex_avatar(screen, rect, save):
 
 
 # ============================================================
+# HELPERS TALENT LOCKED
+# ============================================================
+
+_talent_popup_timer = 0   # frames restantes d'affichage du popup
+_talent_tab_rect_global = None  # rect de l'onglet talent, mis à jour chaque frame
+
+def _show_talent_locked_popup(screen, tab_rect):
+    global _talent_popup_timer
+    _talent_popup_timer = 180  # 3 secondes à 60fps
+
+
+def _draw_talent_locked_tooltip(screen, tab_rect, mx, my):
+    """Affiche un petit popup au-dessus de l'onglet Talents verrouillé."""
+    global _talent_popup_timer
+
+    # Décrémentation du timer (appelé chaque frame si onglet locked)
+    if _talent_popup_timer > 0:
+        _talent_popup_timer -= 1
+
+    # On affiche si hover OU si timer actif
+    show = tab_rect.collidepoint(mx, my) or _talent_popup_timer > 0
+    if not show:
+        return
+
+    f_sm = _f("small", body=True)
+    f_ti = _f("tiny",  body=True)
+
+    W, H = 260, 58
+    cx   = tab_rect.centerx
+    bx   = max(4, min(cx - W // 2, screen.get_width() - W - 4))
+    by   = tab_rect.top - H - 8
+
+    pop = pygame.Rect(bx, by, W, H)
+
+    import theme as _theme
+    _theme.draw_rect_alpha(screen, (*_theme.DARK_2, 240), pop, radius=_theme.RADIUS_MD)
+    pygame.draw.rect(screen, _theme.GOLD_DIM, pop, 1, border_radius=_theme.RADIUS_MD)
+
+    # Petite flèche vers le bas
+    arrow_x = cx
+    arrow_y = pop.bottom
+    pygame.draw.polygon(screen, _theme.GOLD_DIM, [
+        (arrow_x - 6, arrow_y), (arrow_x + 6, arrow_y), (arrow_x, arrow_y + 6)
+    ])
+
+    title = f_sm.render("Deblocable au niveau 2", True, _theme.GOLD_LIGHT)
+    screen.blit(title, (pop.centerx - title.get_width() // 2, pop.y + 8))
+
+    sub = f_ti.render("Gagnez de l'XP en completant des parties.", True, _theme.CREAM_DIM)
+    screen.blit(sub, (pop.centerx - sub.get_width() // 2, pop.y + 28))
+
+    sub2 = f_ti.render("Chaque victoire rapporte de l'XP de compte.", True, _theme.CREAM_DIM)
+    screen.blit(sub2, (pop.centerx - sub2.get_width() // 2, pop.y + 42))
+
+
+# ============================================================
 # BARRE DE NAVIGATION BAS
 # ============================================================
-def _draw_nav(screen, active_tab, badges, mx, my, clicked):
+def _draw_nav(screen, active_tab, badges, mx, my, clicked, save=None):
     w, h  = screen.get_size()
     NAV_H = theme.BOTTOM_NAV_H
     ny    = h - NAV_H
@@ -318,6 +378,8 @@ def _draw_nav(screen, active_tab, badges, mx, my, clicked):
     fti   = _f("tiny", body=True)
     tab_w = w // len(TABS)
     action = None
+    if save is None:
+        save = {}
 
     for i, tab in enumerate(TABS):
         tx     = i * tab_w
@@ -325,11 +387,21 @@ def _draw_nav(screen, active_tab, badges, mx, my, clicked):
         is_act = tab["key"] == active_tab
         is_hov = trect.collidepoint(mx, my)
 
+        # Onglet Talents verrouillé si aucun skill point et aucun nœud acheté
+        is_talent_locked = (
+            tab["key"] == "talents"
+            and save.get("skill_points", 0) == 0
+            and not save.get("skill_tree_nodes")
+        )
+
         if is_act:
             theme.draw_rect_alpha(screen, (*theme.GOLD, 18), trect)
             pygame.draw.line(screen, theme.GOLD_LIGHT, (tx, ny), (tx+tab_w, ny), 2)
-        elif is_hov:
+        elif is_hov and not is_talent_locked:
             theme.draw_rect_alpha(screen, (*theme.GOLD, 8), trect)
+        elif is_talent_locked:
+            # Overlay grisé pour l'onglet verrouillé
+            theme.draw_rect_alpha(screen, (0, 0, 0, 80), trect)
 
         # Icône ou placeholder
         icon   = _icons.get(tab["key"])
@@ -337,15 +409,22 @@ def _draw_nav(screen, active_tab, badges, mx, my, clicked):
         icon_y  = ny + 8
 
         if icon:
-            screen.blit(icon, (icon_cx - icon.get_width()//2, icon_y))
+            icon_draw = icon.copy() if is_talent_locked else icon
+            if is_talent_locked:
+                icon_draw.set_alpha(60)
+            screen.blit(icon_draw, (icon_cx - icon_draw.get_width()//2, icon_y))
         else:
             ph = pygame.Rect(icon_cx - 14, icon_y, 28, 28)
             theme.draw_panel(screen, ph, color=theme.DARK_3,
                              border_color=theme.GOLD_DIM, radius=4)
 
         # Label
-        lbl_col = theme.GOLD_LIGHT if is_act else theme.GOLD_DIM
-        lbl = fti.render(tab["label"], True, lbl_col)
+        if is_talent_locked:
+            lbl_col = (60, 55, 45)
+            lbl = fti.render("[ ] " + tab["label"], True, lbl_col)
+        else:
+            lbl_col = theme.GOLD_LIGHT if is_act else theme.GOLD_DIM
+            lbl = fti.render(tab["label"], True, lbl_col)
         screen.blit(lbl, (icon_cx - lbl.get_width()//2, ny + NAV_H - 18))
 
         # Badge
@@ -363,7 +442,15 @@ def _draw_nav(screen, active_tab, badges, mx, my, clicked):
             sep_surf.fill((*theme.GOLD_DIM, 60))
             screen.blit(sep_surf, (tx, ny+8))
 
-        if clicked and is_hov and not is_act:
+        if clicked and is_hov and not is_act and not is_talent_locked:
             action = tab["key"]
+
+        # Popup "débloquable niveau 2" si on clique sur l'onglet verrouillé
+        if clicked and is_hov and is_talent_locked:
+            _show_talent_locked_popup(screen, trect)
+        if is_talent_locked:
+            _talent_tab_rect = trect  # mémorisé pour dessin après la boucle
+            global _talent_tab_rect_global
+            _talent_tab_rect_global = trect
 
     return action

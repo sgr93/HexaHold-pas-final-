@@ -108,7 +108,7 @@ DIFFICULTY_LEVELS = {
 # ----------------------------
 # NERF TOURS (équilibrage)
 # ----------------------------
-TOWER_MAX_LEVEL       = 2     # auparavant 3
+TOWER_MAX_LEVEL       = 3
 TOWER_DAMAGE_MULT     = 0.65
 TOWER_COOLDOWN_MULT   = 1.30
 TOWER_RANGE_MULT      = 0.90
@@ -146,7 +146,7 @@ RARITY_WEIGHTS = {
     "gem_legendary": [0, 3, 15, 32, 50], # Coffre légendaire en gemmes : 50% mythique!
 }
 
-EQUIPMENT_SLOTS = ["cape", "veste", "bottes", "arme", "tour"]
+EQUIPMENT_SLOTS = ["cape", "veste", "bottes", "arme"]
 
 EQUIPMENT_STATS = {
     "cape":   {"stat": "max_hp",       "label": "Vie max",         "values": {"Commun": 10, "Rare": 20, "Épique": 35, "Légendaire": 60, "Mythique": 100}},

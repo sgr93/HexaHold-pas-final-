@@ -179,6 +179,55 @@ class SequenceAnimator:
 
 
 # ============================================================
+# FORMAT C : Frames pygame directes (pour RPG Maker sheet)
+# ============================================================
+
+class _DirectFrameAnimator:
+    """
+    Animateur qui recoit directement une liste de surfaces pygame.
+    Meme interface que SpritesheetAnimator.
+    """
+
+    def __init__(self, frames, fps=8, loop=True):
+        self.loop         = loop
+        self.fps          = fps
+        self.target_size  = frames[0].get_size() if frames else (64, 64)
+        self._timer       = 0.0
+        self._frame_idx   = 0
+        self.finished     = False
+        self._frames      = frames
+        self._frames_flip = [pygame.transform.flip(f, True, False) for f in frames]
+
+    @property
+    def n_frames(self):
+        return len(self._frames)
+
+    def reset(self):
+        self._timer     = 0.0
+        self._frame_idx = 0
+        self.finished   = False
+
+    def update(self):
+        if self.finished:
+            return
+        ticks_per_frame = 60.0 / self.fps
+        self._timer += 1
+        if self._timer >= ticks_per_frame:
+            self._timer -= ticks_per_frame
+            self._frame_idx += 1
+            if self._frame_idx >= len(self._frames):
+                if self.loop:
+                    self._frame_idx = 0
+                else:
+                    self._frame_idx = len(self._frames) - 1
+                    self.finished   = True
+
+    def get_frame(self, flip_h=False):
+        frames = self._frames_flip if flip_h else self._frames
+        return frames[self._frame_idx]
+
+
+# ============================================================
 # SPRITESET : regroupe les animations d'une entité
 # ============================================================
 
@@ -259,9 +308,104 @@ class SpriteSet:
             return self._anims[self._current].get_frame(flip_h=self._flip)
         return None
 
+    def set_walk_speed(self, speed, base_speed=1.0):
+        """
+        Ajuste le fps de tous les animateurs 'walk' proportionnellement à la vitesse.
+        Appeler chaque frame depuis le update() du personnage.
+          speed      : vitesse actuelle du personnage
+          base_speed : vitesse de référence (celle pour laquelle ANIM_FPS_WALK est calibré)
+        """
+        ratio = max(0.2, speed / max(0.01, base_speed))
+        new_fps = ANIM_FPS_WALK * ratio
+        for (state, _dir), anim in self._anims.items():
+            if state == 'walk':
+                anim.fps = new_fps
+
     # ------------------------------------------------------------------
     # Constructeurs de factory
     # ------------------------------------------------------------------
+
+    @classmethod
+    def from_rpgmaker_sheet(cls, path, target_size=(64, 64)):
+        """
+        Charge une spritesheet RPG Maker VX Ace / MV format 3 cols x 4 rows.
+
+        Layout :
+            Row 0 : bas    (down)
+            Row 1 : gauche (left)
+            Row 2 : droite (right)
+            Row 3 : haut   (up)
+
+        Chaque row a 3 frames : [walk_L, idle, walk_R]
+        """
+        import pygame as _pg
+
+        sheet = _pg.image.load(path).convert_alpha()
+        sw, sh = sheet.get_size()
+        fw = sw // 3
+        fh = sh // 4
+
+        # Rend le fond noir/quasi-noir transparent
+        arr = _pg.surfarray.pixels3d(sheet)
+        alp = _pg.surfarray.pixels_alpha(sheet)
+        mask = (arr[:,:,0].astype(int) < 15) & \
+               (arr[:,:,1].astype(int) < 15) & \
+               (arr[:,:,2].astype(int) < 15)
+        alp[mask] = 0
+        del arr, alp
+
+        def get_frame(col, row):
+            surf = sheet.subsurface(
+                _pg.Rect(col * fw, row * fh, fw, fh)
+            ).copy()
+            return _pg.transform.scale(surf, target_size)
+
+        ss = cls()
+
+        ROW_MAP = {
+            0: ('down',  'S'),
+            1: ('left',  'L'),
+            2: ('right', 'D'),
+            3: ('up',    'U'),
+        }
+
+        for row, (direction, _code) in ROW_MAP.items():
+            walk_l = get_frame(0, row)
+            idle   = get_frame(1, row)
+            walk_r = get_frame(2, row)
+
+            # Walk : 3 frames en boucle
+            walk_anim = _DirectFrameAnimator(
+                [walk_l, idle, walk_r], fps=ANIM_FPS_WALK, loop=True
+            )
+            ss.add('walk', direction, walk_anim)
+
+            # Idle : frame centrale en boucle lente
+            idle_anim = _DirectFrameAnimator(
+                [idle], fps=ANIM_FPS_IDLE, loop=True
+            )
+            ss.add('idle', direction, idle_anim)
+
+            # Hurt : flash rapide sur la frame idle
+            hurt_anim = _DirectFrameAnimator(
+                [idle], fps=ANIM_FPS_HURT, loop=False
+            )
+            ss.add('hurt', direction, hurt_anim)
+
+            # Attack : 3 frames
+            attack_anim = _DirectFrameAnimator(
+                [walk_l, idle, walk_r], fps=ANIM_FPS_ATTACK, loop=False
+            )
+            ss.add('attack', direction, attack_anim)
+
+            # Death : fondu sur idle
+            death_anim = _DirectFrameAnimator(
+                [idle], fps=ANIM_FPS_DEATH, loop=False
+            )
+            ss.add('death', direction, death_anim)
+
+        ss.set_state('idle', 'down')
+        return ss
 
     @classmethod
     def from_roguelike_folder(cls, folder, target_size=(32, 32)):
@@ -376,8 +520,17 @@ def load_spriteset(entity_type, assets_base):
             size = (52, 52)
             ss   = SpriteSet.from_roguelike_folder(folder, target_size=size)
         elif entity_type == 'player':
-            size = (64, 64)
-            ss   = SpriteSet.from_roguelike_folder(folder, target_size=size)
+            size = (40, 40)
+            pngs = [f for f in os.listdir(folder) if f.lower().endswith('.png')]
+            rpgmaker_sheet = [f for f in pngs
+                              if not any(f.startswith(p)
+                                         for p in ('S_','D_','U_','L_','N_'))]
+            if rpgmaker_sheet:
+                sheet_path = os.path.join(folder, rpgmaker_sheet[0])
+                ss = SpriteSet.from_rpgmaker_sheet(sheet_path, target_size=size)
+            else:
+                ss = SpriteSet.from_roguelike_folder(folder, target_size=size)
+            return ss  # pas de cache - change selon le heros
         elif entity_type == 'boss':
             ss = SpriteSet.from_sequence_folder(
                 folder,
@@ -419,7 +572,7 @@ def _clone_spriteset(source):
 
 
 def _clone_animator(anim):
-    """Crée une copie légère d'un animator avec état réinitialisé."""
+    """Cree une copie legere d'un animator avec etat reinitialise."""
     if isinstance(anim, SpritesheetAnimator):
         clone                 = object.__new__(SpritesheetAnimator)
         clone.loop            = anim.loop
@@ -428,8 +581,18 @@ def _clone_animator(anim):
         clone._timer          = 0.0
         clone._frame_idx      = 0
         clone.finished        = False
-        clone._frames         = anim._frames        # surfaces partagées
-        clone._frames_flip    = anim._frames_flip   # surfaces partagées
+        clone._frames         = anim._frames
+        clone._frames_flip    = anim._frames_flip
+    elif isinstance(anim, _DirectFrameAnimator):
+        clone                 = object.__new__(_DirectFrameAnimator)
+        clone.loop            = anim.loop
+        clone.fps             = anim.fps
+        clone.target_size     = anim.target_size
+        clone._timer          = 0.0
+        clone._frame_idx      = 0
+        clone.finished        = False
+        clone._frames         = anim._frames        # surfaces partagees
+        clone._frames_flip    = anim._frames_flip
     else:  # SequenceAnimator
         clone                 = object.__new__(SequenceAnimator)
         clone.loop            = anim.loop

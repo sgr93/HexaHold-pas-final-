@@ -263,6 +263,8 @@ def claim_quest_reward(save, quest_id):
     while save["xp"] >= xp_next:
         save["xp"] -= xp_next
         save["level"] = save.get("level", 1) + 1
+        save["skill_points"] = save.get("skill_points", 0) + 1
+        save["pending_skillpoint_anim"] = True
         xp_next = int(xp_next * xp_growth)
     save["xp_next"] = xp_next
     

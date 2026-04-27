@@ -1,183 +1,28 @@
 {
-  "level": 3,
-  "xp": 20,
-  "xp_next": 120,
-  "coins": 5,
-  "gems": 1,
-  "inventory_equipment": [
-    {
-      "slot": "bottes",
-      "rarity": "Commun",
-      "stat": "speed",
-      "value": 0.3,
-      "label": "Vitesse",
-      "name": "Bottes tactique",
-      "image": "bottes.png",
-      "color": [
-        180,
-        180,
-        180
-      ]
-    },
-    {
-      "slot": "arme",
-      "rarity": "Rare",
-      "stat": "damage",
-      "value": 6,
-      "label": "Puissance att.",
-      "name": "Lames jumelles",
-      "image": "lames.png",
-      "color": [
-        60,
-        120,
-        255
-      ]
-    },
-    {
-      "slot": "cape",
-      "rarity": "Rare",
-      "stat": "max_hp",
-      "value": 20,
-      "label": "Vie max",
-      "name": "Cape du bataillon",
-      "image": "cape.png",
-      "color": [
-        60,
-        120,
-        255
-      ]
-    },
-    {
-      "slot": "veste",
-      "rarity": "Rare",
-      "stat": "attack_speed",
-      "value": 6,
-      "label": "Vitesse attaque",
-      "name": "Veste de garnison",
-      "image": "veste.png",
-      "color": [
-        60,
-        120,
-        255
-      ]
-    },
-    {
-      "slot": "bottes",
-      "rarity": "Commun",
-      "stat": "speed",
-      "value": 0.3,
-      "label": "Vitesse",
-      "name": "Bottes tactique",
-      "image": "bottes.png",
-      "color": [
-        180,
-        180,
-        180
-      ]
-    },
-    {
-      "slot": "arme",
-      "rarity": "Commun",
-      "stat": "damage",
-      "value": 3,
-      "label": "Puissance att.",
-      "name": "Lames jumelles",
-      "image": "lames.png",
-      "color": [
-        180,
-        180,
-        180
-      ]
-    },
-    {
-      "slot": "arme",
-      "rarity": "Commun",
-      "stat": "damage",
-      "value": 3,
-      "label": "Puissance att.",
-      "name": "Lames jumelles",
-      "image": "lames.png",
-      "color": [
-        180,
-        180,
-        180
-      ]
-    },
-    {
-      "slot": "arme",
-      "rarity": "Rare",
-      "stat": "damage",
-      "value": 6,
-      "label": "Puissance att.",
-      "name": "Lames jumelles",
-      "image": "lames.png",
-      "color": [
-        60,
-        120,
-        255
-      ]
-    },
-    {
-      "slot": "cape",
-      "rarity": "Commun",
-      "stat": "max_hp",
-      "value": 10,
-      "label": "Vie max",
-      "name": "Cape du bataillon",
-      "image": "cape.png",
-      "color": [
-        180,
-        180,
-        180
-      ]
-    },
-    {
-      "slot": "arme",
-      "rarity": "Épique",
-      "stat": "damage",
-      "value": 11,
-      "label": "Puissance att.",
-      "name": "Lames jumelles",
-      "image": "lames.png",
-      "color": [
-        160,
-        60,
-        255
-      ]
-    },
-    {
-      "slot": "cape",
-      "rarity": "Commun",
-      "stat": "max_hp",
-      "value": 10,
-      "label": "Vie max",
-      "name": "Cape du bataillon",
-      "image": "cape.png",
-      "color": [
-        180,
-        180,
-        180
-      ]
-    }
-  ],
+  "level": 1,
+  "xp": 10,
+  "xp_next": 30,
+  "coins": 200,
+  "gems": 1110768,
+  "inventory_equipment": [],
   "equipped": {
     "cape": null,
     "veste": null,
     "bottes": null,
-    "arme": 1
+    "arme": null
   },
   "tower_loadout": [
     "small",
     "big",
-    "trap"
+    "sniper"
   ],
   "music_volume": 0.8,
   "sound_volume": 0.8,
   "fullscreen": false,
-  "skill_points": 5,
+  "skill_points": 0,
   "skills_unlocked": {
-    "force_1": true,
-    "force_2": true,
+    "force_1": false,
+    "force_2": false,
     "force_3": false,
     "force_4": false,
     "speed_1": false,
@@ -198,42 +43,59 @@
     "hybrid_force_speed": false,
     "hybrid_speed_resist": false,
     "hybrid_resist_tower": false,
-    "hybrid_tower_power": false
+    "hybrid_tower_power": false,
+    "hybrid_power_force": false
   },
   "quests_completed": {
-    "mission_premiere_tour": true,
-    "event_guerre_1": true,
-    "mission_10_tours": true
+    "mission_premiere_tour": true
   },
   "battles_won": 0,
-  "towers_placed": 17,
-  "enemies_killed": 58,
+  "towers_placed": 6,
+  "enemies_killed": 30,
   "max_wave_reached": 0,
   "daily_quests_completed": {},
-  "last_daily_reset": "2026-04-26",
+  "last_daily_reset": "2026-04-27",
   "events_completed": {},
-  "player_icon": "icone3.png",
-  "tower_chest_total_pulls": 0,
-  "tower_chest_pity_epic": 0,
-  "tower_chest_pity_legend": 0,
+  "player_icon": "icone0.png",
+  "tower_chest_total_pulls": 78,
+  "tower_chest_pity_epic": 1,
+  "tower_chest_pity_legend": 6,
   "towers_unlocked": {
     "small": true,
     "big": true,
-    "trap": true
+    "trap": true,
+    "mine": true,
+    "tesla": true,
+    "sniper": true,
+    "frost": true,
+    "mortar": true,
+    "cannon": true
   },
   "towers_level": {
     "small": 1,
     "big": 1,
-    "trap": 1
+    "trap": 1,
+    "mine": 1,
+    "tesla": 3,
+    "sniper": 2,
+    "frost": 1,
+    "mortar": 1,
+    "cannon": 2
   },
   "towers_copies": {
-    "small": 0,
-    "big": 0,
-    "trap": 0
+    "small": 14,
+    "big": 12,
+    "trap": 11,
+    "mine": 10,
+    "tesla": 1,
+    "sniper": 2,
+    "frost": 5,
+    "mortar": 0,
+    "cannon": 0
   },
-  "coin_chest_pulls": 36,
-  "coin_chest_pity_epic": 1,
-  "coin_chest_pity_legend": 13,
+  "coin_chest_pulls": 0,
+  "coin_chest_pity_epic": 0,
+  "coin_chest_pity_legend": 0,
   "histoire_unlocked": [
     0,
     1
@@ -241,21 +103,27 @@
   "histoire_completed": [
     0
   ],
-  "pending_skillpoint_anim": false,
-  "skill_tree_nodes": {
-    "eren": [
-      0,
-      1,
-      2,
-      3,
-      4,
-      6,
-      7,
-      9,
-      8,
-      5
-    ]
+  "heroes": {
+    "eren": {
+      "copies": 10,
+      "level": 5
+    },
+    "armin": {
+      "copies": 3,
+      "level": 2
+    },
+    "sasha": {
+      "copies": 0,
+      "level": 1
+    },
+    "levi": {
+      "copies": 0,
+      "level": 1
+    },
+    "mikasa": {
+      "copies": 0,
+      "level": 1
+    }
   },
-  "skill_tree_locked": "eren",
-  "skill_tree_seen": true
+  "selected_hero": "armin"
 }
