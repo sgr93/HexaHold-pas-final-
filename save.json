@@ -50,8 +50,8 @@
     "mission_premiere_tour": true
   },
   "battles_won": 0,
-  "towers_placed": 11,
-  "enemies_killed": 44,
+  "towers_placed": 13,
+  "enemies_killed": 45,
   "max_wave_reached": 0,
   "daily_quests_completed": {},
   "last_daily_reset": "2026-04-29",
@@ -125,8 +125,9 @@
       "level": 1
     }
   },
-  "selected_hero": "armin",
+  "selected_hero": "eren",
   "infini_towers_placed": 4,
   "infini_enemies_killed": 14,
-  "histoire_towers_placed": 1
+  "histoire_towers_placed": 3,
+  "histoire_enemies_killed": 1
 }

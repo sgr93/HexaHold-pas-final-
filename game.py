@@ -347,9 +347,9 @@ def build_initial_state(difficulty=2, save=None):
     apply_map_walls(grid, chapter=chapter, mission=mission, infinite=infinite)
     grid.recompute()
 
-    # Tileset visuel : ch1 pour mode histoire et infini (textures cohérentes),
-    # défaut sinon
-    tileset_chapter = chapter if chapter is not None else (1 if infinite else None)
+    # Tileset visuel : ch1 pour mode histoire, infini et parties rapides
+    # (textures cohérentes sur tous les modes)
+    tileset_chapter = chapter if chapter is not None else 1
     render.load_tileset(chapter=tileset_chapter)
 
     # Heros selectionne et passif
@@ -1313,6 +1313,13 @@ def main():
             gs["save"]["battles_won"] = gs["save"].get("battles_won", 0) + 1
             _mode_key = "infini" if gs.get("infinite_mode") else "histoire"
             gs["save"][f"{_mode_key}_battles_won"] = gs["save"].get(f"{_mode_key}_battles_won", 0) + 1
+            # Marquer la difficulté de partie rapide comme complétée
+            if not gs.get("infinite_mode") and gs.get("mission_context") is None:
+                _diff_done = gs["save"].get("difficulty_completed", [])
+                _cur_diff  = gs.get("difficulty", 2)
+                if _cur_diff not in _diff_done:
+                    _diff_done.append(_cur_diff)
+                    gs["save"]["difficulty_completed"] = _diff_done
             gs["reward_collected"] = True
 
             # XP de compte : monte le niveau du menu et donne des skill points

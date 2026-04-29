@@ -136,23 +136,31 @@ class AccueilScreen:
         bw      = (w - (n_diff-1)*4) // n_diff
         bh      = 72
         f_info  = pygame.font.SysFont("arial", 9)
+        diff_done = set(save.get("difficulty_completed", []))
         for i, (lvl, info) in enumerate(DIFFICULTY_LEVELS.items()):
             bx  = x + i*(bw+4)
             btn = pygame.Rect(bx, y, bw, bh)
-            hov = btn.collidepoint(mx, my) and not self._hero_popup
+            # Verrou : au-delà de Difficile (lvl >= 4) il faut avoir fini la difficulté précédente
+            locked = lvl >= 4 and (lvl - 1) not in diff_done
+            hov = btn.collidepoint(mx, my) and not self._hero_popup and not locked
             dc  = DIFF_COLORS[lvl]
+            border_c = (60, 55, 45) if locked else dc
             theme.draw_panel(screen, btn,
-                             color=(20,15,5) if hov else theme.DARK_2,
-                             border_color=dc,
+                             color=(14, 10, 4) if locked else
+                                   ((20,15,5) if hov else theme.DARK_2),
+                             border_color=border_c,
                              radius=theme.RADIUS_MD, border_w=2 if hov else 1)
 
-            # Nom difficulte
-            nl  = f_sm.render(DIFF_SHORT[lvl], True, dc)
+            # Nom difficulte (grisé si verrouillé)
+            name_col = (90, 80, 60) if locked else dc
+            nl  = f_sm.render(DIFF_SHORT[lvl], True, name_col)
             screen.blit(nl, (btn.centerx - nl.get_width()//2, btn.y + 7))
 
             # Separateur
             sep_y = btn.y + 7 + nl.get_height() + 4
-            pygame.draw.line(screen, (dc[0]//3, dc[1]//3, dc[2]//3),
+            sep_col = ((30, 28, 22) if locked
+                       else (dc[0]//3, dc[1]//3, dc[2]//3))
+            pygame.draw.line(screen, sep_col,
                              (btn.x+6, sep_y), (btn.right-6, sep_y), 1)
 
             # Infos : vagues, pieces, xp
@@ -163,16 +171,27 @@ class AccueilScreen:
             f_info2 = pygame.font.SysFont("arial", 11, bold=True)
             iy = sep_y + 8
 
-            # Tout sur une ligne : Vagues  Pieces  XP
-            s_vagues = f_info2.render(f"Vagues:{waves}", True, theme.GOLD_DIM)
-            s_pieces = f_info2.render(f"Pieces:{coins}", True, theme.GOLD_DIM)
-            s_xp     = f_info2.render(f"XP:x{xp_mult:.1f}", True, theme.GOLD_DIM)
-            gap = 5
-            total_w = s_vagues.get_width() + gap + s_pieces.get_width() + gap + s_xp.get_width()
-            lx = btn.centerx - total_w // 2
-            screen.blit(s_vagues, (lx, iy))
-            screen.blit(s_pieces, (lx + s_vagues.get_width() + gap, iy))
-            screen.blit(s_xp,    (lx + s_vagues.get_width() + gap + s_pieces.get_width() + gap, iy))
+            if locked:
+                # Affichage verrou + texte requis
+                lock_msg = f_info2.render(f"Finir {DIFF_SHORT[lvl-1]}", True, (140, 110, 70))
+                screen.blit(lock_msg, (btn.centerx - lock_msg.get_width()//2, iy))
+                lk = theme.load_sprite("cadenas.png", (16, 16))
+                if lk:
+                    screen.blit(lk, (btn.right - 18, btn.y + 4))
+                else:
+                    xs = f_info2.render("X", True, (160, 100, 60))
+                    screen.blit(xs, (btn.right - xs.get_width() - 4, btn.y + 4))
+            else:
+                # Tout sur une ligne : Vagues  Pieces  XP
+                s_vagues = f_info2.render(f"Vagues:{waves}", True, theme.GOLD_DIM)
+                s_pieces = f_info2.render(f"Pieces:{coins}", True, theme.GOLD_DIM)
+                s_xp     = f_info2.render(f"XP:x{xp_mult:.1f}", True, theme.GOLD_DIM)
+                gap = 5
+                total_w = s_vagues.get_width() + gap + s_pieces.get_width() + gap + s_xp.get_width()
+                lx = btn.centerx - total_w // 2
+                screen.blit(s_vagues, (lx, iy))
+                screen.blit(s_pieces, (lx + s_vagues.get_width() + gap, iy))
+                screen.blit(s_xp,    (lx + s_vagues.get_width() + gap + s_pieces.get_width() + gap, iy))
 
             if clicked and hov:
                 return lvl
