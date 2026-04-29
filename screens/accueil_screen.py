@@ -55,7 +55,7 @@ class AccueilScreen:
         if icon:
             screen.blit(icon, (av_cx - av_r + 2, av_cy - av_r + 2))
         else:
-            ini = f_lbl.render(save.get("player_name","S")[0].upper(), True, theme.GOLD_LIGHT)
+            ini = f_lbl.render((save.get("player_name") or "S")[0].upper(), True, theme.GOLD_LIGHT)
             screen.blit(ini, (av_cx - ini.get_width()//2, av_cy - ini.get_height()//2))
 
         tx = av_cx + av_r + 12
@@ -275,8 +275,8 @@ class AccueilScreen:
         pa_s = f_pa.render(f"Passif : {sel_def['passive_name']}", True, (25, 18, 10))
         screen.blit(pa_s, (zone.centerx - pa_s.get_width()//2, zone.bottom - pa_s.get_height() - 5))
 
-        if clicked and zone.collidepoint(mx, my):
-            self._hero_popup  = not self._hero_popup
+        if clicked and zone.collidepoint(mx, my) and not self._hero_popup:
+            self._hero_popup  = True
             self._hero_detail = None
 
         # Popup
