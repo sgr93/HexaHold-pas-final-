@@ -96,9 +96,13 @@ def get_goal_image():
 
 # Table de correspondance chapitre → dossier de tileset
 CHAPTER_TILESET = {
-    None: "default",   # parties rapides
-    1:    "ch1",       # Chapitre 1 — MYSTIC BLUE VILLAGE
-    # 2: "ch2",        # ← ajouter ici les prochains chapitres
+    None: "ch1",   # parties rapides - tileset du Chapitre 1
+    0:    "ch1",   # Ouverture
+    1:    "ch1",   # Chapitre 1 - tileset de reference
+    2:    "ch2",   # Chapitre 2 - Chap 1 modifié
+    3:    "ch3",   # Chapitre 3 - Chap 1 modifié
+    4:    "ch4",   # Chapitre 4 - Chap 1 modifié
+    5:    "ch5",   # Chapitre 5 - Chap 1 modifié
 }
 
 
@@ -154,11 +158,19 @@ def load_tileset(chapter=None):
 
 def _get_floor_tile(x, y):
     """
-    Retourne le tile de sol — floor_grass.png, identique sur toutes les cases.
+    Retourne le tile de sol pour la case (x, y).
+    Le premier floor (floor_grass.png) reste majoritaire ; les variantes
+    (floor_grass2, floor_grass3, …) ponctuent la map sur ~1 case sur 8
+    via un hash déterministe (pas de scintillement entre frames).
     """
     floors = _tileset["floor"]
     if not floors:
         return None
+    if len(floors) == 1:
+        return floors[0]
+    h = (x * 73856093) ^ (y * 19349663)
+    if (h % 8) == 0:
+        return floors[1 + ((h >> 3) % (len(floors) - 1))]
     return floors[0]
 
 

@@ -1,133 +1,260 @@
 {
-  "level": 1,
-  "xp": 10,
-  "xp_next": 30,
-  "coins": 200,
-  "gems": 1110768,
-  "inventory_equipment": [],
+  "level": 50,
+  "xp": 0,
+  "xp_next": 999999,
+  "coins": 999999,
+  "gems": 999999,
+  "inventory_equipment": [
+    {
+      "slot": "cape",
+      "rarity": "Mythique",
+      "stat": "max_hp",
+      "value": 100,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        255,
+        80,
+        80
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Mythique",
+      "stat": "attack_speed",
+      "value": 30,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        255,
+        80,
+        80
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Mythique",
+      "stat": "speed",
+      "value": 3.0,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        255,
+        80,
+        80
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Mythique",
+      "stat": "damage",
+      "value": 35,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        255,
+        80,
+        80
+      ]
+    }
+  ],
   "equipped": {
-    "cape": null,
-    "veste": null,
-    "bottes": null,
-    "arme": null
+    "cape": 0,
+    "veste": 1,
+    "bottes": 2,
+    "arme": 3
   },
   "tower_loadout": [
-    "small",
-    "big",
+    "cannon",
+    "tesla",
     "sniper"
   ],
-  "music_volume": 0.8,
-  "sound_volume": 0.8,
+  "music_volume": 0.5,
+  "sound_volume": 0.5,
   "fullscreen": false,
-  "skill_points": 0,
+  "skill_points": 50,
   "skills_unlocked": {
-    "force_1": false,
-    "force_2": false,
-    "force_3": false,
-    "force_4": false,
-    "speed_1": false,
-    "speed_2": false,
-    "speed_3": false,
-    "speed_4": false,
-    "resist_1": false,
-    "resist_2": false,
-    "resist_3": false,
-    "resist_4": false,
-    "tower_1": false,
-    "tower_2": false,
-    "tower_3": false,
-    "tower_4": false,
-    "power_1": false,
-    "power_2": false,
-    "power_3": false,
-    "hybrid_force_speed": false,
-    "hybrid_speed_resist": false,
-    "hybrid_resist_tower": false,
-    "hybrid_tower_power": false,
-    "hybrid_power_force": false
+    "force_1": true,
+    "force_2": true,
+    "force_3": true,
+    "force_4": true,
+    "speed_1": true,
+    "speed_2": true,
+    "speed_3": true,
+    "speed_4": true,
+    "resist_1": true,
+    "resist_2": true,
+    "resist_3": true,
+    "resist_4": true,
+    "tower_1": true,
+    "tower_2": true,
+    "tower_3": true,
+    "tower_4": true,
+    "power_1": true,
+    "power_2": true,
+    "power_3": true,
+    "hybrid_force_speed": true,
+    "hybrid_speed_resist": true,
+    "hybrid_resist_tower": true,
+    "hybrid_tower_power": true,
+    "hybrid_power_force": true
   },
   "quests_completed": {
-    "mission_premiere_tour": true
+    "mission_premiere_tour": true,
+    "mission_dix_kills": true,
+    "mission_cinq_tours": true
   },
-  "battles_won": 0,
-  "towers_placed": 13,
-  "enemies_killed": 45,
-  "max_wave_reached": 0,
+  "battles_won": 999,
+  "towers_placed": 1002,
+  "enemies_killed": 10012,
+  "max_wave_reached": 50,
   "daily_quests_completed": {},
   "last_daily_reset": "2026-04-29",
   "events_completed": {},
   "player_icon": "icone0.png",
-  "tower_chest_total_pulls": 78,
-  "tower_chest_pity_epic": 1,
-  "tower_chest_pity_legend": 6,
+  "tower_chest_total_pulls": 600,
+  "tower_chest_pity_epic": 0,
+  "tower_chest_pity_legend": 0,
   "towers_unlocked": {
     "small": true,
     "big": true,
     "trap": true,
     "mine": true,
-    "tesla": true,
-    "sniper": true,
     "frost": true,
     "mortar": true,
-    "cannon": true
+    "sniper": true,
+    "tesla": true,
+    "cannon": true,
+    "laser": true
   },
   "towers_level": {
-    "small": 1,
-    "big": 1,
-    "trap": 1,
-    "mine": 1,
-    "tesla": 3,
-    "sniper": 2,
-    "frost": 1,
-    "mortar": 1,
-    "cannon": 2
+    "small": 6,
+    "big": 6,
+    "trap": 6,
+    "mine": 6,
+    "frost": 6,
+    "mortar": 6,
+    "sniper": 6,
+    "tesla": 6,
+    "cannon": 6,
+    "laser": 6
   },
   "towers_copies": {
-    "small": 14,
-    "big": 12,
-    "trap": 11,
-    "mine": 10,
-    "tesla": 1,
-    "sniper": 2,
-    "frost": 5,
-    "mortar": 0,
-    "cannon": 0
+    "small": 99,
+    "big": 99,
+    "trap": 99,
+    "mine": 99,
+    "frost": 99,
+    "mortar": 99,
+    "sniper": 99,
+    "tesla": 99,
+    "cannon": 99,
+    "laser": 99
   },
-  "coin_chest_pulls": 0,
+  "coin_chest_pulls": 600,
   "coin_chest_pity_epic": 0,
   "coin_chest_pity_legend": 0,
   "histoire_unlocked": [
     0,
-    1
+    1,
+    2,
+    3,
+    4,
+    5
   ],
   "histoire_completed": [
-    0
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
   ],
   "heroes": {
     "eren": {
-      "copies": 10,
-      "level": 5
+      "copies": 99,
+      "level": 10
     },
     "armin": {
-      "copies": 3,
-      "level": 2
+      "copies": 99,
+      "level": 10
     },
     "sasha": {
-      "copies": 0,
-      "level": 1
+      "copies": 99,
+      "level": 10
     },
     "levi": {
-      "copies": 0,
-      "level": 1
+      "copies": 99,
+      "level": 10
     },
     "mikasa": {
-      "copies": 0,
-      "level": 1
+      "copies": 99,
+      "level": 10
     }
   },
   "selected_hero": "eren",
-  "infini_towers_placed": 4,
-  "infini_enemies_killed": 14,
-  "histoire_towers_placed": 3,
-  "histoire_enemies_killed": 1
+  "skill_tree_locked": "eren",
+  "skill_tree_nodes": {
+    "eren": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "mikasa": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "erwin": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ]
+  },
+  "difficulty_completed": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "infini_towers_placed": 99,
+  "infini_enemies_killed": 999,
+  "infini_battles_won": 99,
+  "histoire_towers_placed": 102,
+  "histoire_enemies_killed": 1012,
+  "histoire_battles_won": 99,
+  "skill_tree_seen": true,
+  "tree_tower_damage_pct": 0.52,
+  "tree_tower_range_pct": 0.30000000000000004,
+  "tree_tower_cd_pct": -0.16,
+  "tree_trap_damage_pct": 0.4,
+  "tree_trap_cd_pct": -0.2,
+  "tree_coin_bonus_pct": 0.4,
+  "tree_xp_bonus_pct": 0.3
 }
