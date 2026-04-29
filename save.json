@@ -50,11 +50,11 @@
     "mission_premiere_tour": true
   },
   "battles_won": 0,
-  "towers_placed": 6,
-  "enemies_killed": 30,
+  "towers_placed": 11,
+  "enemies_killed": 44,
   "max_wave_reached": 0,
   "daily_quests_completed": {},
-  "last_daily_reset": "2026-04-27",
+  "last_daily_reset": "2026-04-29",
   "events_completed": {},
   "player_icon": "icone0.png",
   "tower_chest_total_pulls": 78,
@@ -125,5 +125,8 @@
       "level": 1
     }
   },
-  "selected_hero": "armin"
+  "selected_hero": "armin",
+  "infini_towers_placed": 4,
+  "infini_enemies_killed": 14,
+  "histoire_towers_placed": 1
 }

@@ -244,9 +244,9 @@ class AccueilScreen:
         btn_rx   = zone.centerx - btn_w2//2
         btn_ry   = zone.y + 8
         hero_btn = pygame.Rect(btn_rx, btn_ry, btn_w2, btn_h2)
-        hov_btn  = hero_btn.collidepoint(mx, my)
+        zone_hov = zone.collidepoint(mx, my)
         pygame.draw.rect(screen,
-                         (220,170,30) if hov_btn else (180,130,20),
+                         (220,170,30) if zone_hov else (180,130,20),
                          hero_btn, border_radius=6)
         screen.blit(btn_lbl, (hero_btn.centerx - btn_lbl.get_width()//2,
                                hero_btn.centery - btn_lbl.get_height()//2))
@@ -256,7 +256,7 @@ class AccueilScreen:
         pa_s = f_pa.render(f"Passif : {sel_def['passive_name']}", True, (25, 18, 10))
         screen.blit(pa_s, (zone.centerx - pa_s.get_width()//2, zone.bottom - pa_s.get_height() - 5))
 
-        if clicked and hero_btn.collidepoint(mx, my):
+        if clicked and zone.collidepoint(mx, my):
             self._hero_popup  = not self._hero_popup
             self._hero_detail = None
 

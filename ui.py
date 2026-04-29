@@ -432,11 +432,16 @@ def draw_inventory(screen, font, inventory, selected_item, win_w, win_h):
 # ECRAN DE PAUSE
 # ============================================================
 
+_pause_confirm_pending = None  # None | "restart" | "menu"
+
+
 def draw_pause_screen(screen, big_font, font, mouse_pos=(0,0), clicked=False):
     """
     Overlay de pause avec 3 boutons : Continuer / Recommencer / Menu.
     Retourne : "resume" | "restart" | "menu" | None
     """
+    global _pause_confirm_pending
+
     w, h = screen.get_size()
     overlay = pygame.Surface((w, h), pygame.SRCALPHA)
     overlay.fill((0, 0, 0, 160))
@@ -458,11 +463,12 @@ def draw_pause_screen(screen, big_font, font, mouse_pos=(0,0), clicked=False):
     ]
 
     action = None
+    confirm_open = _pause_confirm_pending is not None
     for i, (label, key, col_n, col_h) in enumerate(buttons):
         bx = (w - btn_w) // 2
         by = start_y + i * (btn_h + gap)
         rect = pygame.Rect(bx, by, btn_w, btn_h)
-        hov  = rect.collidepoint(mx, my)
+        hov  = rect.collidepoint(mx, my) and not confirm_open
         pygame.draw.rect(screen, col_h if hov else col_n, rect, border_radius=12)
         border_col = (255, 255, 255) if hov else (180, 180, 200)
         pygame.draw.rect(screen, border_col, rect, 2, border_radius=12)
@@ -470,9 +476,80 @@ def draw_pause_screen(screen, big_font, font, mouse_pos=(0,0), clicked=False):
         screen.blit(lbl, (bx + (btn_w - lbl.get_width()) // 2,
                            by + (btn_h - lbl.get_height()) // 2))
         if clicked and hov:
-            action = key
+            if key == "resume":
+                action = key
+            else:
+                _pause_confirm_pending = key
+
+    # ── Popup de confirmation pour Recommencer / Menu ──
+    if _pause_confirm_pending is not None:
+        result = _draw_confirm_popup(screen, font, big_font, mouse_pos, clicked,
+                                     _pause_confirm_pending)
+        if result == "ok":
+            action = _pause_confirm_pending
+            _pause_confirm_pending = None
+        elif result == "cancel":
+            _pause_confirm_pending = None
 
     return action
+
+
+def _draw_confirm_popup(screen, font, big_font, mouse_pos, clicked, pending_key):
+    """Popup modale de confirmation. Retourne 'ok', 'cancel' ou None."""
+    w, h = screen.get_size()
+    veil = pygame.Surface((w, h), pygame.SRCALPHA)
+    veil.fill((0, 0, 0, 180))
+    screen.blit(veil, (0, 0))
+
+    title_txt = "Recommencer la partie ?" if pending_key == "restart" else "Retour au menu ?"
+    sub_txt   = "La progression de cette partie sera perdue."
+    t  = big_font.render(title_txt, True, (255, 230, 150))
+    st = font.render(sub_txt, True, (220, 200, 150))
+
+    bw, bh = 170, 46
+    gap = 20
+    pad_x = 36
+    pad_y = 22
+    btn_total_w = bw * 2 + gap
+    pop_w = max(t.get_width(), st.get_width(), btn_total_w) + pad_x * 2
+    pop_h = pad_y + t.get_height() + 12 + st.get_height() + 22 + bh + pad_y
+    pop = pygame.Rect((w - pop_w) // 2, (h - pop_h) // 2, pop_w, pop_h)
+    pygame.draw.rect(screen, (28, 22, 14), pop, border_radius=12)
+    pygame.draw.rect(screen, (200, 170, 60), pop, 2, border_radius=12)
+
+    screen.blit(t,  (pop.centerx - t.get_width()  // 2, pop.y + pad_y))
+    screen.blit(st, (pop.centerx - st.get_width() // 2, pop.y + pad_y + t.get_height() + 12))
+
+    mx, my = mouse_pos
+    total_w = btn_total_w
+    by = pop.bottom - bh - pad_y
+    bx_ok     = pop.centerx - total_w // 2
+    bx_cancel = bx_ok + bw + gap
+
+    ok_rect     = pygame.Rect(bx_ok,     by, bw, bh)
+    cancel_rect = pygame.Rect(bx_cancel, by, bw, bh)
+
+    ok_hov  = ok_rect.collidepoint(mx, my)
+    can_hov = cancel_rect.collidepoint(mx, my)
+
+    pygame.draw.rect(screen, (160, 60, 60) if ok_hov else (110, 40, 40), ok_rect, border_radius=10)
+    pygame.draw.rect(screen, (255, 180, 180), ok_rect, 2, border_radius=10)
+    ok_lbl = font.render("Confirmer", True, (255, 255, 255))
+    screen.blit(ok_lbl, (ok_rect.centerx - ok_lbl.get_width() // 2,
+                         ok_rect.centery - ok_lbl.get_height() // 2))
+
+    pygame.draw.rect(screen, (60, 100, 60) if can_hov else (40, 70, 40), cancel_rect, border_radius=10)
+    pygame.draw.rect(screen, (180, 230, 180), cancel_rect, 2, border_radius=10)
+    can_lbl = font.render("Annuler", True, (255, 255, 255))
+    screen.blit(can_lbl, (cancel_rect.centerx - can_lbl.get_width() // 2,
+                          cancel_rect.centery - can_lbl.get_height() // 2))
+
+    if clicked:
+        if ok_hov:
+            return "ok"
+        if can_hov:
+            return "cancel"
+    return None
 
 
 # ============================================================

@@ -342,12 +342,15 @@ def build_initial_state(difficulty=2, save=None):
     # Inventaire initial : vide au début du niveau
     inventory = {}
 
-    # Murs de la carte (spécifiques au chapitre/mission si mode histoire)
-    apply_map_walls(grid, chapter=chapter, mission=mission)
+    # Murs de la carte (spécifiques au chapitre/mission si mode histoire,
+    # ou map dédiée pour le mode infini)
+    apply_map_walls(grid, chapter=chapter, mission=mission, infinite=infinite)
     grid.recompute()
 
-    # Tileset visuel selon le chapitre
-    render.load_tileset(chapter=chapter)
+    # Tileset visuel : ch1 pour mode histoire et infini (textures cohérentes),
+    # défaut sinon
+    tileset_chapter = chapter if chapter is not None else (1 if infinite else None)
+    render.load_tileset(chapter=tileset_chapter)
 
     # Heros selectionne et passif
     import heroes as _hm
@@ -1308,6 +1311,8 @@ def main():
         if gs["game_win"] and not gs.get("reward_collected") and gs.get("save") is not None:
             gs["save"]["coins"] = gs["save"].get("coins", 0) + gs["coins_reward"]
             gs["save"]["battles_won"] = gs["save"].get("battles_won", 0) + 1
+            _mode_key = "infini" if gs.get("infinite_mode") else "histoire"
+            gs["save"][f"{_mode_key}_battles_won"] = gs["save"].get(f"{_mode_key}_battles_won", 0) + 1
             gs["reward_collected"] = True
 
             # XP de compte : monte le niveau du menu et donne des skill points
@@ -1527,6 +1532,8 @@ def main():
             # Mise à jour save + quêtes une seule fois par frame si des kills ont eu lieu
             if kills_this_frame > 0 and gs.get("save") is not None:
                 gs["save"]["enemies_killed"] = gs["save"].get("enemies_killed", 0) + kills_this_frame
+                _mk_mode = "infini" if gs.get("infinite_mode") else "histoire"
+                gs["save"][f"{_mk_mode}_enemies_killed"] = gs["save"].get(f"{_mk_mode}_enemies_killed", 0) + kills_this_frame
                 # Vérification quêtes déclenchée une seule fois (pas à chaque kill)
                 _check_and_notify_quests(gs)
                 # Sauvegarde différée : une seule écriture disque par frame max
@@ -1820,6 +1827,8 @@ def main():
                         # Incrémenter le compteur de tours placées
                         if gs.get("save") is not None:
                             gs["save"]["towers_placed"] = gs["save"].get("towers_placed", 0) + 1
+                            _tp_mode = "infini" if gs.get("infinite_mode") else "histoire"
+                            gs["save"][f"{_tp_mode}_towers_placed"] = gs["save"].get(f"{_tp_mode}_towers_placed", 0) + 1
                             _check_and_notify_quests(gs)
                             sd.save(gs["save"])
                         

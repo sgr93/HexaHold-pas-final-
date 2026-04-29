@@ -822,18 +822,18 @@ def run_histoire(screen, clock, save):
         "md":   pygame.font.SysFont("arial", 20, bold=True),
         "lg":   pygame.font.SysFont("arial", 26, bold=True),
         "cine": pygame.font.SysFont("arial", 18, italic=True),
-        "map_sm": pygame.font.SysFont("arial", 11),
-        "map_xs": pygame.font.SysFont("arial",  9),
-        "wall":   pygame.font.SysFont("arial", 11, bold=True),
+        "map_sm": pygame.font.SysFont("arial", 16),
+        "map_xs": pygame.font.SysFont("arial", 14),
+        "wall":   pygame.font.SysFont("arial", 17, bold=True),
     }
 
     # ── Zone carte ──
     header_h = 50
-    map_w = sw - Popup.WIDTH  # espace pour popup
+    map_w = sw
     map_h = sh - header_h
     # On centre la carte dans l'espace disponible
     map_size = min(map_w, map_h)
-    map_x = (map_w - map_size) // 2
+    map_x = (sw - map_size) // 2
     map_y = header_h + (map_h - map_size) // 2
 
     # ── Construire la surface carte ──
@@ -883,10 +883,10 @@ def run_histoire(screen, clock, save):
         cur_sw, cur_sh = screen.get_size()
         if cur_sw != sw or cur_sh != sh:
             sw, sh = cur_sw, cur_sh
-            map_w  = sw - Popup.WIDTH
+            map_w  = sw
             map_h  = sh - header_h
             map_size = min(map_w, map_h)
-            map_x  = (map_w - map_size) // 2
+            map_x  = (sw - map_size) // 2
             map_y  = header_h + (map_h - map_size) // 2
             map_surf = _build_map_surface(map_size, map_size)
             for idx, ch in CHAPTERS.items():

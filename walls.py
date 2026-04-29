@@ -82,6 +82,42 @@ MAP_DEFAULT = [
 
 
 # ════════════════════════════════════════════════════════════════
+# MAP MODE INFINI
+# ════════════════════════════════════════════════════════════════
+#
+# Disposition cohérente avec les missions du Chapitre 1 :
+#   - lisières latérales (rochers/arbres)
+#   - obstacles symétriques pour un chemin sinueux
+#   - plus dense au centre pour ralentir la progression au long terme
+
+MAP_INFINITE = [
+    # Lisières gauche
+    *rect(0,  2, 1, 2),
+    *rect(0,  7, 1, 3),
+    *rect(0, 13, 1, 3),
+    # Lisières droite
+    *rect(13, 2, 1, 2),
+    *rect(13, 7, 1, 3),
+    *rect(13, 13, 1, 3),
+
+    # Obstacles haut (symétriques)
+    *rect(3,  3, 2, 2),
+    *rect(9,  3, 2, 2),
+
+    # Bloc central
+    *rect(6,  6, 2, 2),
+
+    # Obstacles milieu-bas (symétriques)
+    *rect(2,  10, 2, 2),
+    *rect(10, 10, 2, 2),
+
+    # Obstacles bas (chicane)
+    *rect(4,  13, 2, 2),
+    *rect(8,  13, 2, 2),
+]
+
+
+# ════════════════════════════════════════════════════════════════
 # CHAPITRE 1 — LA BATAILLE DE TROST
 # ════════════════════════════════════════════════════════════════
 #
@@ -235,15 +271,21 @@ def _apply_walls_list(grid, walls_list, label=""):
         print(f"[walls{label}] {total} cases appliquées.")
 
 
-def apply_map_walls(grid, chapter=None, mission=None):
+def apply_map_walls(grid, chapter=None, mission=None, infinite=False):
     """
     Applique la map correspondant à (chapter, mission).
     Si aucune map spécifique n'existe, utilise MAP_DEFAULT.
+    Si infinite=True, applique MAP_INFINITE.
 
     Appelé depuis game.py :
-        apply_map_walls(grid)                    # partie rapide
+        apply_map_walls(grid)                        # partie rapide
         apply_map_walls(grid, chapter=1, mission=0)  # mode histoire
+        apply_map_walls(grid, infinite=True)         # mode infini
     """
+    if infinite:
+        _apply_walls_list(grid, MAP_INFINITE, " (infini)")
+        return
+
     key = (chapter, mission) if chapter is not None else None
     walls_list = MISSION_MAPS.get(key, MISSION_MAPS.get(None, []))
 
