@@ -193,6 +193,118 @@ QUETES = {
         "gemmes": 5,
         "condition": lambda save, game_state: save.get("max_wave_reached", 0) >= 50
     },
+
+    # ────────────────────────────────────────────────────────────────
+    # QUÊTES PROGRESSION PROFIL (gemmes faciles)
+    # ────────────────────────────────────────────────────────────────
+    "profil_niveau_5": {
+        "nom": "Rang Intermédiaire",
+        "description": "Atteignez le niveau 5 de profil",
+        "section": "missions",
+        "xp": 30,
+        "pieces": 100,
+        "gemmes": 5,
+        "condition": lambda save, game_state: save.get("level", 1) >= 5
+    },
+    "profil_niveau_10": {
+        "nom": "Rang Avancé",
+        "description": "Atteignez le niveau 10 de profil",
+        "section": "missions",
+        "xp": 60,
+        "pieces": 200,
+        "gemmes": 15,
+        "condition": lambda save, game_state: save.get("level", 1) >= 10
+    },
+    "profil_niveau_20": {
+        "nom": "Rang Expert",
+        "description": "Atteignez le niveau 20 de profil",
+        "section": "missions",
+        "xp": 100,
+        "pieces": 400,
+        "gemmes": 30,
+        "condition": lambda save, game_state: save.get("level", 1) >= 20
+    },
+
+    # ────────────────────────────────────────────────────────────────
+    # QUÊTES MÉDAILLES CHAPITRES (récompenses gemmes)
+    # ────────────────────────────────────────────────────────────────
+    "ch1_toutes_etoiles": {
+        "nom": "Maître de Trost",
+        "description": "Obtenez toutes les étoiles du Chapitre 1",
+        "section": "evenements",
+        "xp": 80,
+        "pieces": 300,
+        "gemmes": 20,
+        "condition": lambda save, game_state: all(
+            save.get(f"ch1_m{i}_stars", 0) == 3 for i in range(3)
+        )
+    },
+    "ch2_toutes_etoiles": {
+        "nom": "Maître de la Forêt",
+        "description": "Obtenez toutes les étoiles du Chapitre 2",
+        "section": "evenements",
+        "xp": 120,
+        "pieces": 500,
+        "gemmes": 35,
+        "condition": lambda save, game_state: all(
+            save.get(f"ch2_m{i}_stars", 0) == 3 for i in range(3)
+        )
+    },
+    "ch3_toutes_etoiles": {
+        "nom": "Maître d'Utgard",
+        "description": "Obtenez toutes les étoiles du Chapitre 3",
+        "section": "evenements",
+        "xp": 160,
+        "pieces": 700,
+        "gemmes": 50,
+        "condition": lambda save, game_state: all(
+            save.get(f"ch3_m{i}_stars", 0) == 3 for i in range(3)
+        )
+    },
+    "ch4_toutes_etoiles": {
+        "nom": "Maître de Shiganshina",
+        "description": "Obtenez toutes les étoiles du Chapitre 4",
+        "section": "evenements",
+        "xp": 200,
+        "pieces": 1000,
+        "gemmes": 75,
+        "condition": lambda save, game_state: all(
+            save.get(f"ch4_m{i}_stars", 0) == 3 for i in range(3)
+        )
+    },
+    "ch5_toutes_etoiles": {
+        "nom": "Légende de l'Humanité",
+        "description": "Obtenez toutes les étoiles du Chapitre 5",
+        "section": "evenements",
+        "xp": 300,
+        "pieces": 2000,
+        "gemmes": 150,
+        "condition": lambda save, game_state: all(
+            save.get(f"ch5_m{i}_stars", 0) == 3 for i in range(3)
+        )
+    },
+
+    # ────────────────────────────────────────────────────────────────
+    # QUÊTES QUOTIDIENNES SUPPLÉMENTAIRES
+    # ────────────────────────────────────────────────────────────────
+    "quotidienne_gemme": {
+        "nom": "Chercheur de Trésors",
+        "description": "Jouez 2 niveaux en mode histoire",
+        "section": "quotidiennes",
+        "xp": 20,
+        "pieces": 50,
+        "gemmes": 2,
+        "condition": lambda save, gs: save.get("daily_quests_completed", {}).get("quotidienne_gemme", False)
+    },
+    "quotidienne_enemies_50": {
+        "nom": "Chasseur du jour",
+        "description": "Tuez 50 ennemis aujourd'hui",
+        "section": "quotidiennes",
+        "xp": 30,
+        "pieces": 80,
+        "gemmes": 3,
+        "condition": lambda save, gs: save.get("daily_quests_completed", {}).get("quotidienne_enemies_50", False)
+    },
 }
 
 

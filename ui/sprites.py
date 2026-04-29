@@ -42,6 +42,14 @@ class SpritesheetAnimator:
         self.finished    = False    # True quand loop=False et dernière frame atteinte
 
         sheet = pygame.image.load(path).convert_alpha()
+        # Rend le fond noir transparent
+        arr = pygame.surfarray.pixels3d(sheet)
+        alp = pygame.surfarray.pixels_alpha(sheet)
+        mask = (arr[:,:,0].astype(int) < 15) & \
+       (arr[:,:,1].astype(int) < 15) & \
+             (arr[:,:,2].astype(int) < 15)
+        alp[mask] = 0
+        del arr, alp
         sh, sw = sheet.get_height(), sheet.get_width()
         frame_w = sh                        # frames carrées
         n       = sw // frame_w
@@ -532,17 +540,14 @@ def load_spriteset(entity_type, assets_base):
                 ss = SpriteSet.from_roguelike_folder(folder, target_size=size)
             return ss  # pas de cache - change selon le heros
         elif entity_type == 'boss':
-            ss = SpriteSet.from_sequence_folder(
-                folder,
-                prefix='Wraith_01',
-                target_size=(68, 68),
-            )
+            size = (68,68)
+            ss   = SpriteSet.from_roguelike_folder(folder, target_size=size)
         elif entity_type == 'boss_final':
-            ss = SpriteSet.from_sequence_folder(
-                folder,
-                prefix='Wraith_03',
-                target_size=(76, 76),
-            )
+            size = (82,82)
+            ss   = SpriteSet.from_roguelike_folder(folder, target_size=size)
+        elif entity_type == 'boss_chapter':
+            size = (100, 100)   # plus grand que boss_final (82) pour bien se démarquer
+            ss   = SpriteSet.from_roguelike_folder(folder, target_size=size)
         else:
             return None
 

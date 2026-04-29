@@ -578,7 +578,7 @@ def _apply_eren_passive(gs, towers, player):
     if gs.get("selected_hero") != "eren":
         return
     from config import GRID_SIZE
-    BOOST = 0.20  # fixe, independant du niveau (le niveau booste ATK/HP du joueur)
+    BOOST = 0.10  # fixe, independant du niveau
     radius_px  = 3 * GRID_SIZE
     for t in towers:
         if not hasattr(t, "tower_type"):
@@ -600,7 +600,7 @@ def _apply_armin_passive_on_build(gs, towers):
     if gs.get("selected_hero") != "armin":
         return
     gs["armin_buff_stacks"] = gs.get("armin_buff_stacks", 0) + 1
-    total_mult = 1.0 + 0.40 * gs["armin_buff_stacks"]
+    total_mult = 1.0 + 0.08 * gs["armin_buff_stacks"]
     for t in towers:
         if not hasattr(t, "tower_type"):
             continue
@@ -653,7 +653,7 @@ def _apply_mikasa_passive(gs, screen, player, enemies, offset_x, offset_y):
     if gs.get("selected_hero") != "mikasa":
         return
     RADIUS  = 80
-    DPS     = 8.0   # degats par seconde (fixe, le niveau booste ATK/HP du joueur)
+    DPS     = 4.0   # degats par seconde
     dt      = 1.0 / 60.0
     dmg_per_frame = DPS * dt
 
@@ -697,7 +697,7 @@ def _apply_ultimate_start(gs):
     player = gs["player"]
     if char == "eren":
         gs["_ult_orig_damage"] = player.damage
-        player.damage = int(player.damage * 3)
+        player.damage = int(player.damage * 2)
         gs["_ult_slow_enemies"] = True
     elif char == "mikasa":
         gs["_ult_orig_speed"]      = player.speed
@@ -1223,6 +1223,10 @@ def main():
         # ----------------------------------------------------
         render.clock.tick(60)
         render.screen.fill(BACKGROUND_COLOR)
+        _bg = render.get_grid_bg()
+        if _bg:
+            _bg_full = pygame.transform.scale(_bg, render.screen.get_size())
+            render.screen.blit(_bg_full, (0, 0))
 
         mouse_clicked_left = False
         for event in pygame.event.get():
@@ -1409,16 +1413,37 @@ def main():
                 gs["boss_start_time"] = current_time
                 wn       = gs["wave_number"]
                 is_final = (not gs.get("infinite_mode")) and (wn == gs["max_waves"])
+
+                # Détection boss de fin de chapitre (mode histoire uniquement)
+                mc_ctx = gs.get("mission_context")
+                is_chapter_final_boss = False
+                if is_final and mc_ctx is not None and not gs.get("infinite_mode"):
+                    ch  = mc_ctx.get("chapter", -1)
+                    msn = mc_ctx.get("mission", -1)
+                    try:
+                        last_msn = hist_mod.get_last_mission_index(ch)
+                        is_chapter_final_boss = (msn == last_msn)
+                    except Exception:
+                        is_chapter_final_boss = False
+
                 if is_final:
-                    boss_hp = int((500 + 100 * (wn - 1)) * gs["enemy_hp_mult"])
-                    gs_enemies.append(Enemy(hp=boss_hp, speed=0.6, radius=50,
-                                            is_boss=True, is_final_boss=True))
+                    if is_chapter_final_boss:
+                        # Boss de fin de CHAPITRE : plus fort, plus gros, sprite unique
+                        boss_hp = int((1000 + 200 * (wn - 1)) * gs["enemy_hp_mult"])
+                        gs_enemies.append(Enemy(hp=boss_hp, speed=0.25, radius=72,
+                                                is_boss=True, is_final_boss=True,
+                                                is_chapter_boss=True))
+                    else:
+                        # Boss de fin de mission normale
+                        boss_hp = int((500 + 100 * (wn - 1)) * gs["enemy_hp_mult"])
+                        gs_enemies.append(Enemy(hp=boss_hp, speed=0.3, radius=50,
+                                                is_boss=True, is_final_boss=True))
                 else:
                     if gs.get("infinite_mode"):
                         boss_hp = int((100 + 80 * wn + wn * wn * 3) * gs["enemy_hp_mult"])
                     else:
                         boss_hp = int((150 + 50 * wn) * gs["enemy_hp_mult"])
-                    gs_enemies.append(Enemy(hp=boss_hp, speed=0.3, radius=25, is_boss=True))
+                    gs_enemies.append(Enemy(hp=boss_hp, speed=0.45, radius=25, is_boss=True))
                 alive_enemies  = [e for e in gs_enemies if not e.is_dead and not e._dying]
                 has_boss       = any(e.is_boss       for e in alive_enemies)
                 has_final_boss = any(e.is_final_boss for e in alive_enemies)
@@ -1426,9 +1451,7 @@ def main():
             # Timer boss
             if gs["boss_active"]:
                 gs["boss_timer"] = max(0, BOSS_DURATION - (current_time - gs["boss_start_time"]))
-                # Game over uniquement si le boss est vraiment toujours vivant (pas de race condition)
-                if gs["boss_timer"] <= 0 and has_boss and not has_final_boss:
-                    gs["game_over"] = True
+                pass
 
             # Fin de boss
             if gs["boss_active"] and not has_boss:
@@ -1471,8 +1494,7 @@ def main():
 
             if gs["wave_number"] > gs["max_waves"] and not alive_enemies:
                 gs["game_win"] = True
-            if not gs["boss_active"] and gs["wave_timer"] <= 0 and gs_enemies:
-                gs["game_over"] = True
+                pass
 
         # ----------------------------------------------------
         # UPDATE ENTITES
@@ -1595,17 +1617,8 @@ def main():
             if hasattr(t, "trap_type"):
                 t.draw(render.screen, offset_x, offset_y)
 
-        # Ennemis + barre de vie boss final
+        # Ennemis 
         for e in gs_enemies:
-            if e.is_final_boss:
-                bw2, bh2 = 400, 30
-                bx2 = (win_w - bw2) // 2
-                by2 = 50
-                pygame.draw.rect(render.screen, (200, 0, 0), (bx2, by2, bw2, bh2))
-                bfill = int(bw2 * e.hp / max(1, e.max_hp))
-                pygame.draw.rect(render.screen, (0, 200, 0), (bx2, by2, bfill, bh2))
-                bt = render.big_font.render("BOSS FINAL !", True, (255, 0, 0))
-                render.screen.blit(bt, ((win_w - bt.get_width()) // 2, by2 - 40))
             e.draw(render.screen, offset_x, offset_y)
 
         # Goal
@@ -1659,38 +1672,6 @@ def main():
             draw_start_hint(render.screen, render.font, offset_x, offset_y)
 
         # ----------------------------------------------------
-        # PANEL GAUCHE : BUFFS JOUEUR (jetons de boss)
-        # ----------------------------------------------------
-        left_base_x = max(10, offset_x - 210)
-        left_base_y = offset_y + 190
-
-        pts_p = render.font.render(
-            f"Jetons Joueur : {gs['player_buff_tokens']}", True, (255, 100, 100)
-        )
-        render.screen.blit(pts_p, (left_base_x + 10, left_base_y))
-        left_base_y += 35
-
-        buff_items = {
-            "Joueur (Vitesse)":          ("speed",    "player"),
-            "Joueur (Dégâts)":           ("damage",   "player"),
-            "Joueur (Vit. Attaque)":     ("cooldown", "player"),
-            "Joueur (HP +20)":           ("hp",       "player"),
-        }
-        rects_buffs = {}
-
-        for buff_name, (buff_key, buff_type) in buff_items.items():
-            btn_rect = pygame.Rect(left_base_x + 10, left_base_y, 180, 40)
-            can_buy  = buff_type == "player" and gs["player_buff_tokens"] > 0
-            color    = (80, 50, 50)
-            pygame.draw.rect(render.screen, color, btn_rect, border_radius=5)
-            b_color  = (255, 255, 255) if can_buy else (150, 50, 50)
-            pygame.draw.rect(render.screen, b_color, btn_rect, 2, border_radius=5)
-            lbl = render.font.render(buff_name, True, (255, 255, 255))
-            render.screen.blit(lbl, (btn_rect.x + 10, btn_rect.y + 10))
-            rects_buffs[buff_name] = (btn_rect, buff_key, buff_type)
-            left_base_y += 45
-
-        # ----------------------------------------------------
         # INVENTAIRE BAS
         # ----------------------------------------------------
         if not available_towers:
@@ -1706,7 +1687,7 @@ def main():
         # ----------------------------------------------------
         # ZONES DE CLIC
         # ----------------------------------------------------
-        in_buff_area = mx < offset_x
+        in_buff_area = False
         in_shop_area = False
         in_inv_area  = my >= win_h - INV_BAR_HEIGHT
         in_grid_area = (not in_buff_area and not in_shop_area and not in_inv_area
@@ -1772,22 +1753,6 @@ def main():
                     if rect.collidepoint(mx, my):
                         gs["selected_item"] = None if gs["selected_item"] == item_type else item_type
                         break
-
-            # Clic buffs (jetons de boss)
-            elif in_buff_area:
-                for buff_name, (rect, buff_key, buff_type) in rects_buffs.items():
-                    if rect.collidepoint(mx, my):
-                        if buff_type == "player" and gs["player_buff_tokens"] > 0:
-                            gs["player_buff_tokens"] -= 1
-                            if buff_key == "speed":
-                                gs_player.speed += 0.5
-                            elif buff_key == "damage":
-                                gs_player.damage += 2
-                            elif buff_key == "cooldown":
-                                gs_player.attack_cooldown = max(5, gs_player.attack_cooldown - 2)
-                            elif buff_key == "hp":
-                                gs_player.max_hp += 20
-                                gs_player.hp      = min(gs_player.max_hp, gs_player.hp + 20)
 
         # ----------------------------------------------------
         # GHOST + PLACEMENT
@@ -1929,17 +1894,7 @@ def main():
         if gs.get("ultimate_info") and gs.get("game_started") and not gs.get("game_over") and not gs.get("game_win"):
             _draw_ultimate_button(render.screen, gs, offset_x, offset_y, mx, my, mouse_clicked_left)
 
-        # Animation skill point gagné
-        if gs.get("skillpoint_anim_timer", 0) > 0 and not gs.get("levelup_pending"):
-            draw_skillpoint_anim(render.screen, gs["skillpoint_anim_timer"])
-            gs["skillpoint_anim_timer"] -= 1
-
-        # Détecter un nouveau skill point depuis la save et lancer l'animation
-        if (gs.get("save") and gs["save"].get("pending_skillpoint_anim")
-                and gs.get("skillpoint_anim_timer", 0) <= 0):
-            gs["skillpoint_anim_timer"] = 180  # 3 secondes à 60fps
-            gs["save"]["pending_skillpoint_anim"] = False
-            sd.save(gs["save"])
+        # Animation skill point : gérée dans le menu (main_ui.py)
 
         # Panneau objectifs de mission (mode histoire)
         mc = gs.get("mission_context")

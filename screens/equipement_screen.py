@@ -37,6 +37,10 @@ EQUIPMENT_IMAGE_FILES = {
 RARITY_COLORS = {
     "Commun":     (120, 120, 128),
     "Rare":       (70, 130, 235),
+    "Épique":     (150, 90, 220),
+    "Légendaire": (230, 190, 60),
+    "Mythique":   (255, 60, 220),
+    # Aliases sans accents (ancienne sauvegarde)
     "Epique":     (150, 90, 220),
     "Legendaire": (230, 190, 60),
 }
@@ -45,16 +49,24 @@ RARITY_COLORS = {
 SELL_VALUES = {
     "Commun":     25,
     "Rare":       75,
+    "Épique":     200,
+    "Légendaire": 500,
+    "Mythique":   1200,
+    # Aliases sans accents
     "Epique":     200,
     "Legendaire": 500,
 }
 
 # Ordre de tri par rareté (du plus rare au plus commun)
 RARITY_ORDER = {
-    "Legendaire": 4,
-    "Epique":     3,
+    "Mythique":   5,
+    "Légendaire": 4,
+    "Épique":     3,
     "Rare":       2,
     "Commun":     1,
+    # Aliases sans accents
+    "Legendaire": 4,
+    "Epique":     3,
 }
 
 TOWER_DESCRIPTIONS = {
@@ -517,7 +529,8 @@ class EquipementScreen:
         if self.inv_tab == "tour":
             tu   = save.get("towers_unlocked", {})
             tl_s = save.get("towers_level", {})
-            items = [(i, {"slot": "tour", "rarity": "Commun",
+            items = [(i, {"slot": "tour",
+                          "rarity": sd.TOWER_POOL.get(tt, {}).get("rarity", "Commun"),
                           "tower_type": tt, "level": tl_s.get(tt, 1)})
                      for i, tt in enumerate(ALL_TOWER_TYPES) if tu.get(tt, False)]
         else:

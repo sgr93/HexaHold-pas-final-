@@ -65,7 +65,7 @@ CHAPTERS = {
         "color_in":   C_RED2,
         "unlock_next": 1,
         "cinematic": [
-            "Anno 845.",
+            "TEXTE DE CINEMATIQUE",
             "L'humanité vit depuis cent ans en paix derrière trois immenses murs...",
             "Wall Maria. Wall Rose. Wall Sheena.",
             "Ce jour-là, tout a changé.",
@@ -186,44 +186,100 @@ CHAPTERS = {
     },
     4: {
         "label":      "Chapitre 4",
-        "title":      "???",
+        "title":      "La Chute de Shiganshina",
         "cx": 0.740, "cy": 0.490,
         "color_out":  C_PURPLE_D,
         "color_in":   C_PURPLE_L,
         "unlock_next": 5,
-        "special": "Ce chapitre est mystérieux.\nSon contenu sera révélé en temps voulu...",
+        "missions": [
+            {
+                "name": "Retour aux Ruines",
+                "locked": False,
+                "objectives": [
+                    {"text": "Survivre à 6 vagues",                  "done": False},
+                    {"text": "Éliminer 80 ennemis",                  "done": False},
+                    {"text": "Ne pas perdre plus de 40 PV",          "done": False},
+                ],
+            },
+            {
+                "name": "Défense du District",
+                "locked": True,
+                "objectives": [
+                    {"text": "Utiliser 5 types de tours différents","done": False},
+                    {"text": "Terminer avec 200+ pièces restantes", "done": False},
+                    {"text": "Tuer le mini-boss en 45 secondes",    "done": False},
+                ],
+            },
+            {
+                "name": "Le Titan Blindé",
+                "locked": True,
+                "objectives": [
+                    {"text": "Vaincre le boss en Cauchemar",          "done": False},
+                    {"text": "Ne jamais perdre plus de 25% PV",       "done": False},
+                    {"text": "3 étoiles sur les 2 missions précédentes","done": False},
+                ],
+            },
+        ],
     },
     5: {
         "label":      "Chapitre 5",
-        "title":      "???",
+        "title":      "L'Assaut Final",
         "cx": 0.500, "cy": 0.906,
         "color_out":  (46, 10, 10),
         "color_in":   (142, 26, 26),
-        "special": "Le dernier chapitre.\nTout mène ici.\nPréparez-vous...",
+        "missions": [
+            {
+                "name": "Aux Portes de l'Enfer",
+                "locked": False,
+                "objectives": [
+                    {"text": "Survivre à 7 vagues sans perdre de PV","done": False},
+                    {"text": "Tuer 120 ennemis",                      "done": False},
+                    {"text": "Ne construire que des tours niveau 3",  "done": False},
+                ],
+            },
+            {
+                "name": "L'Armée des Titans",
+                "locked": True,
+                "objectives": [
+                    {"text": "Vaincre 3 mini-boss lors d'une même partie","done": False},
+                    {"text": "Ne jamais perdre plus de 10% PV",            "done": False},
+                    {"text": "Terminer en moins de 8 minutes",              "done": False},
+                ],
+            },
+            {
+                "name": "Le Titan Colossal",
+                "locked": True,
+                "objectives": [
+                    {"text": "Vaincre le Titan Colossal",                    "done": False},
+                    {"text": "Aucun ennemi ne franchit le seuil",            "done": False},
+                    {"text": "Finir avec toutes ses étoiles dans ch4",       "done": False},
+                ],
+            },
+        ],
     },
 }
 
 # Labels de la carte (texte, cx%, cy%, taille, couleur, gras)
 MAP_LABELS = [
-    ("TITAN TERRITORY",    0.50, 0.04, 11, C_GOLD2,     True),
-    ("WALL MARIA",         0.50, 0.09, 11, C_GOLD2,     True),
-    ("WALL ROSE",          0.50, 0.225,11, C_GOLD2,     True),
-    ("WALL SHEENA",        0.50, 0.335,11, C_GOLD2,     True),
-    ("Human Territory",    0.50, 0.365, 9, C_GOLD,      False),
-    ("Royal Capital",      0.50, 0.508, 9, C_PARCHMENT, False),
-    ("Utopia District",    0.50, 0.200, 9, C_PARCHMENT, False),
-    ("Orvud District",     0.50, 0.268, 9, C_PARCHMENT, False),
-    ("Yarckel District",   0.28, 0.438, 9, C_PARCHMENT, False),
-    ("Stohess District",   0.72, 0.438, 9, C_PARCHMENT, False),
-    ("Krolva District",    0.10, 0.500, 9, C_PARCHMENT, False),
-    ("Karanes District",   0.90, 0.500, 9, C_PARCHMENT, False),
-    ("Ehrmich District",   0.50, 0.605, 9, C_PARCHMENT, False),
-    ("Dauper Village",     0.32, 0.628, 8, C_PARCHMENT2,False),
-    ("Ragako Village",     0.37, 0.708, 8, C_PARCHMENT2,False),
-    ("Utgard Castle",      0.27, 0.672, 8, C_PARCHMENT2,False),
-    ("Trost District",     0.50, 0.735, 9, C_PARCHMENT, False),
-    ("Titan Forest",       0.78, 0.678, 8, C_PARCHMENT2,False),
-    ("Shiganshina District",0.50, 0.874, 9, C_PARCHMENT, False),
+    ("TERITOIRE TITAN",    0.50, 0.04, 11, C_GOLD2,     True),
+    ("MUR  MARIA",         0.50, 0.09, 11, C_GOLD2,     True),
+    ("MUR ROSE",          0.50, 0.225,11, C_GOLD2,     True),
+    ("MUR SINA",        0.50, 0.335,11, C_GOLD2,     True),
+    ("Teritoire Humain",    0.50, 0.365, 9, C_GOLD,      False),
+    ("Mitras",      0.50, 0.508, 9, C_PARCHMENT, False),
+    ("District Utopia",    0.50, 0.200, 9, C_PARCHMENT, False),
+    ("District d’Orvud",     0.50, 0.268, 9, C_PARCHMENT, False),
+    ("District de Yarckel",   0.28, 0.438, 9, C_PARCHMENT, False),
+    ("District de Stohess",   0.72, 0.438, 9, C_PARCHMENT, False),
+    ("District de Krolva",    0.10, 0.500, 9, C_PARCHMENT, False),
+    ("District de Karanes",   0.90, 0.500, 9, C_PARCHMENT, False),
+    ("District d’Ehrmich",   0.50, 0.605, 9, C_PARCHMENT, False),
+    ("Village de Dauper",     0.32, 0.628, 8, C_PARCHMENT2,False),
+    ("Village de Ragako",     0.37, 0.708, 8, C_PARCHMENT2,False),
+    ("Château d’Utgard",      0.27, 0.672, 8, C_PARCHMENT2,False),
+    ("District de Trost",     0.50, 0.735, 9, C_PARCHMENT, False),
+    ("Forêt des Titans",       0.78, 0.678, 8, C_PARCHMENT2,False),
+    ("District de Shiganshina",0.50, 0.874, 9, C_PARCHMENT, False),
 ]
 
 # ─────────────────────────────────────────────────────────────────
@@ -992,7 +1048,15 @@ def run_histoire(screen, clock, save):
                     mission_idx = popup.selected_mission
                     if is_mission_unlocked(save, idx, mission_idx):
                         sd.save(save)
-                        return {"chapter": idx, "mission": mission_idx, "difficulty": 1}
+                        # Difficulté croissante selon le chapitre
+                        _ch_diff = {1: 2, 2: 3, 3: 4, 4: 4, 5: 5}
+                        _diff_val = _ch_diff.get(idx, 2)
+                        # Dernier niveau du chapitre = +1 de difficulté
+                        _ch_data_tmp = CHAPTERS.get(idx, {})
+                        _ch_ms_tmp = _ch_data_tmp.get("missions", [])
+                        if mission_idx == len(_ch_ms_tmp) - 1:
+                            _diff_val = min(5, _diff_val + 1)
+                        return {"chapter": idx, "mission": mission_idx, "difficulty": _diff_val}
 
             # Clic sur une ligne de mission dans le popup (pour la sélectionner)
             if popup.visible and popup.chapter_idx is not None:
@@ -1197,3 +1261,16 @@ def get_mission_objective_states(save, chapter_idx, mission_idx):
     """
     key = f"ch{chapter_idx}_m{mission_idx}_objectives"
     return save.get(key, [])
+
+
+def get_last_mission_index(chapter_idx):
+    """
+    Retourne l'index (0-basé) de la dernière mission du chapitre donné.
+    Retourne -1 si le chapitre n'existe pas ou n'a pas de missions.
+    Utilisé par game.py pour détecter le boss de fin de chapitre.
+    """
+    ch = CHAPTERS.get(chapter_idx, {})
+    missions = ch.get("missions", [])
+    if not missions:
+        return -1
+    return len(missions) - 1

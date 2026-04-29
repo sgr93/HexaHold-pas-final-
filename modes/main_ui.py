@@ -14,6 +14,7 @@ import save_data as sd
 import theme
 import hud
 from histoire import run_histoire
+from ui import draw_skillpoint_anim
 
 
 def run_main_ui(screen: pygame.Surface,
@@ -46,6 +47,8 @@ def run_main_ui(screen: pygame.Surface,
     }
 
     running = True
+    _skillpoint_anim_timer = 0
+
     while running:
         w, h = screen.get_size()
         mx, my = pygame.mouse.get_pos()
@@ -108,6 +111,14 @@ def run_main_ui(screen: pygame.Surface,
 
         # Overlays (picker icône, etc.) — dessinés EN DERNIER, au-dessus de tout
         hud.draw_overlay(screen, save, mx=mx, my=my, clicked=clicked)
+
+        # ── Animation skill point (lancée depuis le menu) ──
+        if _skillpoint_anim_timer > 0:
+            draw_skillpoint_anim(screen, _skillpoint_anim_timer)
+            _skillpoint_anim_timer -= 1
+        elif save.get("pending_skillpoint_anim"):
+            _skillpoint_anim_timer = 180
+            save["pending_skillpoint_anim"] = False
 
         pygame.display.flip()
         clock.tick(60)

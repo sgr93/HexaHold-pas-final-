@@ -9,7 +9,7 @@ Centralise toutes les constantes et paramètres globaux du jeu.
 # ----------------------------
 
 ROWS = 18
-COLS = 14
+COLS = 20
 GRID_SIZE = 32
 
 GRID_WIDTH  = COLS * GRID_SIZE
@@ -59,10 +59,10 @@ PLAYER_HP_REGEN = 0.5   # HP récupérés par seconde
 # ----------------------------
 
 WAVE_NUMBER_START        = 1
-MAX_WAVES                = 4
-WAVE_DURATION            = 30
-BOSS_DURATION            = 40
-ENEMY_SPAWN_INTERVAL_BASE = 0.8
+MAX_WAVES                = 5
+WAVE_DURATION            = 35
+BOSS_DURATION            = 50
+ENEMY_SPAWN_INTERVAL_BASE = 0.7
 
 # ----------------------------
 # PATHFINDING
@@ -98,11 +98,11 @@ WINDOW_CAPTION  = "Hexahold"
 # ----------------------------
 
 DIFFICULTY_LEVELS = {
-    1: {"name": "Facile",         "waves": 2,  "enemy_hp_mult": 0.7,  "spawn_interval": 1.2, "coins_reward": 50 },
-    2: {"name": "Normal",         "waves": 3,  "enemy_hp_mult": 1.0,  "spawn_interval": 0.8, "coins_reward": 100},
-    3: {"name": "Difficile",      "waves": 4,  "enemy_hp_mult": 1.4,  "spawn_interval": 0.6, "coins_reward": 170},
-    4: {"name": "Très Difficile", "waves": 5,  "enemy_hp_mult": 1.9,  "spawn_interval": 0.4, "coins_reward": 260},
-    5: {"name": "Cauchemar",      "waves": 6,  "enemy_hp_mult": 2.5,  "spawn_interval": 0.3, "coins_reward": 400},
+    1: {"name": "Facile",         "waves": 3,  "enemy_hp_mult": 1.0,  "spawn_interval": 1.0, "coins_reward": 50 },
+    2: {"name": "Normal",         "waves": 4,  "enemy_hp_mult": 1.5,  "spawn_interval": 0.7, "coins_reward": 100},
+    3: {"name": "Difficile",      "waves": 5,  "enemy_hp_mult": 2.0,  "spawn_interval": 0.55,"coins_reward": 170},
+    4: {"name": "Très Difficile", "waves": 6,  "enemy_hp_mult": 2.8,  "spawn_interval": 0.4, "coins_reward": 260},
+    5: {"name": "Cauchemar",      "waves": 7,  "enemy_hp_mult": 3.8,  "spawn_interval": 0.28,"coins_reward": 400},
 }
 
 # ----------------------------

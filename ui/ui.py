@@ -284,33 +284,86 @@ def draw_hud(screen, font, big_font, level, xp, xp_to_next,
              boss_active, boss_timer, wave_timer,
              offset_x, offset_y,
              player_hp=None, player_max_hp=None):
-    info_y = offset_y - 38
-    panel = pygame.Rect(offset_x - 8, info_y - 10, GRID_WIDTH + 16, 34)
-    _draw_panel(screen, panel, alt=True)
-    lvl_txt = font.render(f"Niv.{level}  XP:{xp}/{xp_to_next}", True, COLORS["text"])
-    screen.blit(_get_icon("hp", 14, COLORS["accent_alt"]), (offset_x + 4, info_y + 4))
-    screen.blit(lvl_txt, (offset_x + 22, info_y))
+    """
+    HUD affiché sur le fond à gauche de la grille (hors grille).
+    Infos en haut à gauche du fond, grandes polices, hiérarchisées.
+    """
+    from config import GRID_WIDTH, GRID_HEIGHT
 
+    PAD     = 12
+    panel_w = 160  # largeur fixe du panneau
+    gx      = offset_x - panel_w  # collé au bord gauche de la grille
+    gy      = offset_y + PAD
+    bar_w   = 100
+
+    f_xl  = pygame.font.SysFont("arial", 26, bold=True)
+    f_lg  = pygame.font.SysFont("arial", 20, bold=True)
+    f_md  = pygame.font.SysFont("arial", 16)
+    f_sm  = pygame.font.SysFont("arial", 13)
+
+    def _shadow(surf, fnt, txt, color, x, y):
+        sh = fnt.render(txt, True, (0, 0, 0))
+        surf.blit(sh, (x + 1, y + 1))
+        t = fnt.render(txt, True, color)
+        surf.blit(t, (x, y))
+        return t.get_height()
+
+    def _bar(surf, x, y, w, h, val, maxv, color, bg=(30, 10, 10)):
+        pygame.draw.rect(surf, bg,    (x, y, w, h), border_radius=3)
+        pygame.draw.rect(surf, (60,60,60), (x, y, w, h), 1, border_radius=3)
+        if maxv > 0 and val > 0:
+            fw = int(w * min(val / maxv, 1.0))
+            pygame.draw.rect(surf, color, (x, y, fw, h), border_radius=3)
+
+    # ── Surface overlay transparente sur la zone gauche ───────────
+    overlay = pygame.Surface((panel_w, GRID_HEIGHT), pygame.SRCALPHA)
+
+    lx = PAD  # coordonnées locales dans overlay
+
+    # ① VAGUE — info la plus importante, très grande
     wave_max_str = "∞" if max_waves >= 9999 else str(max_waves)
-    wave_txt = font.render(
-        f"Vague {wave_number}/{wave_max_str}  Tues:{mobs_killed}/{max_enemies}",
-        True, (255, 255, 180)
-    )
-    screen.blit(wave_txt, (offset_x + GRID_WIDTH // 2 - wave_txt.get_width() // 2, info_y))
-
     if boss_active:
-        t_color = (255, 80, 80) if boss_timer < 10 else (255, 180, 80)
-        t_txt   = font.render(f"BOSS  {boss_timer:.0f}s", True, t_color)
+        tc = (255, 70, 70) if boss_timer < 10 else (255, 160, 60)
+        _shadow(overlay, f_xl, f"⚔ BOSS  {boss_timer:.0f}s", tc, lx, PAD)
+        ly = PAD + 32
     else:
-        t_txt = font.render(f"Vague  {wave_timer:.0f}s", True, (180, 220, 255))
-    screen.blit(t_txt, (offset_x + GRID_WIDTH - t_txt.get_width(), info_y))
+        _shadow(overlay, f_xl, f"Vague  {wave_number} / {wave_max_str}", (255, 240, 120), lx, PAD)
+        ly = PAD + 32
+        _shadow(overlay, f_md, f"{wave_timer:.0f}s", (160, 210, 255), lx, ly)
+        ly += 22
 
+    ly += 6
+
+    # ② ENNEMIS tués cette vague
+    _shadow(overlay, f_lg, f"Ennemis  {mobs_killed} / {max_enemies}", (220, 200, 160), lx, ly)
+    ly += 26
+
+    ly += 8
+    # ── Ligne séparatrice ──
+    pygame.draw.line(overlay, (200, 170, 60, 120), (lx, ly), (lx + bar_w, ly), 1)
+    ly += 8
+
+    # ③ HP joueur
     if player_hp is not None and player_max_hp:
-        bar_w, bar_h = 150, 12
-        bx, by = offset_x, info_y - 18
-        _draw_progress_bar(screen, pygame.Rect(bx, by, bar_w, bar_h), player_hp, player_max_hp, COLORS["success"], bg=(110, 25, 25))
-        hp_lbl = font.render(f"HP {player_hp}/{player_max_hp}", True, (220, 220, 220))
-        screen.blit(hp_lbl, (bx + bar_w + 6, by - 1))
+        _shadow(overlay, f_lg, "Vie", (100, 220, 100), lx, ly)
+        ly += 24
+        _bar(overlay, lx, ly, bar_w, 12, player_hp, player_max_hp, (80, 200, 80))
+        ly += 16
+        _shadow(overlay, f_sm, f"{player_hp} / {player_max_hp}", (180, 230, 180), lx, ly)
+        ly += 20
+
+        ly += 8
+        pygame.draw.line(overlay, (200, 170, 60, 120), (lx, ly), (lx + bar_w, ly), 1)
+        ly += 8
+
+    # ④ Niveau & XP — infos secondaires, plus petites
+    _shadow(overlay, f_md, f"Niv. {level}", (200, 160, 255), lx, ly)
+    ly += 20
+    _bar(overlay, lx, ly, bar_w, 8, xp, xp_to_next, (160, 100, 255), bg=(20, 10, 40))
+    ly += 12
+    _shadow(overlay, f_sm, f"XP  {xp} / {xp_to_next}", (170, 140, 220), lx, ly)
+
+    screen.blit(overlay, (gx, gy))
 
 
 # ============================================================
@@ -982,39 +1035,62 @@ def draw_mission_failed_screen(screen, big_font, font, objectives, mouse_pos, cl
 
 def draw_skillpoint_anim(screen, timer, total=180):
     """
-    Affiche une animation indiquant un point de competence gagne.
+    Affiche une animation skill point AU-DESSUS de tout le reste.
+    Composée sur une surface SRCALPHA unique blittée en dernier.
     timer : 180 -> 0
     """
     w, h = screen.get_size()
-    if timer > total - 30:
-        alpha = int(255 * (total - timer) / 30)
-    elif timer < 30:
-        alpha = int(255 * timer / 30)
+
+    # Calcul alpha (fade in / fade out)
+    FADE = 30
+    if timer > total - FADE:
+        alpha = int(255 * (total - timer) / FADE)
+    elif timer < FADE:
+        alpha = int(255 * timer / FADE)
     else:
         alpha = 255
+    alpha = max(0, min(255, alpha))
 
-    progress = (total - timer) / total
-    anim_y = int(h // 2 - 80 - 20 * progress)
+    # Position : glisse vers le haut depuis le bas de la zone haut d'écran
+    progress  = (total - timer) / total          # 0 → 1
+    target_y  = 24                               # position finale (haut)
+    start_y   = -100                             # position de départ (hors écran)
+    if progress < 0.15:
+        t     = progress / 0.15
+        anim_y = int(start_y + (target_y - start_y) * t)
+    elif progress > 0.85:
+        t     = (progress - 0.85) / 0.15
+        anim_y = int(target_y - target_y * t * 0.5)
+    else:
+        anim_y = target_y
 
-    card_w, card_h = 320, 80
+    card_w, card_h = 320, 72
     card_x = w // 2 - card_w // 2
-    card_surf = pygame.Surface((card_w, card_h), pygame.SRCALPHA)
-    card_surf.fill((20, 10, 40, min(220, alpha)))
-    pygame.draw.rect(card_surf, (255, 205, 92, min(255, alpha)),
+
+    # ── Tout sur une surface SRCALPHA ──────────────────────────
+    overlay = pygame.Surface((card_w, card_h), pygame.SRCALPHA)
+
+    # Fond + bordure
+    overlay.fill((20, 10, 40, min(230, alpha)))
+    pygame.draw.rect(overlay, (255, 205, 92, min(255, alpha)),
                      pygame.Rect(0, 0, card_w, card_h), 3, border_radius=16)
-    screen.blit(card_surf, (card_x, anim_y))
 
-    fnt_big = get_font("lg", bold=True)
-    fnt_sm  = get_font("sm")
+    # Ligne décorative gauche (dorée)
+    pygame.draw.rect(overlay, (255, 205, 92, min(255, alpha)),
+                     pygame.Rect(0, 0, 5, card_h), border_radius=4)
 
+    fnt_big = get_font("md", bold=True)   # 22px — rentre bien dans le cadre
+    fnt_sm  = get_font("xs")              # 14px — sous-titre
+
+    # Titre
     title_surf = fnt_big.render("NIVEAU SUPERIEUR !", True, COLORS["accent"])
-    ts = pygame.Surface(title_surf.get_size(), pygame.SRCALPHA)
-    ts.blit(title_surf, (0, 0))
-    ts.set_alpha(alpha)
-    screen.blit(ts, (w // 2 - title_surf.get_width() // 2, anim_y + 8))
+    title_surf.set_alpha(alpha)
+    overlay.blit(title_surf, (card_w // 2 - title_surf.get_width() // 2, 10))
 
-    sub = fnt_sm.render("+ 1 Point de Competence obtenu !", True, (180, 220, 255))
-    ss = pygame.Surface(sub.get_size(), pygame.SRCALPHA)
-    ss.blit(sub, (0, 0))
-    ss.set_alpha(alpha)
-    screen.blit(ss, (w // 2 - sub.get_width() // 2, anim_y + 46))
+    # Sous-titre
+    sub_surf = fnt_sm.render("+1 point de talent disponible", True, COLORS["muted"])
+    sub_surf.set_alpha(alpha)
+    overlay.blit(sub_surf, (card_w // 2 - sub_surf.get_width() // 2, 38))
+
+    # Blit final — au-dessus de tout (appelé juste avant display.flip)
+    screen.blit(overlay, (card_x, anim_y))

@@ -1,36 +1,428 @@
 {
-  "level": 50,
-  "xp": 0,
-  "xp_next": 999999,
-  "coins": 999999,
-  "gems": 999999,
+  "level": 5,
+  "xp": 85,
+  "xp_next": 480,
+  "coins": 445445,
+  "gems": 98742,
   "inventory_equipment": [
     {
+      "slot": "bottes",
+      "rarity": "Commun",
+      "stat": "speed",
+      "value": 0.3,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
       "slot": "cape",
-      "rarity": "Mythique",
+      "rarity": "Commun",
       "stat": "max_hp",
-      "value": 100,
+      "value": 10,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Commun",
+      "stat": "damage",
+      "value": 3,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Rare",
+      "stat": "max_hp",
+      "value": 20,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Commun",
+      "stat": "max_hp",
+      "value": 10,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Commun",
+      "stat": "max_hp",
+      "value": 10,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Commun",
+      "stat": "damage",
+      "value": 3,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Commun",
+      "stat": "attack_speed",
+      "value": 3,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Commun",
+      "stat": "damage",
+      "value": 3,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Commun",
+      "stat": "max_hp",
+      "value": 10,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Commun",
+      "stat": "speed",
+      "value": 0.3,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Commun",
+      "stat": "attack_speed",
+      "value": 3,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Légendaire",
+      "stat": "max_hp",
+      "value": 60,
       "label": "Vie max",
       "name": "Cape du bataillon",
       "image": "cape.png",
       "color": [
         255,
-        80,
-        80
+        180,
+        0
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Commun",
+      "stat": "max_hp",
+      "value": 10,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Rare",
+      "stat": "max_hp",
+      "value": 20,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Commun",
+      "stat": "speed",
+      "value": 0.3,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        180,
+        180,
+        180
       ]
     },
     {
       "slot": "veste",
-      "rarity": "Mythique",
+      "rarity": "Rare",
       "stat": "attack_speed",
-      "value": 30,
+      "value": 6,
       "label": "Vitesse attaque",
       "name": "Veste de garnison",
       "image": "veste.png",
       "color": [
-        255,
-        80,
-        80
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Commun",
+      "stat": "speed",
+      "value": 0.3,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Commun",
+      "stat": "damage",
+      "value": 3,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Commun",
+      "stat": "speed",
+      "value": 0.3,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Commun",
+      "stat": "speed",
+      "value": 0.3,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Rare",
+      "stat": "attack_speed",
+      "value": 6,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Commun",
+      "stat": "speed",
+      "value": 0.3,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Commun",
+      "stat": "speed",
+      "value": 0.3,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Commun",
+      "stat": "speed",
+      "value": 0.3,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Rare",
+      "stat": "max_hp",
+      "value": 20,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Commun",
+      "stat": "damage",
+      "value": 3,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Rare",
+      "stat": "attack_speed",
+      "value": 6,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Commun",
+      "stat": "damage",
+      "value": 3,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Épique",
+      "stat": "damage",
+      "value": 11,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        160,
+        60,
+        255
       ]
     },
     {
@@ -43,8 +435,2052 @@
       "image": "bottes.png",
       "color": [
         255,
-        80,
-        80
+        0,
+        255
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Rare",
+      "stat": "speed",
+      "value": 0.6,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Commun",
+      "stat": "damage",
+      "value": 3,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Commun",
+      "stat": "damage",
+      "value": 3,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Commun",
+      "stat": "speed",
+      "value": 0.3,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Commun",
+      "stat": "damage",
+      "value": 3,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Rare",
+      "stat": "max_hp",
+      "value": 20,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Épique",
+      "stat": "damage",
+      "value": 11,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Commun",
+      "stat": "speed",
+      "value": 0.3,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Commun",
+      "stat": "attack_speed",
+      "value": 3,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Commun",
+      "stat": "damage",
+      "value": 3,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Rare",
+      "stat": "attack_speed",
+      "value": 6,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Rare",
+      "stat": "attack_speed",
+      "value": 6,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Commun",
+      "stat": "attack_speed",
+      "value": 3,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Épique",
+      "stat": "damage",
+      "value": 11,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Commun",
+      "stat": "max_hp",
+      "value": 10,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Légendaire",
+      "stat": "attack_speed",
+      "value": 18,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        255,
+        180,
+        0
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Commun",
+      "stat": "max_hp",
+      "value": 10,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Rare",
+      "stat": "attack_speed",
+      "value": 6,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Commun",
+      "stat": "max_hp",
+      "value": 10,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Rare",
+      "stat": "speed",
+      "value": 0.6,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Épique",
+      "stat": "attack_speed",
+      "value": 10,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Commun",
+      "stat": "damage",
+      "value": 3,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Commun",
+      "stat": "attack_speed",
+      "value": 3,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Légendaire",
+      "stat": "max_hp",
+      "value": 60,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        255,
+        180,
+        0
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Commun",
+      "stat": "attack_speed",
+      "value": 3,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Rare",
+      "stat": "max_hp",
+      "value": 20,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Rare",
+      "stat": "damage",
+      "value": 6,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Rare",
+      "stat": "max_hp",
+      "value": 20,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Rare",
+      "stat": "speed",
+      "value": 0.6,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Commun",
+      "stat": "attack_speed",
+      "value": 3,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Rare",
+      "stat": "speed",
+      "value": 0.6,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Rare",
+      "stat": "attack_speed",
+      "value": 6,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Commun",
+      "stat": "max_hp",
+      "value": 10,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Rare",
+      "stat": "damage",
+      "value": 6,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Rare",
+      "stat": "max_hp",
+      "value": 20,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Rare",
+      "stat": "attack_speed",
+      "value": 6,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Épique",
+      "stat": "damage",
+      "value": 11,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Rare",
+      "stat": "speed",
+      "value": 0.6,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Commun",
+      "stat": "speed",
+      "value": 0.3,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Commun",
+      "stat": "max_hp",
+      "value": 10,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Rare",
+      "stat": "speed",
+      "value": 0.6,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Rare",
+      "stat": "speed",
+      "value": 0.6,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Rare",
+      "stat": "max_hp",
+      "value": 20,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Commun",
+      "stat": "speed",
+      "value": 0.3,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Mythique",
+      "stat": "attack_speed",
+      "value": 30,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        255,
+        0,
+        255
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Commun",
+      "stat": "damage",
+      "value": 3,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Commun",
+      "stat": "speed",
+      "value": 0.3,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Commun",
+      "stat": "damage",
+      "value": 3,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Épique",
+      "stat": "attack_speed",
+      "value": 10,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Commun",
+      "stat": "speed",
+      "value": 0.3,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Épique",
+      "stat": "damage",
+      "value": 11,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Épique",
+      "stat": "max_hp",
+      "value": 35,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Mythique",
+      "stat": "max_hp",
+      "value": 100,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        255,
+        0,
+        255
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Rare",
+      "stat": "damage",
+      "value": 6,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Rare",
+      "stat": "max_hp",
+      "value": 20,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Rare",
+      "stat": "attack_speed",
+      "value": 6,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Commun",
+      "stat": "attack_speed",
+      "value": 3,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Épique",
+      "stat": "max_hp",
+      "value": 35,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Épique",
+      "stat": "damage",
+      "value": 11,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Commun",
+      "stat": "speed",
+      "value": 0.3,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Rare",
+      "stat": "damage",
+      "value": 6,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Rare",
+      "stat": "max_hp",
+      "value": 20,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Rare",
+      "stat": "speed",
+      "value": 0.6,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Légendaire",
+      "stat": "max_hp",
+      "value": 60,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        255,
+        180,
+        0
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Rare",
+      "stat": "attack_speed",
+      "value": 6,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Rare",
+      "stat": "max_hp",
+      "value": 20,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Commun",
+      "stat": "damage",
+      "value": 3,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Commun",
+      "stat": "attack_speed",
+      "value": 3,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Rare",
+      "stat": "damage",
+      "value": 6,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Rare",
+      "stat": "speed",
+      "value": 0.6,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Rare",
+      "stat": "damage",
+      "value": 6,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Épique",
+      "stat": "damage",
+      "value": 11,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Légendaire",
+      "stat": "attack_speed",
+      "value": 18,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        255,
+        180,
+        0
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Commun",
+      "stat": "damage",
+      "value": 3,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Épique",
+      "stat": "attack_speed",
+      "value": 10,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Rare",
+      "stat": "attack_speed",
+      "value": 6,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Rare",
+      "stat": "speed",
+      "value": 0.6,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Épique",
+      "stat": "attack_speed",
+      "value": 10,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Légendaire",
+      "stat": "attack_speed",
+      "value": 18,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        255,
+        180,
+        0
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Commun",
+      "stat": "damage",
+      "value": 3,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Épique",
+      "stat": "speed",
+      "value": 1.0,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Légendaire",
+      "stat": "attack_speed",
+      "value": 18,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        255,
+        180,
+        0
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Commun",
+      "stat": "max_hp",
+      "value": 10,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Épique",
+      "stat": "damage",
+      "value": 11,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Commun",
+      "stat": "attack_speed",
+      "value": 3,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Rare",
+      "stat": "attack_speed",
+      "value": 6,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Épique",
+      "stat": "damage",
+      "value": 11,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Rare",
+      "stat": "attack_speed",
+      "value": 6,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Épique",
+      "stat": "attack_speed",
+      "value": 10,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Commun",
+      "stat": "max_hp",
+      "value": 10,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Épique",
+      "stat": "attack_speed",
+      "value": 10,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Épique",
+      "stat": "attack_speed",
+      "value": 10,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Commun",
+      "stat": "attack_speed",
+      "value": 3,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Commun",
+      "stat": "attack_speed",
+      "value": 3,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Commun",
+      "stat": "attack_speed",
+      "value": 3,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Commun",
+      "stat": "speed",
+      "value": 0.3,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Rare",
+      "stat": "damage",
+      "value": 6,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Commun",
+      "stat": "damage",
+      "value": 3,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Rare",
+      "stat": "max_hp",
+      "value": 20,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Légendaire",
+      "stat": "max_hp",
+      "value": 60,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        255,
+        180,
+        0
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Rare",
+      "stat": "damage",
+      "value": 6,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Épique",
+      "stat": "damage",
+      "value": 11,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Rare",
+      "stat": "damage",
+      "value": 6,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Rare",
+      "stat": "attack_speed",
+      "value": 6,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Épique",
+      "stat": "speed",
+      "value": 1.0,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Légendaire",
+      "stat": "damage",
+      "value": 20,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        255,
+        180,
+        0
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Épique",
+      "stat": "max_hp",
+      "value": 35,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Commun",
+      "stat": "speed",
+      "value": 0.3,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Légendaire",
+      "stat": "max_hp",
+      "value": 60,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        255,
+        180,
+        0
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Commun",
+      "stat": "attack_speed",
+      "value": 3,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Commun",
+      "stat": "damage",
+      "value": 3,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Épique",
+      "stat": "damage",
+      "value": 11,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Commun",
+      "stat": "attack_speed",
+      "value": 3,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Rare",
+      "stat": "speed",
+      "value": 0.6,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Épique",
+      "stat": "damage",
+      "value": 11,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Commun",
+      "stat": "max_hp",
+      "value": 10,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Rare",
+      "stat": "attack_speed",
+      "value": 6,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Rare",
+      "stat": "attack_speed",
+      "value": 6,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Commun",
+      "stat": "max_hp",
+      "value": 10,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Rare",
+      "stat": "attack_speed",
+      "value": 6,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Légendaire",
+      "stat": "speed",
+      "value": 1.8,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        255,
+        180,
+        0
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Épique",
+      "stat": "max_hp",
+      "value": 35,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Rare",
+      "stat": "speed",
+      "value": 0.6,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Légendaire",
+      "stat": "damage",
+      "value": 20,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        255,
+        180,
+        0
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Épique",
+      "stat": "max_hp",
+      "value": 35,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Commun",
+      "stat": "speed",
+      "value": 0.3,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Légendaire",
+      "stat": "damage",
+      "value": 20,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        255,
+        180,
+        0
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Épique",
+      "stat": "attack_speed",
+      "value": 10,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Épique",
+      "stat": "speed",
+      "value": 1.0,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Rare",
+      "stat": "attack_speed",
+      "value": 6,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Rare",
+      "stat": "damage",
+      "value": 6,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Épique",
+      "stat": "max_hp",
+      "value": 35,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Épique",
+      "stat": "max_hp",
+      "value": 35,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Rare",
+      "stat": "speed",
+      "value": 0.6,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Commun",
+      "stat": "speed",
+      "value": 0.3,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Légendaire",
+      "stat": "attack_speed",
+      "value": 18,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        255,
+        180,
+        0
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Épique",
+      "stat": "damage",
+      "value": 11,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Épique",
+      "stat": "attack_speed",
+      "value": 10,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Épique",
+      "stat": "attack_speed",
+      "value": 10,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Épique",
+      "stat": "damage",
+      "value": 11,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Épique",
+      "stat": "max_hp",
+      "value": 35,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Rare",
+      "stat": "speed",
+      "value": 0.6,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Rare",
+      "stat": "damage",
+      "value": 6,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Rare",
+      "stat": "damage",
+      "value": 6,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Rare",
+      "stat": "damage",
+      "value": 6,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Épique",
+      "stat": "speed",
+      "value": 1.0,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        160,
+        60,
+        255
       ]
     },
     {
@@ -57,74 +2493,391 @@
       "image": "lames.png",
       "color": [
         255,
-        80,
-        80
+        0,
+        255
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Légendaire",
+      "stat": "attack_speed",
+      "value": 18,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        255,
+        180,
+        0
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Commun",
+      "stat": "damage",
+      "value": 3,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Épique",
+      "stat": "attack_speed",
+      "value": 10,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Rare",
+      "stat": "damage",
+      "value": 6,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Légendaire",
+      "stat": "max_hp",
+      "value": 60,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        255,
+        180,
+        0
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Rare",
+      "stat": "attack_speed",
+      "value": 6,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Rare",
+      "stat": "attack_speed",
+      "value": 6,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Rare",
+      "stat": "damage",
+      "value": 6,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Épique",
+      "stat": "max_hp",
+      "value": 35,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Commun",
+      "stat": "attack_speed",
+      "value": 3,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Mythique",
+      "stat": "max_hp",
+      "value": 100,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        255,
+        0,
+        255
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Commun",
+      "stat": "speed",
+      "value": 0.3,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Légendaire",
+      "stat": "damage",
+      "value": 20,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        255,
+        180,
+        0
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Rare",
+      "stat": "attack_speed",
+      "value": 6,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Épique",
+      "stat": "max_hp",
+      "value": 35,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Commun",
+      "stat": "speed",
+      "value": 0.3,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Légendaire",
+      "stat": "damage",
+      "value": 20,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        255,
+        180,
+        0
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Rare",
+      "stat": "speed",
+      "value": 0.6,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Épique",
+      "stat": "attack_speed",
+      "value": 10,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Mythique",
+      "stat": "max_hp",
+      "value": 100,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        255,
+        0,
+        255
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Mythique",
+      "stat": "speed",
+      "value": 3.0,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        255,
+        0,
+        255
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Épique",
+      "stat": "max_hp",
+      "value": 35,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        160,
+        60,
+        255
       ]
     }
   ],
   "equipped": {
-    "cape": 0,
-    "veste": 1,
-    "bottes": 2,
-    "arme": 3
+    "cape": null,
+    "veste": null,
+    "bottes": 176,
+    "arme": 194
   },
   "tower_loadout": [
-    "cannon",
-    "tesla",
-    "sniper"
+    null,
+    null,
+    null
   ],
-  "music_volume": 0.5,
-  "sound_volume": 0.5,
+  "music_volume": 0.8,
+  "sound_volume": 0.8,
   "fullscreen": false,
-  "skill_points": 50,
+  "skill_points": 1099,
   "skills_unlocked": {
-    "force_1": true,
-    "force_2": true,
-    "force_3": true,
-    "force_4": true,
-    "speed_1": true,
-    "speed_2": true,
-    "speed_3": true,
-    "speed_4": true,
-    "resist_1": true,
-    "resist_2": true,
-    "resist_3": true,
-    "resist_4": true,
-    "tower_1": true,
-    "tower_2": true,
-    "tower_3": true,
-    "tower_4": true,
-    "power_1": true,
-    "power_2": true,
-    "power_3": true,
-    "hybrid_force_speed": true,
-    "hybrid_speed_resist": true,
-    "hybrid_resist_tower": true,
-    "hybrid_tower_power": true,
-    "hybrid_power_force": true
+    "force_1": false,
+    "force_2": false,
+    "force_3": false,
+    "force_4": false,
+    "speed_1": false,
+    "speed_2": false,
+    "speed_3": false,
+    "speed_4": false,
+    "resist_1": false,
+    "resist_2": false,
+    "resist_3": false,
+    "resist_4": false,
+    "tower_1": false,
+    "tower_2": false,
+    "tower_3": false,
+    "tower_4": false,
+    "power_1": false,
+    "power_2": false,
+    "power_3": false,
+    "hybrid_force_speed": false,
+    "hybrid_speed_resist": false,
+    "hybrid_resist_tower": false,
+    "hybrid_tower_power": false,
+    "hybrid_power_force": false
   },
   "quests_completed": {
+    "mission_10_tours": true,
     "mission_premiere_tour": true,
-    "mission_dix_kills": true,
-    "mission_cinq_tours": true
+    "event_guerre_1": true,
+    "quotidienne_combat_1": true,
+    "quotidienne_combat_3": true,
+    "mission_3_combats": true,
+    "event_guerre_2": true,
+    "profil_niveau_5": true,
+    "mission_niveau_5": true
   },
-  "battles_won": 999,
-  "towers_placed": 1002,
-  "enemies_killed": 10012,
-  "max_wave_reached": 50,
-  "daily_quests_completed": {},
+  "battles_won": 3,
+  "towers_placed": 80,
+  "enemies_killed": 496,
+  "max_wave_reached": 0,
+  "daily_quests_completed": {
+    "quotidienne_combat_1": true,
+    "quotidienne_combat_3": true
+  },
   "last_daily_reset": "2026-04-29",
   "events_completed": {},
   "player_icon": "icone0.png",
-  "tower_chest_total_pulls": 600,
-  "tower_chest_pity_epic": 0,
-  "tower_chest_pity_legend": 0,
+  "tower_chest_total_pulls": 555,
+  "tower_chest_pity_epic": 2,
+  "tower_chest_pity_legend": 7,
   "towers_unlocked": {
     "small": true,
     "big": true,
     "trap": true,
-    "mine": true,
     "frost": true,
+    "mine": true,
     "mortar": true,
     "sniper": true,
     "tesla": true,
@@ -132,98 +2885,76 @@
     "laser": true
   },
   "towers_level": {
-    "small": 6,
-    "big": 6,
-    "trap": 6,
-    "mine": 6,
-    "frost": 6,
-    "mortar": 6,
-    "sniper": 6,
+    "small": 1,
+    "big": 1,
+    "trap": 1,
+    "frost": 1,
+    "mine": 1,
+    "mortar": 1,
+    "sniper": 4,
     "tesla": 6,
     "cannon": 6,
     "laser": 6
   },
   "towers_copies": {
-    "small": 99,
-    "big": 99,
-    "trap": 99,
-    "mine": 99,
-    "frost": 99,
-    "mortar": 99,
-    "sniper": 99,
-    "tesla": 99,
-    "cannon": 99,
-    "laser": 99
+    "small": 37,
+    "big": 47,
+    "trap": 43,
+    "frost": 76,
+    "mine": 62,
+    "mortar": 37,
+    "sniper": 23,
+    "tesla": 13,
+    "cannon": 18,
+    "laser": 29
   },
-  "coin_chest_pulls": 600,
+  "coin_chest_pulls": 200,
   "coin_chest_pity_epic": 0,
-  "coin_chest_pity_legend": 0,
+  "coin_chest_pity_legend": 5,
   "histoire_unlocked": [
     0,
     1,
     2,
     3,
     4,
-    5
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
   ],
   "histoire_completed": [
     0,
-    1,
-    2,
-    3,
-    4,
-    5
+    1
   ],
   "heroes": {
     "eren": {
-      "copies": 99,
-      "level": 10
+      "copies": 29,
+      "level": 15
     },
     "armin": {
-      "copies": 99,
-      "level": 10
+      "copies": 15,
+      "level": 8
     },
     "sasha": {
-      "copies": 99,
-      "level": 10
+      "copies": 16,
+      "level": 8
     },
     "levi": {
-      "copies": 99,
-      "level": 10
+      "copies": 25,
+      "level": 13
     },
     "mikasa": {
-      "copies": 99,
-      "level": 10
+      "copies": 16,
+      "level": 8
     }
   },
-  "selected_hero": "eren",
-  "skill_tree_locked": "eren",
+  "selected_hero": "sasha",
+  "pending_skillpoint_anim": false,
+  "skill_tree_seen": true,
   "skill_tree_nodes": {
-    "eren": [
-      0,
-      1,
-      2,
-      3,
-      4,
-      5,
-      6,
-      7,
-      8,
-      9
-    ],
     "mikasa": [
-      0,
-      1,
-      2,
-      3,
-      4,
-      5,
-      6,
-      7,
-      8,
-      9
-    ],
-    "erwin": [
       0,
       1,
       2,
@@ -236,25 +2967,36 @@
       9
     ]
   },
-  "difficulty_completed": [
-    1,
-    2,
-    3,
-    4,
-    5
+  "skill_tree_locked": "mikasa",
+  "tree_tower_damage_pct": 0.0,
+  "tree_tower_range_pct": 0.0,
+  "tree_tower_cd_pct": 0.0,
+  "tree_trap_damage_pct": 0.0,
+  "tree_trap_cd_pct": 0.0,
+  "tree_coin_bonus_pct": 0.0,
+  "tree_xp_bonus_pct": 0.0,
+  "ch1_m0_stars": 3,
+  "ch1_m0_objectives": [
+    true,
+    true,
+    true
   ],
-  "infini_towers_placed": 99,
-  "infini_enemies_killed": 999,
-  "infini_battles_won": 99,
-  "histoire_towers_placed": 102,
-  "histoire_enemies_killed": 1012,
-  "histoire_battles_won": 99,
-  "skill_tree_seen": true,
-  "tree_tower_damage_pct": 0.52,
-  "tree_tower_range_pct": 0.30000000000000004,
-  "tree_tower_cd_pct": -0.16,
-  "tree_trap_damage_pct": 0.4,
-  "tree_trap_cd_pct": -0.2,
-  "tree_coin_bonus_pct": 0.4,
-  "tree_xp_bonus_pct": 0.3
+  "ch1_m0_done": true,
+  "ch1_m1_unlocked": true,
+  "ch1_m1_stars": 2,
+  "ch1_m1_objectives": [
+    true,
+    true,
+    false
+  ],
+  "ch1_m1_done": true,
+  "ch1_m2_unlocked": true,
+  "ch1_m2_stars": 1,
+  "ch1_m2_objectives": [
+    true,
+    false,
+    false
+  ],
+  "ch1_m2_done": true,
+  "ch2_m0_unlocked": true
 }

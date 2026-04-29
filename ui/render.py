@@ -2,7 +2,7 @@
 render.py
 ---------
 Initialise pygame et expose les objets globaux (screen, clock, fonts).
-Gère le système de tilesets par chapitre.
+Gère le système de tilesets.
 
 ════════════════════════════════════════════════════════════════
 SYSTÈME DE TILESETS
@@ -10,8 +10,7 @@ SYSTÈME DE TILESETS
 
 Les tiles sont rangés dans :
     assets/sprites/tiles/
-        default/          ← fallback (grille sobre, toujours présent)
-        ch1/              ← Chapitre 1 : MYSTIC BLUE VILLAGE
+        default/          ← tileset unique utilisé pour tous les niveaux
             floor_grass.png
             floor_grass2.png
             floor_path.png
@@ -21,15 +20,10 @@ Les tiles sont rangés dans :
             wall_rock.png
             wall_rock_cracked.png
             wall_tree.png
-        ch2/              ← Chapitre 2 : à compléter
-        ...
 
 Chaque tileset peut définir :
   - floor_*  : tuiles de sol (cases marchables)
   - wall_*   : tuiles de mur (cases bloquées)
-
-La variation de sol (1 tile sur ~8 = variante) évite la répétition
-visuelle sans aucune complexité supplémentaire.
 """
 
 import os
@@ -68,7 +62,9 @@ def load_wall_image():
 # Tileset actif (chargé par load_tileset)
 _tileset = {
     "floor":      [],   # liste de surfaces sol
-    "wall":       [],   # liste de surfaces mur (wall_stone, wall_tree...)
+    "wall":       [],   # toutes les surfaces mur (fallback)
+    "wall_rock":  [],   # tuiles wall_rock_* uniquement
+    "wall_tree":  [],   # tuiles wall_tree_* uniquement
     "floor_map":  {},   # {(x,y): surface} — assignation pré-calculée par case
 }
 
@@ -105,6 +101,26 @@ CHAPTER_TILESET = {
     5:    "ch5",   # Chapitre 5 - Chap 1 modifié
 }
 
+# Fond PNG derrière la grille (grid_bg.png ou bg_ch<N>.png)
+_grid_bg_image = None
+
+def load_grid_bg():
+    """Charge le fond PNG de la grille : toujours grid_bg.png, même fond pour tous les modes."""
+    global _grid_bg_image
+    path = os.path.join(_TILES_DIR, "grid_bg.png")
+    if os.path.isfile(path):
+        try:
+            img = pygame.image.load(path).convert_alpha()
+            _grid_bg_image = pygame.transform.scale(img, (GRID_WIDTH, GRID_HEIGHT))
+            print("[render] Fond grille chargé : grid_bg.png")
+            return
+        except Exception as e:
+            print(f"[render] Impossible de charger grid_bg.png : {e}")
+    _grid_bg_image = None
+
+def get_grid_bg():
+    """Retourne le fond de la grille, ou None si absent."""
+    return _grid_bg_image
 
 def _load_images_from_dir(folder, prefix):
     """
@@ -128,32 +144,63 @@ def _load_images_from_dir(folder, prefix):
 
 def load_tileset(chapter=None):
     """
-    Charge le tileset correspondant au chapitre donné.
-    Appelé depuis game.py avant de lancer une partie.
-
-    Exemple :
-        render.load_tileset(chapter=1)   # Chapitre 1
-        render.load_tileset()            # Partie rapide (défaut)
+    Charge le tileset depuis le dossier default (identique pour tous les niveaux).
+    Le paramètre chapter est conservé pour compatibilité mais ignoré.
     """
     global _tileset
 
-    folder_name = CHAPTER_TILESET.get(chapter, CHAPTER_TILESET.get(None, "default"))
-    folder = os.path.join(_TILES_DIR, folder_name)
+    folder = os.path.join(_TILES_DIR, "default")
 
-    floor_imgs = _load_images_from_dir(folder, "floor_")
-    wall_imgs  = _load_images_from_dir(folder, "wall_")
+    floor_imgs      = _load_images_from_dir(folder, "floor_")
+    # ── ROCK (coins) ──
+    wall_rock_tl = _load_images_from_dir(folder, "wall_rock_tl")
+    wall_rock_tr = _load_images_from_dir(folder, "wall_rock_tr")
+    wall_rock_bl = _load_images_from_dir(folder, "wall_rock_bl")
+    wall_rock_br = _load_images_from_dir(folder, "wall_rock_br")
 
-    # Fallback : si le dossier est vide ou absent, on reste en mode couleur unie
+    # ── TREE (coins) ── 
+    wall_tree_tl = _load_images_from_dir(folder, "wall_tree_tl")
+    wall_tree_tr = _load_images_from_dir(folder, "wall_tree_tr")
+    wall_tree_bl = _load_images_from_dir(folder, "wall_tree_bl")
+    wall_tree_br = _load_images_from_dir(folder, "wall_tree_br")
+
+    # Fallback
+    wall_rock_imgs = (
+        wall_rock_tl + wall_rock_tr +
+        wall_rock_bl + wall_rock_br
+    )
+    wall_tree_imgs = (
+        wall_tree_tl + wall_tree_tr +
+        wall_tree_bl + wall_tree_br
+    )
+
+    wall_imgs = wall_rock_imgs + wall_tree_imgs
+    wall_imgs       = wall_rock_imgs + wall_tree_imgs  # pool complet (fallback)
+
     if not floor_imgs:
-        print(f"[render] Tileset '{folder_name}' : aucun floor_ trouvé, mode couleur.")
-    if not wall_imgs:
-        print(f"[render] Tileset '{folder_name}' : aucun wall_ trouvé, fallback wall.png.")
+        print(f"[render] Tileset 'default' : aucun floor_ trouvé, mode couleur.")
+    if not wall_rock_imgs:
+        print(f"[render] Tileset 'default' : aucun wall_rock* trouvé.")
+    if not wall_tree_imgs:
+        print(f"[render] Tileset 'default' : aucun wall_tree* trouvé.")
 
-    _tileset["floor"]     = floor_imgs
-    _tileset["wall"]      = wall_imgs
-    _tileset["floor_map"] = {}   # sera rempli à la première reconstruction du cache
+    _tileset["floor"]      = floor_imgs
+    _tileset["wall"]       = wall_imgs
+    _tileset["wall_rock_tl"] = wall_rock_tl
+    _tileset["wall_rock_tr"] = wall_rock_tr
+    _tileset["wall_rock_bl"] = wall_rock_bl
+    _tileset["wall_rock_br"] = wall_rock_br
 
-    print(f"[render] Tileset '{folder_name}' : {len(floor_imgs)} floor, {len(wall_imgs)} wall.")
+    _tileset["wall_tree_tl"] = wall_tree_tl
+    _tileset["wall_tree_tr"] = wall_tree_tr
+    _tileset["wall_tree_bl"] = wall_tree_bl
+    _tileset["wall_tree_br"] = wall_tree_br
+
+    _tileset["floor_map"] = {}
+
+    print(f"[render] Tileset 'default' : {len(floor_imgs)} floor, "
+          f"{len(wall_rock_imgs)} wall_rock, {len(wall_tree_imgs)} wall_tree.")
+    load_grid_bg()
 
 
 def _get_floor_tile(x, y):
@@ -174,18 +221,41 @@ def _get_floor_tile(x, y):
     return floors[0]
 
 
-def _get_wall_tile(x, y):
-    """
-    Retourne la surface de mur pour la case (x, y).
-    Légère variation pour éviter les murs uniformes.
-    """
-    walls = _tileset["wall"]
-    if not walls:
-        return _wall_image   # fallback legacy
-    idx = (x * 11 + y * 7) % len(walls)
-    return walls[idx]
+def _get_wall_tile(x, y, wall_type="rock", grid=None, wall_cells=None):
+    """Retourne la tuile de mur appropriée pour la case (x, y)
+    en utilisant un système de découpe en 4 coins (auto-tiling simplifié).
 
+    Chaque mur est composé de 4 types de tuiles :
+        * tl (top-left)     → coin haut-gauche
+        * tr (top-right)    → coin haut-droit
+        * bl (bottom-left)  → coin bas-gauche
+        * br (bottom-right) → coin bas-droit"""
 
+    if not grid:
+        return None
+
+    # Détecter voisins
+    right = (x + 1 < COLS and (x+1, y) in wall_cells)
+    down  = (y + 1 < ROWS and (x, y+1) in wall_cells)
+
+    # Choix du coin
+    if right and down:
+        suffix = "tl"
+    elif not right and down:
+        suffix = "tr"
+    elif right and not down:
+        suffix = "bl"
+    else:
+        suffix = "br"
+
+    # Charger bon pool
+    key = f"wall_{wall_type}_{suffix}"
+    pool = _tileset.get(key, [])
+
+    if not pool:
+        return None
+
+    return pool[0]
 # ─────────────────────────────────────────────────────────────────
 # FONTS
 # ─────────────────────────────────────────────────────────────────
@@ -275,6 +345,16 @@ class GridCache:
         """Reconstruit la surface avec tiles de sol et de mur."""
         surf = pygame.Surface((GRID_WIDTH, GRID_HEIGHT), pygame.SRCALPHA)
         surf.fill((0, 0, 0, 0))
+        wall_cells = set()
+
+        if hasattr(grid, "wall_types"):
+            for (x, y), wall_type in grid.wall_types.items():
+                wall_cells.add((x, y))
+
+        # Fond PNG de la grille
+        _bg = get_grid_bg()
+        if _bg:
+            surf.blit(_bg, (0, 0))
 
         tower_cells = set()
         if towers:
@@ -308,7 +388,10 @@ class GridCache:
                             pygame.draw.rect(surf, (34, 45, 34), cell_rect)
                     else:
                         # ── Case bloquée par un mur ──
-                        wall_tile = _get_wall_tile(x, y)
+                        wall_type = "rock"
+                        if hasattr(grid, "wall_types"):
+                            wall_type = grid.wall_types.get((x, y), "rock")
+                        wall_tile = _get_wall_tile(x, y, wall_type, grid, wall_cells)
                         if wall_tile:
                             floor_tile = _get_floor_tile(x, y)
                             if floor_tile:
