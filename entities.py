@@ -355,7 +355,7 @@ class Enemy:
     """
 
     def __init__(self, hp=20, speed=0.5, radius=10,
-                 is_boss=False, is_fast=False, is_final_boss=False):
+                 is_boss=False, is_fast=False, is_final_boss=False, is_chapter_boss=False):
         self.hp            = hp
         self.max_hp        = hp
         self.speed         = speed
@@ -363,6 +363,7 @@ class Enemy:
         self.is_boss       = is_boss
         self.is_fast       = is_fast
         self.is_final_boss = is_final_boss
+        self.is_chapter_boss = is_chapter_boss
         self.is_dead       = False
 
         self.reached_grid            = False
@@ -370,6 +371,7 @@ class Enemy:
         self.attack_timer            = 0
         self.player_attack_cooldown  = 45
         self.player_attack_timer     = 0
+        self.attack_anim_timer       = 0
 
         entry_col = random.randint(0, COLS - 1)
         self.entry_col = entry_col
@@ -387,7 +389,9 @@ class Enemy:
         self._hurt_timer = 0
         self._dying      = False
 
-        if is_final_boss:
+        if is_chapter_boss:
+            asset_type = 'boss_chapter'
+        elif is_final_boss:
             asset_type = 'boss_final'
         elif is_boss:
             asset_type = 'boss'
@@ -472,6 +476,7 @@ class Enemy:
             if self.attack_timer <= 0:
                 goal.hp = max(0, goal.hp - 5)
                 self.attack_timer = self.attack_cooldown
+                self.attack_anim_timer = 20
         if self.attack_timer > 0:
             self.attack_timer -= 1
 
@@ -483,6 +488,7 @@ class Enemy:
                 if self.player_attack_timer <= 0:
                     player.take_damage(3 if not self.is_boss else 8)
                     self.player_attack_timer = self.player_attack_cooldown
+                    self.attack_anim_timer = 20
             if self.player_attack_timer > 0:
                 self.player_attack_timer -= 1
 
@@ -493,12 +499,15 @@ class Enemy:
             if abs(ddx) > 0.05 or abs(ddy) > 0.05:
                 self._anim_dir = _direction_from_delta(ddx, ddy)
 
-            if self._hurt_timer > 0:
+            if self.attack_anim_timer > 0:
+                self.attack_anim_timer -= 1
+                if self._anim_state != 'attack':
+                    self._anim_state = 'attack'
+                    self.spriteset.set_state('attack', self._anim_dir)
+            elif self._hurt_timer > 0:
                 self._hurt_timer -= 1
                 if self._anim_state != 'hurt':
                     self._set_anim('hurt')
-            elif attacking:
-                self._set_anim('attack', self._anim_dir)
             else:
                 self._set_anim('walk', self._anim_dir)
 
@@ -533,7 +542,9 @@ class Enemy:
                 fw, fh = frame.get_size()
                 screen.blit(frame, (ex - fw // 2, ey - fh // 2))
         else:
-            if self.is_final_boss:
+            if self.is_chapter_boss:
+                color = (80, 0, 140)   # violet foncé — boss de fin de chapitre
+            elif self.is_final_boss:
                 color = (255, 80, 0)
             elif self.is_boss:
                 color = (200, 0, 200)
@@ -542,10 +553,27 @@ class Enemy:
             else:
                 color = (200, 50, 50)
             pygame.draw.circle(screen, color, (ex, ey), self.radius)
+            # Anneau lumineux pour le boss de chapitre
+            if self.is_chapter_boss:
+                pygame.draw.circle(screen, (180, 60, 255), (ex, ey), self.radius, 3)
 
-        pygame.draw.rect(screen, (200, 0, 0), (ex - 10, ey - 15, 20, 3))
-        cur_w = int(20 * max(0, self.hp) / max(1, self.max_hp))
-        pygame.draw.rect(screen, (0, 200, 0), (ex - 10, ey - 15, cur_w, 3))
+        # Barre de vie — plus grande pour le boss de chapitre
+        if self.is_chapter_boss:
+            bar_w, bar_h = 60, 8
+        elif self.is_final_boss or self.is_boss:
+            bar_w, bar_h = 40, 6
+        else:
+            bar_w, bar_h = 20, 3
+        bar_y_off = self.radius + bar_h + 4
+        pygame.draw.rect(screen, (200, 0, 0),
+                         (ex - bar_w // 2, ey - bar_y_off, bar_w, bar_h))
+        cur_w = int(bar_w * max(0, self.hp) / max(1, self.max_hp))
+        bar_color = (180, 60, 255) if self.is_chapter_boss else (0, 200, 0)
+        pygame.draw.rect(screen, bar_color,
+                         (ex - bar_w // 2, ey - bar_y_off, cur_w, bar_h))
+        if self.is_chapter_boss and bar_h >= 6:
+            pygame.draw.rect(screen, (220, 120, 255),
+                             (ex - bar_w // 2, ey - bar_y_off, bar_w, bar_h), 1)
 
 
 # ============================================================

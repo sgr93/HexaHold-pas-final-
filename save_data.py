@@ -1138,8 +1138,7 @@ def get_skill_tree_node_bonuses(save_data_dict):
 def get_active_ultimate(save_data_dict):
     """
     Retourne la competence ultime du personnage choisi.
-    Disponible des que le personnage est selectionne (skill_tree_locked).
-    Le node 9 ameliore les stats mais n'est plus requis pour debloquer l'ultime.
+    Disponible uniquement si le noeud 10 (index 9) du skill tree est debloque.
     """
     ULTIMATES = {
         "eren":   {"name": "Titan Assaillant",     "cooldown": 45},
@@ -1149,6 +1148,13 @@ def get_active_ultimate(save_data_dict):
     locked_char = save_data_dict.get("skill_tree_locked")
     if not locked_char:
         return None
+
+    # Vérifier que le noeud 10 (index 9) est bien débloqué
+    nodes_by_char = save_data_dict.get("skill_tree_nodes", {})
+    unlocked = nodes_by_char.get(locked_char, [])
+    if 9 not in unlocked:
+        return None
+
     ult = ULTIMATES.get(locked_char)
     if ult:
         return {"char": locked_char, **ult}

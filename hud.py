@@ -182,9 +182,7 @@ def draw(screen: pygame.Surface, save: dict,
     if not _inited:
         init()
     badges = badges or {}
-    avatar_clicked = _draw_header(screen, save, mx, my, clicked)
-    if avatar_clicked:
-        _icon_picker_open = not _icon_picker_open
+    _draw_header(screen, save, mx, my, clicked)
     action = _draw_nav(screen, active_tab, badges, mx, my, clicked, save)
     return action
 
@@ -213,14 +211,10 @@ def _draw_header(screen, save, mx, my, clicked):
 
     pad = 14
 
-    # ── Avatar + infos joueur ────────────────────────────────
-    hex_s  = 52
-    hex_r  = pygame.Rect(pad, (H-hex_s)//2, hex_s, hex_s)
-    _draw_hex_avatar(screen, hex_r, save)
-    if hex_r.collidepoint(mx, my):
-        pygame.draw.rect(screen, theme.GOLD_LIGHT, hex_r.inflate(4, 4), 1, border_radius=4)
+    # ── Infos joueur (sans jeton avatar) ────────────────────
+    hex_r  = pygame.Rect(0, 0, 0, 0)  # conservé pour compatibilité clic
 
-    tx = pad + hex_s + 10
+    tx = pad
     ty = H//2 - 20
 
     fn  = _f("label")
@@ -278,8 +272,6 @@ def _draw_header(screen, save, mx, my, clicked):
     screen.blit(ct, (cx2, cy))
     theme.draw_coin_icon(screen, cx2 - 28, cy + 1, 22)  # ← 26→34, 20→28
 
-    if clicked and hex_r.collidepoint(mx, my):
-        return True
     return None
 
 

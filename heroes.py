@@ -98,11 +98,11 @@ RARITY_LVL_BONUS = {
 
 # Stats de base des heros en jeu (ATK et HP au niveau 1)
 HERO_BASE_STATS = {
-    "eren":   {"atk": 100, "hp": 300},
-    "armin":  {"atk":  80, "hp": 280},
-    "sasha":  {"atk":  90, "hp": 260},
-    "levi":   {"atk": 140, "hp": 320},
-    "mikasa": {"atk": 130, "hp": 310},
+    "eren":   {"atk":  8, "hp": 180},
+    "armin":  {"atk":  6, "hp": 160},
+    "sasha":  {"atk":  7, "hp": 150},
+    "levi":   {"atk": 10, "hp": 200},
+    "mikasa": {"atk":  9, "hp": 190},
 }
 
 # Ordre d'affichage dans le selecteur

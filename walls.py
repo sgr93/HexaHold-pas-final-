@@ -46,38 +46,49 @@ from config import COLS, ROWS, END
 # ════════════════════════════════════════════════════════════════
 # UTILITAIRES DE CONSTRUCTION
 # ════════════════════════════════════════════════════════════════
+#
+# Chaque case est un triplet (x, y, wall_type) où wall_type est :
+#   "rock"  → tuiles wall_rock_*   (rochers)
+#   "tree"  → tuile  wall_tree_*   (arbres)
+#
+# Toutes les cases d'un même appel partagent le même wall_type.
+# Un mur ne peut pas être un mélange des deux.
 
-def rect(x, y, w, h):
+WALL_ROCK = "rock"
+WALL_TREE = "tree"
+
+def rect(x, y, w, h, wall_type=WALL_ROCK):
     """Rectangle de w×h cases à partir de (x, y)."""
-    return [(x + dx, y + dy) for dx in range(w) for dy in range(h)]
+    return [(x + dx, y + dy, wall_type) for dx in range(w) for dy in range(h)]
 
-def col(x, y_start, y_end):
+def col(x, y_start, y_end, wall_type=WALL_ROCK):
     """Colonne verticale sur x entre y_start et y_end (inclus)."""
-    return [(x, y) for y in range(y_start, y_end + 1)]
+    return [(x, y, wall_type) for y in range(y_start, y_end + 1)]
 
-def row(y, x_start, x_end):
+def row(y, x_start, x_end, wall_type=WALL_ROCK):
     """Ligne horizontale sur y entre x_start et x_end (inclus)."""
-    return [(x, y) for x in range(x_start, x_end + 1)]
+    return [(x, y, wall_type) for x in range(x_start, x_end + 1)]
 
 
 # ════════════════════════════════════════════════════════════════
 # MAP PAR DÉFAUT  (parties rapides, modes hors histoire)
-# ════════════════════════════════════════════════════════════════
 
 MAP_DEFAULT = [
-    # --- Obstacles haut ---
-    *rect(2,  4, 2, 2),
-    *rect(6,  3, 2, 2),
-    *rect(10, 4, 2, 2),
+    *rect(2,  4, 2, 2, WALL_ROCK),
+    *rect(8,  4, 2, 2, WALL_ROCK),
+    *rect(14, 4, 2, 2, WALL_ROCK),
 
-    # --- Obstacles milieu ---
-    *rect(3,  8, 2, 2),
-    *rect(9,  8, 2, 2),
+    *rect(4,  8, 2, 2, WALL_TREE),
+    *rect(12, 8, 2, 2, WALL_TREE),
 
-    # --- Obstacles bas ---
-    *rect(1,  13, 2, 2),
-    *rect(5,  12, 2, 2),
-    *rect(10, 13, 2, 2),
+    *rect(8, 10, 2, 2, WALL_ROCK),
+
+    *rect(2,  13, 2, 2, WALL_TREE),
+    *rect(7,  13, 2, 2, WALL_TREE),
+    *rect(14, 13, 2, 2, WALL_TREE),
+
+    *rect(4,  15, 2, 2, WALL_ROCK),
+    *rect(12, 15, 2, 2, WALL_ROCK),
 ]
 
 
@@ -94,74 +105,67 @@ MAP_DEFAULT = [
 
 # Mission 1 — Tenir le Fort
 # Disposition : couloir central ouvert, blocs latéraux symétriques
-MAP_CH1_M1 = [
-    # Bords gauche (rochers / arbres)
-    *rect(0,  2, 1, 3),   # lisière gauche haut
-    *rect(0,  9, 1, 3),   # lisière gauche milieu
-    *rect(0, 14, 1, 3),   # lisière gauche bas
+MAP_A = [
+    *rect(2, 2, 2, 2, WALL_TREE),
+    *rect(6, 2, 2, 2, WALL_TREE),
+    *rect(10, 2, 2, 2, WALL_TREE),
+    *rect(14, 2, 2, 2, WALL_TREE),
 
-    # Bords droit
-    *rect(13, 2, 1, 3),
-    *rect(13, 9, 1, 3),
-    *rect(13,14, 1, 3),
+    *rect(4, 5, 2, 2, WALL_TREE),
+    *rect(12, 5, 2, 2, WALL_TREE),
 
-    # Obstacles haut (2 blocs)
-    *rect(2, 3, 2, 2),
-    *rect(9, 3, 2, 2),
+    *rect(2, 8, 2, 2, WALL_ROCK),
+    *rect(6, 8, 2, 2, WALL_TREE),
+    *rect(10, 8, 2, 2, WALL_TREE),
+    *rect(14, 8, 2, 2, WALL_ROCK),
 
-    # Obstacles milieu (2 blocs avec couloir central)
-    *rect(2, 8, 2, 2),
-    *rect(9, 8, 2, 2),
+    *rect(4, 11, 2, 2, WALL_TREE),
+    *rect(12, 11, 2, 2, WALL_TREE),
 
-    # Obstacles bas (3 blocs)
-    *rect(1, 13, 2, 2),
-    *rect(5, 12, 2, 2),
-    *rect(10,13, 2, 2),
+    *rect(2, 14, 2, 2, WALL_TREE),
+    *rect(8, 14, 2, 2, WALL_TREE),
+    *rect(14, 14, 2, 2, WALL_TREE),
 ]
 
-# Mission 2 — La Contre-Attaque
-# Disposition : plus dense, les ennemis ont moins de place
-MAP_CH1_M2 = [
-    # Rangée de rochers en haut
-    *rect(1, 2, 2, 2),
-    *rect(5, 2, 2, 2),
-    *rect(9, 2, 2, 2),
+MAP_B = [
+    *rect(2, 2, 2, 2, WALL_ROCK),
 
-    # Obstacles milieu-haut
-    *rect(3, 6, 2, 2),
-    *rect(8, 6, 2, 2),
+    *rect(7, 3, 2, 2, WALL_TREE),
 
-    # Ligne de pierres centrale (chemin forcé)
-    *rect(1,  10, 2, 1),
-    *rect(6,  10, 2, 1),
-    *rect(10, 10, 2, 1),
+    *rect(12, 4, 2, 2, WALL_ROCK),
 
-    # Obstacles bas
-    *rect(2,  14, 2, 2),
-    *rect(7,  13, 2, 2),
-    *rect(11, 14, 2, 2),
+    *rect(4, 6, 2, 2, WALL_TREE),
+    *rect(10, 6, 2, 2, WALL_TREE),
+
+    *rect(15, 7, 2, 2, WALL_ROCK),
+
+    *rect(3, 10, 2, 2, WALL_ROCK),
+    *rect(9, 11, 2, 2, WALL_TREE),
+
+    *rect(6, 14, 2, 2, WALL_ROCK),
+    *rect(13, 13, 2, 2, WALL_TREE),
 ]
 
-# Mission 3 — Le Titan de Trost
-# Disposition : labyrinthique, boss difficile à esquiver
-MAP_CH1_M3 = [
-    # Couloirs forcés avec chicanes
-    *rect(1,  2, 2, 3),
-    *rect(10, 2, 2, 3),
+MAP_C = [
+    *rect(2, 2, 2, 2, WALL_ROCK),
 
-    *rect(3,  6, 2, 2),
-    *rect(8,  6, 2, 2),
+    *rect(8, 3, 2, 2, WALL_TREE),
 
-    *rect(1,  9, 4, 1),   # mur horizontal bas-gauche
-    *rect(8,  9, 4, 1),   # mur horizontal bas-droit
+    *rect(14, 2, 2, 2, WALL_ROCK),
 
-    *rect(4,  12, 2, 2),
-    *rect(7,  12, 2, 2),
+    *rect(5, 5, 2, 2, WALL_TREE),
+    *rect(11, 6, 2, 2, WALL_ROCK),
 
-    *rect(1,  15, 2, 2),
-    *rect(10, 15, 2, 2),
+    *rect(3, 8, 2, 2, WALL_ROCK),
+
+    *rect(9, 9, 2, 2, WALL_TREE),
+
+    *rect(15, 10, 2, 2, WALL_ROCK),
+
+    *rect(6, 12, 2, 2, WALL_TREE),
+
+    *rect(12, 13, 2, 2, WALL_ROCK),
 ]
-
 
 # ════════════════════════════════════════════════════════════════
 # TABLE DE ROUTAGE  ← MODIFIE ICI POUR AJOUTER UNE MAP
@@ -175,14 +179,31 @@ MAP_CH1_M3 = [
 #   mission 1 = "La Contre-Attaque"
 #   mission 2 = "Le Titan de Trost"
 
+
+
 MISSION_MAPS = {
-    None:   MAP_DEFAULT,   # Parties rapides / hors histoire
-
-    (1, 0): MAP_CH1_M1,    # Ch1 Mission 1
-    (1, 1): MAP_CH1_M2,    # Ch1 Mission 2
-    (1, 2): MAP_CH1_M3,    # Ch1 Mission 3
+    None: MAP_A, #Partie rapide ou mode infni
+    # Chapitre 1
+    (1, 0): MAP_A,
+    (1, 1): MAP_B,
+    (1, 2): MAP_C,
+    # Chapitre 2
+    (2, 0): MAP_A,
+    (2, 1): MAP_B,
+    (2, 2): MAP_C,
+    # Chapitre 3
+    (3, 0): MAP_A,
+    (3, 1): MAP_B,
+    (3, 2): MAP_C,
+    # Chapitre 4
+    (4, 0): MAP_A,
+    (4, 1): MAP_B,
+    (4, 2): MAP_C,
+    # Chapitre 5
+    (5, 0): MAP_A,
+    (5, 1): MAP_B,
+    (5, 2): MAP_C,
 }
-
 
 # ════════════════════════════════════════════════════════════════
 # MOTEUR D'APPLICATION — ne pas modifier
@@ -213,9 +234,23 @@ def _path_exists_from_row0(grid):
 
 
 def _apply_walls_list(grid, walls_list, label=""):
-    """Applique une liste de cases bloquées sur la grille."""
+    """
+    Applique une liste de cases bloquées sur la grille.
+    Chaque entrée est soit (x, y) soit (x, y, wall_type).
+    wall_type est stocké dans grid.wall_types[x][y].
+    """
+    # Initialise le dictionnaire de types si absent
+    if not hasattr(grid, "wall_types"):
+        grid.wall_types = {}
+
     skipped = 0
-    for (x, y) in walls_list:
+    for entry in walls_list:
+        if len(entry) == 3:
+            x, y, wall_type = entry
+        else:
+            x, y = entry
+            wall_type = WALL_ROCK  # fallback compatibilité
+
         if not (0 <= x < COLS and 0 <= y < ROWS):
             print(f"[walls{label}] ({x},{y}) hors grille — ignorée.")
             skipped += 1
@@ -227,6 +262,9 @@ def _apply_walls_list(grid, walls_list, label=""):
             grid.walkable[x][y] = True
             print(f"[walls{label}] ({x},{y}) retirée — bloquerait tous les chemins.")
             skipped += 1
+        else:
+            grid.wall_types[(x, y)] = wall_type
+            grid.wall_cells.add((x, y))
 
     total = len(walls_list)
     if skipped:
