@@ -95,28 +95,28 @@ MAP_DEFAULT = [
 # ════════════════════════════════════════════════════════════════
 # MAP MODE INFINI
 # ════════════════════════════════════════════════════════════════
-#
+
 
 
 MAP_INFINITE = [
-    # Original (inchangé)
-    *rect(11, 2,  2, 2, WALL_ROCK),
-    *rect(2,  4,  2, 2, WALL_ROCK),
-    *rect(8,  4,  2, 2, WALL_ROCK),
-    *rect(17, 4,  2, 2, WALL_ROCK),
-    *rect(14, 6,  2, 2, WALL_TREE),
-    *rect(10,  8,  2, 2, WALL_TREE),
-    *rect(2, 8,  2, 2, WALL_TREE),
-    *rect(6,  10, 2, 2, WALL_ROCK),
-    *rect(10, 11, 2, 2, WALL_TREE),
-    *rect(13, 11, 2, 2, WALL_ROCK),
-    *rect(2,  13, 2, 2, WALL_TREE),
-    *rect(18, 13, 2, 2, WALL_TREE),
-    *rect(8, 13, 2, 2, WALL_TREE),
-    *rect(4,  15, 2, 2, WALL_ROCK),
-    *rect(12, 15, 2, 2, WALL_ROCK),
 
+    *rect(1, 1, 2, 2, WALL_ROCK),
+    *rect(6, 1, 2, 2, WALL_TREE),
+    *rect(11, 1, 2, 2, WALL_ROCK),
+    *rect(15, 1, 2, 2, WALL_TREE),
+    *rect(3, 4, 2, 2, WALL_TREE),
+    *rect(9, 4, 2, 2, WALL_ROCK),
+    *rect(14, 4, 2, 2, WALL_TREE),
+    *rect(1, 7, 2, 2, WALL_ROCK),
+    *rect(15, 7, 2, 2, WALL_TREE),
+    *rect(4, 10, 2, 2, WALL_TREE),
+    *rect(10, 10, 2, 2, WALL_ROCK),
+    *rect(13, 10, 2, 2, WALL_TREE),
+    *rect(2, 13, 2, 2, WALL_ROCK),
+    *rect(7, 13, 2, 2, WALL_TREE),
+    *rect(12, 13, 2, 2, WALL_ROCK),
 ]
+
 
 # ════════════════════════════════════════════════════════════════
 # CHAPITRE 1 — LA BATAILLE DE TROST
@@ -131,69 +131,51 @@ MAP_INFINITE = [
 
 # Mission 1 — Tenir le Fort
 # Disposition : couloir central ouvert, blocs latéraux symétriques
+
 MAP_A = [
+    *rect(2, 2, 2, 2, WALL_ROCK),
+    *rect(7, 3, 2, 2, WALL_TREE),
+    *rect(12, 4, 2, 2, WALL_ROCK),
+    *rect(4, 6, 2, 2, WALL_TREE),
+    *rect(10, 6, 2, 2, WALL_TREE),
+    *rect(15, 7, 2, 2, WALL_ROCK),
+    *rect(3, 10, 2, 2, WALL_ROCK),
+    *rect(9, 11, 2, 2, WALL_TREE),
+    *rect(6, 14, 2, 2, WALL_ROCK),
+    *rect(13, 13, 2, 2, WALL_TREE),
+]
+
+MAP_B = [
+    *rect(2, 2, 2, 2, WALL_ROCK),
+    *rect(8, 3, 2, 2, WALL_TREE),
+    *rect(14, 2, 2, 2, WALL_ROCK),
+    *rect(5, 5, 2, 2, WALL_TREE),
+    *rect(11, 6, 2, 2, WALL_ROCK),
+    *rect(3, 8, 2, 2, WALL_ROCK),
+    *rect(9, 9, 2, 2, WALL_TREE),
+    *rect(15, 10, 2, 2, WALL_ROCK),
+    *rect(6, 12, 2, 2, WALL_TREE),
+    *rect(12, 13, 2, 2, WALL_ROCK),
+]
+
+MAP_C = [
     *rect(2, 2, 2, 2, WALL_TREE),
     *rect(6, 2, 2, 2, WALL_TREE),
     *rect(10, 2, 2, 2, WALL_TREE),
     *rect(14, 2, 2, 2, WALL_TREE),
-
     *rect(4, 5, 2, 2, WALL_TREE),
     *rect(12, 5, 2, 2, WALL_TREE),
-
     *rect(2, 8, 2, 2, WALL_ROCK),
     *rect(6, 8, 2, 2, WALL_TREE),
     *rect(10, 8, 2, 2, WALL_TREE),
     *rect(14, 8, 2, 2, WALL_ROCK),
-
     *rect(4, 11, 2, 2, WALL_TREE),
     *rect(12, 11, 2, 2, WALL_TREE),
-
     *rect(2, 14, 2, 2, WALL_TREE),
     *rect(8, 14, 2, 2, WALL_TREE),
     *rect(14, 14, 2, 2, WALL_TREE),
 ]
 
-MAP_B = [
-    *rect(2, 2, 2, 2, WALL_ROCK),
-    *rect(6, 2, 2, 2, WALL_TREE),
-    *rect(10, 2, 2, 2, WALL_TREE),
-    *rect(14, 2, 2, 2, WALL_ROCK),
-
-    *rect(3, 5, 2, 2, WALL_TREE),
-    *rect(9, 5, 2, 2, WALL_ROCK),
-    *rect(15, 5, 2, 2, WALL_TREE),
-
-    *rect(2, 8, 2, 2, WALL_ROCK),
-    *rect(6, 8, 2, 2, WALL_TREE),
-    *rect(10, 8, 2, 2, WALL_TREE),
-    *rect(14, 8, 2, 2, WALL_ROCK),
-
-    *rect(4, 11, 2, 2, WALL_ROCK),
-    *rect(12, 11, 2, 2, WALL_ROCK),
-
-    *rect(2, 14, 2, 2, WALL_TREE),
-    *rect(8, 14, 2, 2, WALL_ROCK),
-    *rect(14, 14, 2, 2, WALL_TREE),
-]
-
-MAP_C = [
-    *rect(3, 2, 2, 2, WALL_TREE),
-    *rect(6, 2, 2, 2, WALL_ROCK),
-    *rect(9, 2, 2, 2, WALL_TREE),
-    *rect(12, 2, 2, 2, WALL_ROCK),
-    *rect(15, 2, 2, 2, WALL_TREE),
-    *rect(17, 4, 2, 2, WALL_ROCK),
-    *rect(12, 5, 2, 2, WALL_ROCK),
-    *rect(2, 8, 2, 2, WALL_TREE),
-    *rect(16, 10, 2, 2, WALL_ROCK),
-    *rect(2, 12, 2, 2, WALL_TREE),
-    *rect(17, 14, 2, 2, WALL_ROCK),
-    *rect(6, 7, 2, 2, WALL_TREE),
-    *rect(10, 9, 2, 2, WALL_ROCK),
-    *rect(6, 11, 2, 2, WALL_TREE),
-    *rect(13, 8, 2, 2, WALL_TREE),
-    *rect(12, 13, 2, 2, WALL_ROCK),
-]
 # ════════════════════════════════════════════════════════════════
 # TABLE DE ROUTAGE  ← MODIFIE ICI POUR AJOUTER UNE MAP
 # ════════════════════════════════════════════════════════════════

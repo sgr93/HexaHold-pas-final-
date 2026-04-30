@@ -2859,8 +2859,8 @@
     "mission_niveau_5": true
   },
   "battles_won": 3,
-  "towers_placed": 110,
-  "enemies_killed": 558,
+  "towers_placed": 118,
+  "enemies_killed": 559,
   "max_wave_reached": 0,
   "daily_quests_completed": {},
   "last_daily_reset": "2026-04-30",
@@ -2996,8 +2996,8 @@
   ],
   "ch1_m2_done": true,
   "ch2_m0_unlocked": true,
-  "histoire_towers_placed": 22,
+  "histoire_towers_placed": 26,
   "histoire_enemies_killed": 46,
-  "infini_towers_placed": 8,
-  "infini_enemies_killed": 16
+  "infini_towers_placed": 12,
+  "infini_enemies_killed": 17
 }
