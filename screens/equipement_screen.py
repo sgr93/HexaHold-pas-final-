@@ -374,6 +374,20 @@ class EquipementScreen:
         self.save["equipped"] = eqp
         sd.save(self.save)
 
+    def _equip_tower_to_loadout(self, tower_type, slot_idx):
+        """Place une tour dans le slot du loadout indiqué."""
+        if not tower_type or not (0 <= slot_idx < TOWER_SLOT_COUNT):
+            return
+        tl = self.save.get("tower_loadout", list(ALL_TOWER_TYPES[:TOWER_SLOT_COUNT]))
+        if not isinstance(tl, list):
+            tl = list(ALL_TOWER_TYPES[:TOWER_SLOT_COUNT])
+        while len(tl) < TOWER_SLOT_COUNT:
+            tl.append(None)
+        tl = tl[:TOWER_SLOT_COUNT]
+        tl[slot_idx] = tower_type
+        self.save["tower_loadout"] = tl
+        sd.save(self.save)
+
     # ─────────────────────────────────────────────
     # DESSIN PRINCIPAL
     # ─────────────────────────────────────────────
@@ -489,9 +503,9 @@ class EquipementScreen:
                 pygame.draw.rect(screen, theme.GOLD_LIGHT, tr, 2)
             if clicked_bg and tr.collidepoint(mx, my):
                 self.selected_loadout_slot = i
-                if tt:
+                if tt and tt in ALL_TOWER_TYPES:
                     self.popup_open = True
-                    self.popup_item_idx = i
+                    self.popup_item_idx = ALL_TOWER_TYPES.index(tt)
                     self.popup_item_source = "tour"
 
         y += panel_h + 8
@@ -611,7 +625,8 @@ class EquipementScreen:
             elif self.popup_item_source == "tour":
                 tt = ALL_TOWER_TYPES[self.popup_item_idx]
                 lvl = save.get("towers_level", {}).get(tt, 1)
-                item = {"slot": "tour", "tower_type": tt, "rarity": "Commun",
+                item = {"slot": "tour", "tower_type": tt,
+                        "rarity": sd.TOWER_POOL.get(tt, {}).get("rarity", "Commun"),
                         "level": lvl, "name": tt}
             else:
                 item = None
@@ -620,8 +635,13 @@ class EquipementScreen:
                 self._draw_item_popup(screen, item, mx, my, clicked)
 
         # Actions après popup
-        if self.pending_equip_from_popup and self.popup_item_source == "inv" and self.popup_item_idx is not None:
-            self._auto_equip_item(self.popup_item_idx)
+        if self.pending_equip_from_popup and self.popup_item_idx is not None:
+            if self.popup_item_source == "inv":
+                self._auto_equip_item(self.popup_item_idx)
+            elif self.popup_item_source == "tour":
+                if 0 <= self.popup_item_idx < len(ALL_TOWER_TYPES):
+                    tt = ALL_TOWER_TYPES[self.popup_item_idx]
+                    self._equip_tower_to_loadout(tt, self.selected_loadout_slot)
             self.pending_equip_from_popup = False
             self.popup_open = False
             self.popup_item_idx = None

@@ -1,6 +1,6 @@
 {
   "level": 5,
-  "xp": 85,
+  "xp": 98,
   "xp_next": 480,
   "coins": 445445,
   "gems": 98742,
@@ -2813,9 +2813,9 @@
     "arme": 194
   },
   "tower_loadout": [
-    null,
-    null,
-    null
+    "small",
+    "tesla",
+    "frost"
   ],
   "music_volume": 0.8,
   "sound_volume": 0.8,
@@ -2859,14 +2859,11 @@
     "mission_niveau_5": true
   },
   "battles_won": 3,
-  "towers_placed": 80,
-  "enemies_killed": 496,
+  "towers_placed": 110,
+  "enemies_killed": 558,
   "max_wave_reached": 0,
-  "daily_quests_completed": {
-    "quotidienne_combat_1": true,
-    "quotidienne_combat_3": true
-  },
-  "last_daily_reset": "2026-04-29",
+  "daily_quests_completed": {},
+  "last_daily_reset": "2026-04-30",
   "events_completed": {},
   "player_icon": "icone0.png",
   "tower_chest_total_pulls": 555,
@@ -2998,5 +2995,9 @@
     false
   ],
   "ch1_m2_done": true,
-  "ch2_m0_unlocked": true
+  "ch2_m0_unlocked": true,
+  "histoire_towers_placed": 22,
+  "histoire_enemies_killed": 46,
+  "infini_towers_placed": 8,
+  "infini_enemies_killed": 16
 }
