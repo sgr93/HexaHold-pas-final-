@@ -126,15 +126,16 @@ def _draw_icon_picker(screen, save, mx, my, clicked):
     # Ligne dorée
     theme.draw_gold_rule(screen, pop_rect.x + 8, pop_rect.y + TITLE_H, pop_w - 16)
 
-    # Bouton ✕
-    close_r  = 11
-    close_cx = pop_rect.right - close_r - 8
-    close_cy = pop_rect.y + TITLE_H // 2
+    # Bouton ✕ — rond rouge en haut à droite, légèrement en dehors du popup
+    close_r  = 13
+    close_cx = pop_rect.right - close_r + 4
+    close_cy = pop_rect.top   - close_r + 4
     close_rect = pygame.Rect(close_cx - close_r, close_cy - close_r, close_r * 2, close_r * 2)
     close_hov  = close_rect.collidepoint(mx, my)
-    pygame.draw.circle(screen, theme.RED_BADGE if close_hov else (60, 20, 20), (close_cx, close_cy), close_r)
-    pygame.draw.circle(screen, theme.GOLD_DIM, (close_cx, close_cy), close_r, 1)
-    x_lbl = f_ti.render("X", True, theme.CREAM)
+    pygame.draw.circle(screen, (200, 30, 30) if close_hov else (160, 20, 20), (close_cx, close_cy), close_r)
+    pygame.draw.circle(screen, (255, 80, 80) if close_hov else (220, 60, 60), (close_cx, close_cy), close_r, 2)
+    f_x = pygame.font.SysFont("arial", 15, bold=True)
+    x_lbl = f_x.render("X", True, (255, 220, 220))
     screen.blit(x_lbl, (close_cx - x_lbl.get_width() // 2, close_cy - x_lbl.get_height() // 2))
     if clicked and close_rect.collidepoint(mx, my):
         return True
@@ -165,8 +166,9 @@ def _draw_icon_picker(screen, save, mx, my, clicked):
 
         if clicked and cell_rect.collidepoint(mx, my):
             save["player_icon"] = fname
-            import save_data as _sd
+            import core.save_data as _sd
             _sd.save(save)
+            return True  # fermer le picker après sélection
 
     return False
 
@@ -197,6 +199,8 @@ def content_rect(screen: pygame.Surface) -> pygame.Rect:
 # HEADER
 # ============================================================
 def _draw_header(screen, save, mx, my, clicked):
+    global _icon_picker_open, _avatar_rect
+
     w = screen.get_width()
     H = theme.HEADER_H
     rect = pygame.Rect(0, 0, w, H)
@@ -211,10 +215,26 @@ def _draw_header(screen, save, mx, my, clicked):
 
     pad = 14
 
-    # ── Infos joueur (sans jeton avatar) ────────────────────
-    hex_r  = pygame.Rect(0, 0, 0, 0)  # conservé pour compatibilité clic
+    # ── Avatar hexagonal cliquable ───────────────────────────
+    avatar_size = H - 10
+    hex_r = pygame.Rect(pad, (H - avatar_size) // 2, avatar_size, avatar_size)
+    _avatar_rect = hex_r
+    _draw_hex_avatar(screen, hex_r, save)
 
-    tx = pad
+    # Survol : contour doré plus vif pour signaler que c'est cliquable
+    if hex_r.collidepoint(mx, my):
+        import math as _m
+        cx_h, cy_h = hex_r.centerx, hex_r.centery
+        r_h = avatar_size // 2 - 1
+        pts = [(int(cx_h + r_h * _m.cos(_m.radians(60*i-30))),
+                int(cy_h + r_h * _m.sin(_m.radians(60*i-30)))) for i in range(6)]
+        pygame.draw.polygon(screen, theme.GOLD_LIGHT, pts, 2)
+
+    # Clic sur l'avatar = ouvrir/fermer le picker
+    if clicked and hex_r.collidepoint(mx, my):
+        _icon_picker_open = not _icon_picker_open
+
+    tx = hex_r.right + 8
     ty = H//2 - 20
 
     fn  = _f("label")
@@ -259,21 +279,21 @@ def _draw_header(screen, save, mx, my, clicked):
     coins = save.get("coins", 0)
     gems  = save.get("gems", 0)
 
-    fn_num = pygame.font.SysFont("arial", 22)  # ← 20 → 28
+    fn_num = pygame.font.SysFont("arial", 22)
 
     # Gemmes (tout à droite)
     gt = fn_num.render(str(gems), True, theme.PURPLE_GEM)
     gx2 = w - pad - gt.get_width()
     gy = H//2 - gt.get_height()//2
     screen.blit(gt, (gx2, gy))
-    theme.draw_gem_icon(screen, gx2 - 28, gy + 1, 22)  # ← 26→34, 20→28
+    theme.draw_gem_icon(screen, gx2 - 28, gy + 1, 22)
 
     # Pièces (à gauche des gemmes)
     ct = fn_num.render(str(coins), True, theme.GOLD_LIGHT)
-    cx2 = gx2 - 34 - 24 - ct.get_width()  # ← 26→34, 20→24
+    cx2 = gx2 - 34 - 24 - ct.get_width()
     cy = H//2 - ct.get_height()//2
     screen.blit(ct, (cx2, cy))
-    theme.draw_coin_icon(screen, cx2 - 28, cy + 1, 22)  # ← 26→34, 20→28
+    theme.draw_coin_icon(screen, cx2 - 28, cy + 1, 22)
 
     return None
 
