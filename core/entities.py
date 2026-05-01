@@ -355,7 +355,8 @@ class Enemy:
     """
 
     def __init__(self, hp=20, speed=0.5, radius=10,
-                 is_boss=False, is_fast=False, is_final_boss=False, is_chapter_boss=False):
+                 is_boss=False, is_fast=False, is_final_boss=False, is_chapter_boss=False,
+                 chapter_idx=None):
         self.hp            = hp
         self.max_hp        = hp
         self.speed         = speed
@@ -390,7 +391,10 @@ class Enemy:
         self._dying      = False
 
         if is_chapter_boss:
-            asset_type = 'boss_chapter'
+            if chapter_idx == 5:
+                asset_type = 'boss_final'
+            else:
+                asset_type = 'boss_chapter'
         elif is_final_boss:
             asset_type = 'boss_final'
         elif is_boss:

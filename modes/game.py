@@ -1432,7 +1432,8 @@ def main():
                         boss_hp = int((1000 + 200 * (wn - 1)) * gs["enemy_hp_mult"])
                         gs_enemies.append(Enemy(hp=boss_hp, speed=0.25, radius=72,
                                                 is_boss=True, is_final_boss=True,
-                                                is_chapter_boss=True))
+                                                is_chapter_boss=True,
+                                                chapter_idx=mc_ctx.get("chapter") if mc_ctx else None))
                     else:
                         # Boss de fin de mission normale
                         boss_hp = int((500 + 100 * (wn - 1)) * gs["enemy_hp_mult"])
