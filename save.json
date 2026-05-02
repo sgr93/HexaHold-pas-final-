@@ -1,9 +1,9 @@
 {
-  "level": 13,
-  "xp": 30,
-  "xp_next": 240,
-  "coins": 9150,
-  "gems": 201,
+  "level": 14,
+  "xp": 340,
+  "xp_next": 480,
+  "coins": 9900,
+  "gems": 0,
   "inventory_equipment": [
     {
       "slot": "bottes",
@@ -3154,6 +3154,426 @@
         120,
         255
       ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Rare",
+      "stat": "damage",
+      "value": 6,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Épique",
+      "stat": "damage",
+      "value": 11,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Légendaire",
+      "stat": "speed",
+      "value": 1.8,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        255,
+        180,
+        0
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Légendaire",
+      "stat": "damage",
+      "value": 20,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        255,
+        180,
+        0
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Épique",
+      "stat": "max_hp",
+      "value": 35,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Légendaire",
+      "stat": "damage",
+      "value": 20,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        255,
+        180,
+        0
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Rare",
+      "stat": "max_hp",
+      "value": 20,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Commun",
+      "stat": "max_hp",
+      "value": 10,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Épique",
+      "stat": "speed",
+      "value": 1.0,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Légendaire",
+      "stat": "speed",
+      "value": 1.8,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        255,
+        180,
+        0
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Commun",
+      "stat": "max_hp",
+      "value": 10,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Légendaire",
+      "stat": "attack_speed",
+      "value": 18,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        255,
+        180,
+        0
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Mythique",
+      "stat": "speed",
+      "value": 3.0,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        255,
+        0,
+        255
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Légendaire",
+      "stat": "attack_speed",
+      "value": 18,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        255,
+        180,
+        0
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Mythique",
+      "stat": "attack_speed",
+      "value": 30,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        255,
+        0,
+        255
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Épique",
+      "stat": "attack_speed",
+      "value": 10,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Épique",
+      "stat": "attack_speed",
+      "value": 10,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Mythique",
+      "stat": "max_hp",
+      "value": 100,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        255,
+        0,
+        255
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Épique",
+      "stat": "speed",
+      "value": 1.0,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Rare",
+      "stat": "damage",
+      "value": 6,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Rare",
+      "stat": "speed",
+      "value": 0.6,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Légendaire",
+      "stat": "max_hp",
+      "value": 60,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        255,
+        180,
+        0
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Légendaire",
+      "stat": "damage",
+      "value": 20,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        255,
+        180,
+        0
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Commun",
+      "stat": "speed",
+      "value": 0.3,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Rare",
+      "stat": "attack_speed",
+      "value": 6,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Épique",
+      "stat": "attack_speed",
+      "value": 10,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Épique",
+      "stat": "speed",
+      "value": 1.0,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Mythique",
+      "stat": "speed",
+      "value": 3.0,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        255,
+        0,
+        255
+      ]
+    },
+    {
+      "slot": "veste",
+      "rarity": "Épique",
+      "stat": "attack_speed",
+      "value": 10,
+      "label": "Vitesse attaque",
+      "name": "Veste de garnison",
+      "image": "veste.png",
+      "color": [
+        160,
+        60,
+        255
+      ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Rare",
+      "stat": "damage",
+      "value": 6,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
     }
   ],
   "equipped": {
@@ -3163,14 +3583,14 @@
     "arme": 105
   },
   "tower_loadout": [
-    "cannon",
-    "laser",
-    "sniper"
+    "trap",
+    "small",
+    "tesla"
   ],
   "music_volume": 0.8,
   "sound_volume": 0.8,
   "fullscreen": false,
-  "skill_points": 15,
+  "skill_points": 4,
   "skills_unlocked": {
     "force_1": false,
     "force_2": false,
@@ -3201,19 +3621,28 @@
     "mission_niveau_5": true,
     "mission_niveau_10": true,
     "profil_niveau_10": true,
-    "profil_niveau_5": true
+    "profil_niveau_5": true,
+    "quotidienne_combat_1": true,
+    "mission_3_combats": true,
+    "mission_premiere_tour": true,
+    "mission_5_combats": true,
+    "mission_10_tours": true,
+    "event_guerre_2": true,
+    "event_guerre_1": true
   },
-  "battles_won": 0,
-  "towers_placed": 0,
-  "enemies_killed": 0,
+  "battles_won": 5,
+  "towers_placed": 49,
+  "enemies_killed": 420,
   "max_wave_reached": 0,
-  "daily_quests_completed": {},
-  "last_daily_reset": "2026-05-01",
+  "daily_quests_completed": {
+    "quotidienne_combat_1": true
+  },
+  "last_daily_reset": "2026-05-02",
   "events_completed": {},
-  "player_icon": "icone2.png",
-  "tower_chest_total_pulls": 240,
+  "player_icon": "icone0.png",
+  "tower_chest_total_pulls": 415,
   "tower_chest_pity_epic": 0,
-  "tower_chest_pity_legend": 10,
+  "tower_chest_pity_legend": 0,
   "towers_unlocked": {
     "small": true,
     "big": true,
@@ -3239,20 +3668,20 @@
     "laser": 1
   },
   "towers_copies": {
-    "small": 27,
-    "big": 34,
-    "trap": 27,
-    "mine": 39,
-    "sniper": 10,
-    "mortar": 12,
-    "frost": 28,
-    "tesla": 11,
-    "cannon": 3,
-    "laser": 6
+    "small": 31,
+    "big": 39,
+    "trap": 33,
+    "mine": 66,
+    "sniper": 24,
+    "mortar": 22,
+    "frost": 59,
+    "tesla": 20,
+    "cannon": 19,
+    "laser": 20
   },
-  "coin_chest_pulls": 225,
-  "coin_chest_pity_epic": 2,
-  "coin_chest_pity_legend": 3,
+  "coin_chest_pulls": 255,
+  "coin_chest_pity_epic": 1,
+  "coin_chest_pity_legend": 7,
   "histoire_unlocked": [
     0,
     1,
@@ -3269,38 +3698,88 @@
     12,
     13
   ],
-  "histoire_completed": [],
+  "histoire_completed": [
+    0,
+    1,
+    2
+  ],
   "heroes": {
     "eren": {
-      "copies": 20,
-      "level": 10
+      "copies": 29,
+      "level": 15
     },
     "armin": {
-      "copies": 5,
-      "level": 3
+      "copies": 12,
+      "level": 6
     },
     "sasha": {
-      "copies": 7,
-      "level": 4
+      "copies": 15,
+      "level": 8
     },
     "levi": {
-      "copies": 3,
-      "level": 2
+      "copies": 14,
+      "level": 7
     },
     "mikasa": {
-      "copies": 2,
-      "level": 1
+      "copies": 6,
+      "level": 3
     }
   },
-  "selected_hero": "eren",
+  "selected_hero": "armin",
   "pending_skillpoint_anim": false,
   "skill_tree_seen": true,
   "skill_tree_nodes": {
-    "eren": [
+    "mikasa": [
       0,
       1,
-      2
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
     ]
   },
-  "skill_tree_locked": "eren"
+  "skill_tree_locked": "mikasa",
+  "tree_tower_damage_pct": 0.0,
+  "tree_tower_range_pct": 0.0,
+  "tree_tower_cd_pct": 0.0,
+  "tree_trap_damage_pct": 0.0,
+  "tree_trap_cd_pct": 0.0,
+  "tree_coin_bonus_pct": 0.0,
+  "tree_xp_bonus_pct": 0.0,
+  "infini_towers_placed": 1,
+  "infini_enemies_killed": 5,
+  "histoire_towers_placed": 48,
+  "histoire_enemies_killed": 415,
+  "ch1_m0_stars": 3,
+  "ch1_m0_objectives": [
+    true,
+    true,
+    true
+  ],
+  "ch1_m0_done": true,
+  "ch1_m1_unlocked": true,
+  "histoire_battles_won": 5,
+  "ch1_m1_stars": 2,
+  "ch1_m1_objectives": [
+    true,
+    true,
+    false
+  ],
+  "ch1_m1_done": true,
+  "ch1_m2_unlocked": true,
+  "ch1_m2_stars": 2,
+  "ch1_m2_objectives": [
+    true,
+    false,
+    true
+  ],
+  "ch1_m2_done": true,
+  "ch2_m0_unlocked": true,
+  "difficulty_completed": [
+    1
+  ]
 }

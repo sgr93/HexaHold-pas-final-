@@ -737,21 +737,23 @@ def _give_infinite_rewards(gs, wave_number, save):
     })
 
     # Pieces
-    loot["coins"] += 20 + wn * 8
+    loot["coins"] += 20 + wn * 16
 
     # Gemmes
-    if wn >= 36:
-        gems = _rnd.randint(3, 6)
+    if wn >= 31:
+        gems = _rnd.randint(25, 100)
     elif wn >= 21:
-        gems = _rnd.randint(1, 3)
+        gems = _rnd.randint(10, 25)
     elif wn >= 11:
-        gems = 1 if _rnd.random() < 0.6 else 0
+        gems = _rnd.randint(5,10)
+    elif wn >= 5:
+        gems = _rnd.randint(1,3)
     else:
         gems = 0
     loot["gems"] += gems
 
     # Equipement
-    if wn >= 36:
+    if wn >= 31:
         rarities = ["Epique", "Legendaire", "Mythique"]
         weights  = [20, 45, 35]
     elif wn >= 21:
@@ -1432,7 +1434,8 @@ def main():
                         boss_hp = int((1000 + 200 * (wn - 1)) * gs["enemy_hp_mult"])
                         gs_enemies.append(Enemy(hp=boss_hp, speed=0.25, radius=72,
                                                 is_boss=True, is_final_boss=True,
-                                                is_chapter_boss=True))
+                                                is_chapter_boss=True,
+                                                chapter_idx=mc_ctx.get("chapter") if mc_ctx else None))
                     else:
                         # Boss de fin de mission normale
                         boss_hp = int((500 + 100 * (wn - 1)) * gs["enemy_hp_mult"])
