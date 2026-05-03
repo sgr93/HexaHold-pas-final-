@@ -696,7 +696,7 @@ def draw_levelup_banner(screen, big_font, font, choices, mouse_pos, clicked):
     screen.blit(overlay, (0, 0))
 
     # Titre
-    title_surf = big_font.render("✦  CHOIX DE TOUR  ✦", True, (255, 220, 60))
+    title_surf = big_font.render(" CHOIX DE TOUR ", True, (255, 220, 60))
     screen.blit(title_surf, (w // 2 - title_surf.get_width() // 2, h // 5 - 20))
 
     sub = font.render("Choisissez la tour que vous voulez ajouter à votre inventaire", True, (200, 200, 200))
