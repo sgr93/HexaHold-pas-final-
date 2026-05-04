@@ -30,7 +30,7 @@ QUETES = {
         "section": "quotidiennes",
         "xp": 15,
         "pieces": 30,
-        "gemmes": 0,
+        "gemmes": 2,
         "condition": lambda save, gs: save.get("daily_quests_completed", {}).get("quotidienne_combat_1", False)
     },
     "quotidienne_combat_3": {
@@ -39,7 +39,7 @@ QUETES = {
         "section": "quotidiennes",
         "xp": 25,
         "pieces": 75,
-        "gemmes": 0,
+        "gemmes": 6,
         "condition": lambda save, gs: save.get("daily_quests_completed", {}).get("quotidienne_combat_3", False)
     },
     "quotidienne_niveau": {
@@ -48,7 +48,7 @@ QUETES = {
         "section": "quotidiennes",
         "xp": 20,
         "pieces": 50,
-        "gemmes": 0,
+        "gemmes": 2,
         "condition": lambda save, gs: save.get("daily_quests_completed", {}).get("quotidienne_niveau", False)
     },
 
@@ -61,7 +61,7 @@ QUETES = {
         "section": "missions",
         "xp": 50,
         "pieces": 200,
-        "gemmes": 0,
+        "gemmes": 15,
         "condition": lambda save, game_state: save.get("level", 1) >= 5
     },
     "mission_niveau_10": {
@@ -70,7 +70,7 @@ QUETES = {
         "section": "missions",
         "xp": 100,
         "pieces": 400,
-        "gemmes": 1,
+        "gemmes": 35,
         "condition": lambda save, game_state: save.get("level", 1) >= 10
     },
     "mission_3_combats": {
@@ -79,7 +79,7 @@ QUETES = {
         "section": "missions",
         "xp": 40,
         "pieces": 150,
-        "gemmes": 0,
+        "gemmes": 10,
         "condition": lambda save, game_state: save.get("battles_won", 0) >= 3
     },
     "mission_5_combats": {
@@ -88,7 +88,7 @@ QUETES = {
         "section": "missions",
         "xp": 70,
         "pieces": 300,
-        "gemmes": 1,
+        "gemmes": 25,
         "condition": lambda save, game_state: save.get("battles_won", 0) >= 5
     },
     "mission_premiere_tour": {
@@ -97,7 +97,7 @@ QUETES = {
         "section": "missions",
         "xp": 10,
         "pieces": 50,
-        "gemmes": 0,
+        "gemmes": 2,
         "condition": lambda save, game_state: save.get("towers_placed", 0) >= 1
     },
     "mission_10_tours": {
@@ -106,7 +106,7 @@ QUETES = {
         "section": "missions",
         "xp": 60,
         "pieces": 250,
-        "gemmes": 1,
+        "gemmes": 15,
         "condition": lambda save, game_state: save.get("towers_placed", 0) >= 10
     },
 
@@ -119,7 +119,7 @@ QUETES = {
         "section": "evenements",
         "xp": 30,
         "pieces": 100,
-        "gemmes": 0,
+        "gemmes": 2,
         "condition": lambda save, game_state: save.get("events_completed", {}).get("event_histoire_1", False)
     },
     "event_histoire_2": {
@@ -128,7 +128,7 @@ QUETES = {
         "section": "evenements",
         "xp": 50,
         "pieces": 200,
-        "gemmes": 1,
+        "gemmes": 10,
         "condition": lambda save, game_state: save.get("events_completed", {}).get("event_histoire_2", False)
     },
 
@@ -141,7 +141,7 @@ QUETES = {
         "section": "evenements",
         "xp": 40,
         "pieces": 150,
-        "gemmes": 0,
+        "gemmes": 15,
         "condition": lambda save, game_state: save.get("enemies_killed", 0) >= 50
     },
     "event_guerre_2": {
@@ -150,7 +150,7 @@ QUETES = {
         "section": "evenements",
         "xp": 80,
         "pieces": 400,
-        "gemmes": 2,
+        "gemmes": 35,
         "condition": lambda save, game_state: save.get("enemies_killed", 0) >= 200
     },
     "event_guerre_3": {
@@ -159,7 +159,7 @@ QUETES = {
         "section": "evenements",
         "xp": 100,
         "pieces": 500,
-        "gemmes": 2,
+        "gemmes": 50,
         "condition": lambda save, game_state: save.get("events_completed", {}).get("event_guerre_3", False)
     },
 
@@ -172,7 +172,7 @@ QUETES = {
         "section": "evenements",
         "xp": 60,
         "pieces": 300,
-        "gemmes": 1,
+        "gemmes": 15,
         "condition": lambda save, game_state: save.get("max_wave_reached", 0) >= 10
     },
     "event_infini_2": {
@@ -181,7 +181,7 @@ QUETES = {
         "section": "evenements",
         "xp": 120,
         "pieces": 600,
-        "gemmes": 3,
+        "gemmes": 60,
         "condition": lambda save, game_state: save.get("max_wave_reached", 0) >= 30
     },
     "event_infini_3": {
@@ -190,7 +190,7 @@ QUETES = {
         "section": "evenements",
         "xp": 200,
         "pieces": 1000,
-        "gemmes": 5,
+        "gemmes": 100,
         "condition": lambda save, game_state: save.get("max_wave_reached", 0) >= 50
     },
 
@@ -203,7 +203,7 @@ QUETES = {
         "section": "missions",
         "xp": 30,
         "pieces": 100,
-        "gemmes": 5,
+        "gemmes": 15,
         "condition": lambda save, game_state: save.get("level", 1) >= 5
     },
     "profil_niveau_10": {
@@ -212,7 +212,7 @@ QUETES = {
         "section": "missions",
         "xp": 60,
         "pieces": 200,
-        "gemmes": 15,
+        "gemmes": 25,
         "condition": lambda save, game_state: save.get("level", 1) >= 10
     },
     "profil_niveau_20": {
@@ -221,7 +221,7 @@ QUETES = {
         "section": "missions",
         "xp": 100,
         "pieces": 400,
-        "gemmes": 30,
+        "gemmes": 50,
         "condition": lambda save, game_state: save.get("level", 1) >= 20
     },
 
@@ -234,7 +234,7 @@ QUETES = {
         "section": "evenements",
         "xp": 80,
         "pieces": 300,
-        "gemmes": 20,
+        "gemmes": 50,
         "condition": lambda save, game_state: all(
             save.get(f"ch1_m{i}_stars", 0) == 3 for i in range(3)
         )
@@ -245,7 +245,7 @@ QUETES = {
         "section": "evenements",
         "xp": 120,
         "pieces": 500,
-        "gemmes": 35,
+        "gemmes": 100,
         "condition": lambda save, game_state: all(
             save.get(f"ch2_m{i}_stars", 0) == 3 for i in range(3)
         )
@@ -256,7 +256,7 @@ QUETES = {
         "section": "evenements",
         "xp": 160,
         "pieces": 700,
-        "gemmes": 50,
+        "gemmes": 200,
         "condition": lambda save, game_state: all(
             save.get(f"ch3_m{i}_stars", 0) == 3 for i in range(3)
         )
@@ -267,7 +267,7 @@ QUETES = {
         "section": "evenements",
         "xp": 200,
         "pieces": 1000,
-        "gemmes": 75,
+        "gemmes": 500,
         "condition": lambda save, game_state: all(
             save.get(f"ch4_m{i}_stars", 0) == 3 for i in range(3)
         )
@@ -278,7 +278,7 @@ QUETES = {
         "section": "evenements",
         "xp": 300,
         "pieces": 2000,
-        "gemmes": 150,
+        "gemmes": 1000,
         "condition": lambda save, game_state: all(
             save.get(f"ch5_m{i}_stars", 0) == 3 for i in range(3)
         )
@@ -293,7 +293,7 @@ QUETES = {
         "section": "quotidiennes",
         "xp": 20,
         "pieces": 50,
-        "gemmes": 2,
+        "gemmes": 25,
         "condition": lambda save, gs: save.get("daily_quests_completed", {}).get("quotidienne_gemme", False)
     },
     "quotidienne_enemies_50": {
@@ -302,7 +302,7 @@ QUETES = {
         "section": "quotidiennes",
         "xp": 30,
         "pieces": 80,
-        "gemmes": 3,
+        "gemmes": 50,
         "condition": lambda save, gs: save.get("daily_quests_completed", {}).get("quotidienne_enemies_50", False)
     },
 }

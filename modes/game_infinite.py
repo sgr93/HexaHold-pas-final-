@@ -28,19 +28,21 @@ def _give_infinite_rewards(gs, wave_number, save):
         "coins": 0, "gems": 0, "items": []
     })
 
-    loot["coins"] += 20 + wn * 8
+    loot["coins"] += 20 + wn * 16
 
-    if wn >= 36:
-        gems = _rnd.randint(3, 6)
+    if wn >= 31:
+        gems = _rnd.randint(25, 100)
     elif wn >= 21:
-        gems = _rnd.randint(1, 3)
+        gems = _rnd.randint(10, 25)
     elif wn >= 11:
-        gems = 1 if _rnd.random() < 0.6 else 0
+        gems = _rnd.randint(5, 10)
+    elif wn >= 5:
+        gems = _rnd.randint(1, 3)
     else:
         gems = 0
     loot["gems"] += gems
 
-    if wn >= 36:
+    if wn >= 31:
         rarities = ["Epique", "Legendaire", "Mythique"]
         weights = [20, 45, 35]
     elif wn >= 21:
