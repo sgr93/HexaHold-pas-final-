@@ -4,10 +4,10 @@ screens/accueil_screen.py
 
 import math
 import pygame
-import theme
-import heroes as hm
-import save_data as sd
-from config import DIFFICULTY_LEVELS
+import ui.theme as theme
+import core.heroes as hm
+import core.save_data as sd
+from core.config import DIFFICULTY_LEVELS
 
 DIFF_COLORS = {
     1: (80,  200, 100),

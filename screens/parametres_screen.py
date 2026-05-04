@@ -6,9 +6,9 @@ Le toggle plein écran a été retiré.
 """
 
 import pygame
-import theme
-import save_data as sd
-import save_data as _sd
+import ui.theme as theme
+import core.save_data as sd
+import core.save_data as _sd
 import os as _os
 
 

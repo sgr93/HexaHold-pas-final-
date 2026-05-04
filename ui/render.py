@@ -29,10 +29,8 @@ Chaque tileset peut définir :
 import os
 import random
 import pygame
-from config import (
-    GRID_WIDTH, GRID_HEIGHT, INTERFACE_WIDTH,
-    COLS, ROWS, GRID_SIZE,
-    DISPLAY_FLAGS, WINDOW_CAPTION, BACKGROUND_COLOR
+from core.config import (
+    GRID_WIDTH, GRID_HEIGHT, INTERFACE_WIDTH, COLS, ROWS, GRID_SIZE, DISPLAY_FLAGS, WINDOW_CAPTION, BACKGROUND_COLOR,
 )
 
 # ─────────────────────────────────────────────────────────────────

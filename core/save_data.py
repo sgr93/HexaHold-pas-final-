@@ -362,5 +362,9 @@ def save(data):
 
 
 # Modules freres : enregistres comme attributs apres re-export
-from save_chests import *  # noqa: F401,F403
-from save_skills import *  # noqa: F401,F403
+from core.save_chests import *
+from core.save_chests import (
+    _try_drop_hero, _get_tower_chest_level, _get_tower_chest_progress, _ensure_tower_data, _try_drop_hero_for_tower_chest,
+)
+from core.save_skills import *
+from core.save_skills import _NODE_BONUSES

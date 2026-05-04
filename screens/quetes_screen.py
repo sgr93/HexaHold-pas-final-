@@ -6,9 +6,9 @@ Sections : Quotidiennes | Missions | Événements
 """
 
 import pygame
-import theme
-import quetes as qm
-import save_data as sd
+import ui.theme as theme
+import core.quetes as qm
+import core.save_data as sd
 
 
 SECTIONS = [

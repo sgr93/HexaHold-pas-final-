@@ -5,12 +5,11 @@ Composants UI du mode histoire : Popup, ChapterPoint, Cinematic, Notification.
 """
 import math
 import pygame
-from histoire_data import (
-    CHAPTERS,
-    C_BG, C_GOLD, C_GOLD2, C_GOLD3, C_PARCHMENT, C_PANEL, C_MUTED,
+from modes.histoire_data import (
+    CHAPTERS, C_BG, C_GOLD, C_GOLD2, C_GOLD3, C_PARCHMENT, C_PANEL, C_MUTED,
 )
-from histoire_data import is_mission_unlocked, get_mission_best_stars
-from ui import draw_star
+from modes.histoire_data import is_mission_unlocked, get_mission_best_stars
+from ui.ui import draw_star
 
 
 def _is_mission_unlocked(save, chapter_idx, mission_idx):

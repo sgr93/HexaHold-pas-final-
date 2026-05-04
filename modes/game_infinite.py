@@ -7,14 +7,14 @@ Bouton ultime extrait egalement ici.
 import math as _math
 import random
 import pygame
-import save_data as sd
-from config import GRID_WIDTH, GRID_HEIGHT, XP_GROWTH_FACTOR
-from game_passives import _get_ultimate_duration, _apply_ultimate_start
+import core.save_data as sd
+from core.config import GRID_WIDTH, GRID_HEIGHT, XP_GROWTH_FACTOR
+from modes.game_passives import _get_ultimate_duration, _apply_ultimate_start
 import random as _rnd
-from config import EQUIPMENT_SLOTS, EQUIPMENT_STATS, RARITY_COLORS
+from core.config import EQUIPMENT_SLOTS, EQUIPMENT_STATS, RARITY_COLORS
 import random as _r2
-import heroes as _hm
-import theme as _theme
+import core.heroes as _hm
+import ui.theme as _theme
 
 
 def _give_infinite_rewards(gs, wave_number, save):

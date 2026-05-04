@@ -14,11 +14,11 @@ Usage dans chaque écran :
 import os
 import math
 import pygame
-import theme
+import ui.theme as theme
 import os as _os
 import core.save_data as _sd
 import math as _m
-import theme as _theme
+import ui.theme as _theme
 
 # ============================================================
 # ONGLETS

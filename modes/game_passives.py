@@ -5,10 +5,10 @@ Passifs heros et gestion de l'ultime, extraits de game.py.
 """
 import math
 import pygame
-from config import GRID_SIZE
+from core.config import GRID_SIZE
 import random as _rnd
-import heroes as _hm
-from config import ALL_TOWER_TYPES
+import core.heroes as _hm
+from core.config import ALL_TOWER_TYPES
 
 
 def _apply_eren_passive(gs, towers, player):

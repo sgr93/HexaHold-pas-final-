@@ -8,7 +8,7 @@ et LEVEL-UP BANNER (choix de tour en pause).
 import os
 import random
 import pygame
-from config import ALL_TOWER_TYPES, GRID_WIDTH, GRID_HEIGHT, GRID_SIZE, COLS, ROWS, INTERFACE_WIDTH
+from core.config import ALL_TOWER_TYPES, GRID_WIDTH, GRID_HEIGHT, GRID_SIZE, COLS, ROWS, INTERFACE_WIDTH
 
 # ============================================================
 # STAR SPRITE HELPER
@@ -567,9 +567,10 @@ def draw_skillpoint_anim(screen, timer, total=180):
     # Blit final — au-dessus de tout (appelé juste avant display.flip)
     screen.blit(overlay, (card_x, anim_y))
 # Modules freres : re-export pour preserver l'API publique
-from ui_screens import *  # noqa: F401,F403
-from ui_mission import *  # noqa: F401,F403
+from ui.ui_screens import *
+from ui.ui_screens import _pause_confirm_pending, _draw_confirm_popup
+from ui.ui_mission import *
 
 # Imports remontes en haut du fichier
-from config import GRID_WIDTH, GRID_HEIGHT
-from entities import get_tower_preview
+from core.config import GRID_WIDTH, GRID_HEIGHT
+from core.entities import get_tower_preview

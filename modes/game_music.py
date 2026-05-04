@@ -5,7 +5,7 @@ Helpers de lecture musicale extraits de game.py.
 """
 import os
 import pygame
-from config import (
+from core.config import (
     MUSIC_PATH, MUSIC_TRACK_TITLE, MUSIC_TRACK_MENU, MUSIC_TRACK_GAME,
 )
 

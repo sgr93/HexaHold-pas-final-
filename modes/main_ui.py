@@ -10,18 +10,18 @@ Retourne :
 """
 
 import pygame
-import save_data as sd
-import theme
-import hud
-from histoire import run_histoire
-from ui import draw_skillpoint_anim
+import core.save_data as sd
+import ui.theme as theme
+import ui.hud as hud
+from modes.histoire import run_histoire
+from ui.ui import draw_skillpoint_anim
 from screens.accueil_screen import AccueilScreen
 from screens.quetes_screen import QuetesScreen
 from screens.equipement_screen import EquipementScreen
 from screens.gacha_screen import GachaScreen
 from screens.talents_screen import TalentsScreen
 from screens.parametres_screen import ParametresScreen
-import quetes as qm
+import core.quetes as qm
 
 
 def run_main_ui(screen: pygame.Surface,

@@ -11,8 +11,8 @@ Gère la grille du jeu :
 
 import heapq
 import math
-from config import COLS, ROWS, GRID_SIZE, END
-from entities import Tower  # Trap intentionnellement absent — FIX-GRID-1
+from core.config import COLS, ROWS, GRID_SIZE, END
+from core.entities import Tower
 
 
 class Grid:

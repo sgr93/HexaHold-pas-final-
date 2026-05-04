@@ -13,8 +13,8 @@ Skill Tree SNK — Eren, Mikasa, Erwin
 import os
 import math
 import pygame
-import theme
-import save_data as sd
+import ui.theme as theme
+import core.save_data as sd
 
 # ============================================================
 # COÛTS CROISSANTS — 15 points pour finir un arbre

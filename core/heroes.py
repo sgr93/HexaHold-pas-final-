@@ -11,7 +11,7 @@ Montee en niveau (doublons) :
 """
 
 import os
-import theme
+import ui.theme as theme
 
 # ============================================================
 # DEFINITION DES HEROS

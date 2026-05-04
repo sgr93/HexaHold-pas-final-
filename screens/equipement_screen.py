@@ -11,10 +11,10 @@ screens/equipement_screen.py
 
 import os
 import pygame
-import theme
-import save_data as sd
-from config import ALL_TOWER_TYPES, TOWER_SLOT_COUNT, EQUIPMENT_STATS
-from ui import ITEM_LABELS
+import ui.theme as theme
+import core.save_data as sd
+from core.config import ALL_TOWER_TYPES, TOWER_SLOT_COUNT, EQUIPMENT_STATS
+from ui.ui import ITEM_LABELS
 
 # Slots autour du perso
 SLOTS_LEFT  = ["cape", "veste"]

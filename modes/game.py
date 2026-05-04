@@ -8,66 +8,39 @@ import os
 import time
 import random
 import pygame
-from config import (
-    COLS, ROWS, GRID_SIZE,
-    GRID_WIDTH, GRID_HEIGHT,
-    START, END,
-    SPAWN_ZONE_X, SPAWN_ZONE_Y, SPAWN_ZONE_WIDTH, SPAWN_ZONE_HEIGHT,
-    LEVEL_START, XP_START, XP_TO_NEXT_LVL_START, XP_GROWTH_FACTOR,
-    XP_REWARD_NORMAL, XP_REWARD_BOSS,
-    WAVE_NUMBER_START, WAVE_DURATION, BOSS_DURATION,
-    DANGER_WEIGHT,
-    BACKGROUND_COLOR,
-    DIFFICULTY_LEVELS, PLAYER_HP_REGEN,
-    MUSIC_PATH, MUSIC_TRACK_TITLE, MUSIC_TRACK_MENU, MUSIC_TRACK_GAME,
-    INV_BAR_HEIGHT,
-    ALL_TOWER_TYPES, TOWER_SLOT_COUNT, TOWER_MAX_LEVEL,
+from core.config import (
+    COLS, ROWS, GRID_SIZE, GRID_WIDTH, GRID_HEIGHT, START, END, SPAWN_ZONE_X, SPAWN_ZONE_Y, SPAWN_ZONE_WIDTH, SPAWN_ZONE_HEIGHT, LEVEL_START, XP_START, XP_TO_NEXT_LVL_START, XP_GROWTH_FACTOR, XP_REWARD_NORMAL, XP_REWARD_BOSS, WAVE_NUMBER_START, WAVE_DURATION, BOSS_DURATION, DANGER_WEIGHT, BACKGROUND_COLOR, DIFFICULTY_LEVELS, PLAYER_HP_REGEN, MUSIC_PATH, MUSIC_TRACK_TITLE, MUSIC_TRACK_MENU, MUSIC_TRACK_GAME, INV_BAR_HEIGHT, ALL_TOWER_TYPES, TOWER_SLOT_COUNT, TOWER_MAX_LEVEL,
 )
-import render
-from render import GridCache
-from grid import Grid
-from entities import Player, Goal, Enemy, Tower, Trap, Projectile
-from ui import (
-    draw_hud, draw_ghost,
-    draw_inventory,
-    draw_pause_screen, draw_gameover_screen, draw_start_hint,
-    draw_levelup_banner,
-    draw_toasts,
-    draw_pause_button,
-    draw_mission_objectives,
-    draw_mission_complete_screen,
-    draw_mission_failed_screen,
-    draw_skillpoint_anim,
+import ui.render as render
+from ui.render import GridCache
+from core.grid import Grid
+from core.entities import Player, Goal, Enemy, Tower, Trap, Projectile
+from ui.ui import (
+    draw_hud, draw_ghost, draw_inventory, draw_pause_screen, draw_gameover_screen, draw_start_hint, draw_levelup_banner, draw_toasts, draw_pause_button, draw_mission_objectives, draw_mission_complete_screen, draw_mission_failed_screen, draw_skillpoint_anim,
 )
-from walls import apply_map_walls
-import save_data as sd
-import quetes
-import histoire as hist_mod
-from histoire import run_histoire
-from game_towers import (
-    make_can_place, _is_matching_upgrade_target, cells_for_item,
-    place_tower_on_grid, apply_tower_bonuses, apply_all_tower_bonuses,
+from core.walls import apply_map_walls
+import core.save_data as sd
+import core.quetes as quetes
+import modes.histoire as hist_mod
+from modes.histoire import run_histoire
+from modes.game_towers import (
+    make_can_place, _is_matching_upgrade_target, cells_for_item, place_tower_on_grid, apply_tower_bonuses, apply_all_tower_bonuses,
 )
-from game_music import (
-    _find_music_file, play_music,
-    play_title_music, play_menu_music, play_game_music,
+from modes.game_music import (
+    _find_music_file, play_music, play_title_music, play_menu_music, play_game_music,
 )
-from game_passives import (
-    _apply_eren_passive, _apply_armin_passive_on_build,
-    _apply_sasha_passive_on_wave, _apply_levi_passive_on_upgrade,
-    _apply_mikasa_passive, _draw_eren_passive_zone,
-    _get_ultimate_duration, _apply_ultimate_start, _apply_ultimate_end,
+from modes.game_passives import (
+    _apply_eren_passive, _apply_armin_passive_on_build, _apply_sasha_passive_on_wave, _apply_levi_passive_on_upgrade, _apply_mikasa_passive, _draw_eren_passive_zone, _get_ultimate_duration, _apply_ultimate_start, _apply_ultimate_end,
 )
-from game_infinite import (
-    _give_infinite_rewards, _collect_infinite_loot,
-    _draw_infinite_loot_popup, _draw_ultimate_button,
+from modes.game_infinite import (
+    _give_infinite_rewards, _collect_infinite_loot, _draw_infinite_loot_popup, _draw_ultimate_button,
 )
-import heroes as _hm
+import core.heroes as _hm
 import re
-from config import ALL_TOWER_TYPES
-from title_screen import run_title_screen
-from main_ui import run_main_ui
-from ui import draw_levelup_banner
+from core.config import ALL_TOWER_TYPES
+from modes.title_screen import run_title_screen
+from modes.main_ui import run_main_ui
+from ui.ui import draw_levelup_banner
 
 # Seuils de sauvegarde : on ne sauvegarde qu'en fin de vague, pas à chaque kill
 _DIRTY_SAVE = False   # True = save nécessaire, effectuée en fin de frame sûre

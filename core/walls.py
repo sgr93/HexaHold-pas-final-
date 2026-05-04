@@ -40,7 +40,7 @@ Exemple :
 Si une mission n'a pas de clé dans MISSION_MAPS, la map None (défaut) est utilisée.
 """
 
-from config import COLS, ROWS, END
+from core.config import COLS, ROWS, END
 
 
 # ════════════════════════════════════════════════════════════════

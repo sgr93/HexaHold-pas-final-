@@ -4,7 +4,7 @@ save_skills.py
 Arbre de competences : points, deblocage, bonus appliques au joueur.
 Extrait de save_data.py.
 """
-import save_data as sd
+import core.save_data as sd
 
 def add_skill_points(save_data_dict, amount):
     """Ajoute des points de compétence au joueur."""

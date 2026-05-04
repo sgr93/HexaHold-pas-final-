@@ -13,22 +13,14 @@ Appel depuis menu_screen.py :
 
 import pygame
 import math
-import save_data as sd
-from histoire_data import (
-    CHAPTERS, MAP_LABELS,
-    C_BG, C_BG2, C_WALL, C_WALL_LT, C_GOLD, C_GOLD2, C_GOLD3,
-    C_PARCHMENT, C_PARCHMENT2, C_RED, C_RED2,
-    C_GREEN_D, C_GREEN_L, C_BROWN_D, C_BROWN_L,
-    C_PURPLE_D, C_PURPLE_L, C_LOCKED, C_LOCKED_B,
-    C_OVERLAY, C_PANEL, C_PANEL_B, C_TEXT, C_MUTED,
-    C_STAR_ON, C_STAR_OFF, C_NOTIF_BG, C_NOTIF_B,
-    is_mission_unlocked, get_mission_best_stars,
+import core.save_data as sd
+from modes.histoire_data import (
+    CHAPTERS, MAP_LABELS, C_BG, C_BG2, C_WALL, C_WALL_LT, C_GOLD, C_GOLD2, C_GOLD3, C_PARCHMENT, C_PARCHMENT2, C_RED, C_RED2, C_GREEN_D, C_GREEN_L, C_BROWN_D, C_BROWN_L, C_PURPLE_D, C_PURPLE_L, C_LOCKED, C_LOCKED_B, C_OVERLAY, C_PANEL, C_PANEL_B, C_TEXT, C_MUTED, C_STAR_ON, C_STAR_OFF, C_NOTIF_BG, C_NOTIF_B, is_mission_unlocked, get_mission_best_stars,
 )
-from histoire_render import (
-    _font, _draw_text_centered, _draw_rect_alpha,
-    _draw_circle_aa, _lerp_color, _build_map_surface,
+from modes.histoire_render import (
+    _font, _draw_text_centered, _draw_rect_alpha, _draw_circle_aa, _lerp_color, _build_map_surface,
 )
-from histoire_widgets import Popup, ChapterPoint, Cinematic, Notification
+from modes.histoire_widgets import Popup, ChapterPoint, Cinematic, Notification
 import copy
 
 

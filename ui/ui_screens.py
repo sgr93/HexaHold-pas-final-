@@ -6,8 +6,8 @@ Extrait de ui.py.
 """
 import random
 import pygame
-from config import ALL_TOWER_TYPES, GRID_WIDTH, GRID_HEIGHT
-from ui import (
+from core.config import ALL_TOWER_TYPES, GRID_WIDTH, GRID_HEIGHT
+from ui.ui import (
     COLORS, ITEM_COLORS, ITEM_LABELS, TOWER_DESCS, get_font,
 )
 

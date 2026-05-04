@@ -7,17 +7,12 @@ import math
 import random
 import os
 import pygame
-from config import (
-    GRID_SIZE, COLS, ROWS,
-    SPAWN_ZONE_X, SPAWN_ZONE_Y, SPAWN_ZONE_WIDTH, SPAWN_ZONE_HEIGHT,
-    START, END, PLAYER_HP,
-    TOWER_DAMAGE_MULT, TOWER_COOLDOWN_MULT, TOWER_RANGE_MULT,
-    TRAP_DAMAGE_MULT, TRAP_COOLDOWN_MULT,
+from core.config import (
+    GRID_SIZE, COLS, ROWS, SPAWN_ZONE_X, SPAWN_ZONE_Y, SPAWN_ZONE_WIDTH, SPAWN_ZONE_HEIGHT, START, END, PLAYER_HP, TOWER_DAMAGE_MULT, TOWER_COOLDOWN_MULT, TOWER_RANGE_MULT, TRAP_DAMAGE_MULT, TRAP_COOLDOWN_MULT,
 )
-import sprites as spr
-from entity_helpers import (
-    _crop_alpha_surface, _direction_from_delta,
-    _ASSETS_BASE, _SCALED_FRAME_CACHE_MAX,
+import ui.sprites as spr
+from core.entity_helpers import (
+    _crop_alpha_surface, _direction_from_delta, _ASSETS_BASE, _SCALED_FRAME_CACHE_MAX,
 )
 
 

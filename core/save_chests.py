@@ -5,9 +5,9 @@ Coffres (pieces & tours), equipement et upgrade des tours.
 Extrait de save_data.py.
 """
 import random
-import save_data as sd
-import heroes as _hm
-from config import CHEST_COSTS, RARITIES, RARITY_WEIGHTS, EQUIPMENT_SLOTS, EQUIPMENT_STATS, RARITY_COLORS
+import core.save_data as sd
+import core.heroes as _hm
+from core.config import CHEST_COSTS, RARITIES, RARITY_WEIGHTS, EQUIPMENT_SLOTS, EQUIPMENT_STATS, RARITY_COLORS
 import traceback; traceback.print_exc()
 
 EQUIPMENT_SELL_VALUES = {

@@ -3,8 +3,8 @@ game_towers.py
 --------------
 Helpers de placement / upgrade des tours et pieges, extraits de game.py.
 """
-from config import TOWER_MAX_LEVEL
-from entities import Tower, Trap
+from core.config import TOWER_MAX_LEVEL
+from core.entities import Tower, Trap
 
 
 def make_can_place(grid, start_cell, item_type=None):

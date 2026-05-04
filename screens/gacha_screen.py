@@ -14,9 +14,9 @@ screens/gacha_screen.py
 
 import os
 import pygame
-import theme
-import save_data as sd
-from config import CHEST_COSTS
+import ui.theme as theme
+import core.save_data as sd
+from core.config import CHEST_COSTS
 
 _ASSETS_DIR = os.path.join(os.path.dirname(__file__), "..", "assets", "sprites")
 _CACHE: dict = {}

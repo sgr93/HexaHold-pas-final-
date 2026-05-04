@@ -6,10 +6,9 @@ Extrait de ui.py.
 """
 import os
 import pygame
-from config import GRID_WIDTH, GRID_HEIGHT, INTERFACE_WIDTH
-from ui import (
-    COLORS, get_font, _draw_panel, _draw_progress_bar,
-    draw_star, _load_objectif_bg,
+from core.config import GRID_WIDTH, GRID_HEIGHT, INTERFACE_WIDTH
+from ui.ui import (
+    COLORS, get_font, _draw_panel, _draw_progress_bar, draw_star, _load_objectif_bg,
 )
 
 # ============================================================

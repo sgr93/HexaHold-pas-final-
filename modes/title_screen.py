@@ -8,8 +8,8 @@ Retourne ("play", save) ou (None, save).
 
 import math
 import pygame
-import save_data as sd
-import theme
+import core.save_data as sd
+import ui.theme as theme
 
 # ============================================================
 ITEMS = [
