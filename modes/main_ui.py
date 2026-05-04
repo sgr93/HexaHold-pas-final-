@@ -15,6 +15,13 @@ import theme
 import hud
 from histoire import run_histoire
 from ui import draw_skillpoint_anim
+from screens.accueil_screen import AccueilScreen
+from screens.quetes_screen import QuetesScreen
+from screens.equipement_screen import EquipementScreen
+from screens.gacha_screen import GachaScreen
+from screens.talents_screen import TalentsScreen
+from screens.parametres_screen import ParametresScreen
+import quetes as qm
 
 
 def run_main_ui(screen: pygame.Surface,
@@ -30,12 +37,6 @@ def run_main_ui(screen: pygame.Surface,
     chosen_level = None
 
     # Imports des écrans onglets
-    from screens.accueil_screen    import AccueilScreen
-    from screens.quetes_screen     import QuetesScreen
-    from screens.equipement_screen import EquipementScreen
-    from screens.gacha_screen      import GachaScreen
-    from screens.talents_screen    import TalentsScreen
-    from screens.parametres_screen import ParametresScreen
 
     screens = {
         "accueil":    AccueilScreen(save),
@@ -130,7 +131,6 @@ def run_main_ui(screen: pygame.Surface,
 # ============================================================
 def _compute_badges(save: dict) -> dict:
     """Calcule les badges de notification pour la nav bar."""
-    import quetes as qm
     badges = {}
     # Quêtes disponibles à réclamer
     available = qm.get_available_quests(save)

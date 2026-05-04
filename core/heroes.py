@@ -11,6 +11,7 @@ Montee en niveau (doublons) :
 """
 
 import os
+import theme
 
 # ============================================================
 # DEFINITION DES HEROS
@@ -213,7 +214,6 @@ _SPRITES_DIR = os.path.join(os.path.dirname(__file__), "..", "assets", "sprites"
 
 def load_hero_sprite(name, size=None):
     """Charge un sprite heros depuis assets/sprites/."""
-    import theme
     return theme.load_sprite(name, size)
 
 

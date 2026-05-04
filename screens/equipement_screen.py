@@ -14,6 +14,7 @@ import pygame
 import theme
 import save_data as sd
 from config import ALL_TOWER_TYPES, TOWER_SLOT_COUNT, EQUIPMENT_STATS
+from ui import ITEM_LABELS
 
 # Slots autour du perso
 SLOTS_LEFT  = ["cape", "veste"]
@@ -161,7 +162,6 @@ def _draw_tour_slot(screen, rect, tower_type, f_lvl):
         pygame.draw.rect(screen, (20, 15, 8), inner)
         pygame.draw.rect(screen, (50, 42, 28), inner, 1)
 
-    from ui import ITEM_LABELS
     name = ITEM_LABELS.get(tower_type, tower_type or "—")[:8] if tower_type else "—"
     ns = f_lvl.render(name, True, theme.GOLD_LIGHT if tower_type else theme.GOLD_DIM)
     screen.blit(ns, (rect.centerx - ns.get_width() // 2,

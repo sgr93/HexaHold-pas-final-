@@ -15,6 +15,10 @@ import os
 import math
 import pygame
 import theme
+import os as _os
+import core.save_data as _sd
+import math as _m
+import theme as _theme
 
 # ============================================================
 # ONGLETS
@@ -66,7 +70,6 @@ def _f(key, body=False):
 # ============================================================
 
 def _scan_available_icons():
-    import os as _os
     folder = _os.path.join(_os.path.dirname(__file__), "..", "assets", "sprites")
     if not _os.path.isdir(folder):
         return []
@@ -166,7 +169,6 @@ def _draw_icon_picker(screen, save, mx, my, clicked):
 
         if clicked and cell_rect.collidepoint(mx, my):
             save["player_icon"] = fname
-            import core.save_data as _sd
             _sd.save(save)
             return True  # fermer le picker après sélection
 
@@ -223,7 +225,6 @@ def _draw_header(screen, save, mx, my, clicked):
 
     # Survol : contour doré plus vif pour signaler que c'est cliquable
     if hex_r.collidepoint(mx, my):
-        import math as _m
         cx_h, cy_h = hex_r.centerx, hex_r.centery
         r_h = avatar_size // 2 - 1
         pts = [(int(cx_h + r_h * _m.cos(_m.radians(60*i-30))),
@@ -300,7 +301,6 @@ def _draw_header(screen, save, mx, my, clicked):
 
 def _draw_hex_avatar(screen, rect, save):
     """Avatar hexagonal du joueur."""
-    import math as _m
     s  = rect.width
     cx, cy = rect.centerx, rect.centery
     r  = s//2 - 1
@@ -353,7 +353,6 @@ def _draw_talent_locked_tooltip(screen, tab_rect, mx, my):
 
     pop = pygame.Rect(bx, by, W, H)
 
-    import theme as _theme
     _theme.draw_rect_alpha(screen, (*_theme.DARK_2, 240), pop, radius=_theme.RADIUS_MD)
     pygame.draw.rect(screen, _theme.GOLD_DIM, pop, 1, border_radius=_theme.RADIUS_MD)
 

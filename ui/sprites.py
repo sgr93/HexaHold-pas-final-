@@ -8,6 +8,7 @@ Moteur d'animation par sprites pour Hexahold.
 import os
 import glob
 import pygame
+import pygame as _pg
 
 # Vitesses d'animation (frames par seconde de jeu à 60 fps)
 ANIM_FPS_WALK   = 8
@@ -346,7 +347,6 @@ class SpriteSet:
 
         Chaque row a 3 frames : [walk_L, idle, walk_R]
         """
-        import pygame as _pg
 
         sheet = _pg.image.load(path).convert_alpha()
         sw, sh = sheet.get_size()

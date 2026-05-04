@@ -8,6 +8,8 @@ Le toggle plein écran a été retiré.
 import pygame
 import theme
 import save_data as sd
+import save_data as _sd
+import os as _os
 
 
 class ParametresScreen:
@@ -118,8 +120,6 @@ class ParametresScreen:
         if clicked_bg and hov:
             if self._confirm_reset:
                 # Deuxieme clic : reset
-                import save_data as _sd
-                import os as _os
                 save_file = _os.path.join(_os.path.dirname(__file__), "..", "save.json")
                 try:
                     _os.remove(save_file)
