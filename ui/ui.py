@@ -422,7 +422,7 @@ def draw_ghost(screen, cells, gx, gy, item_type, towers, can_place_fn, offset_x,
 # ============================================================
 
 def draw_inventory(screen, font, inventory, selected_item, win_w, win_h):
-    bar_rect = pygame.Rect(0, win_h - INV_BAR_HEIGHT, win_w, INV_BAR_HEIGHT)
+    bar_rect = pygame.Rect(win_w-GRID_WIDTH*0.4, win_h-400, win_w, win_h-300)
     _draw_panel(screen, bar_rect, alt=True)
 
     inv_lbl = font.render("Inventaire", True, (220, 190, 130))
