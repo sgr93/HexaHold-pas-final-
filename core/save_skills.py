@@ -1,12 +1,99 @@
 """
 save_skills.py
 --------------
-Arbre de compétences : bonus des nodes appliqués au joueur et aux tours.
+Arbre de competences : points, deblocage, bonus appliques au joueur.
+Extrait de save_data.py.
 """
 import core.save_data as sd
 
-# bonus de chaque node par personnage —
-# l'index correspond à la position du node dans l'arbre affiché à l'écran
+def add_skill_points(save_data_dict, amount):
+    """Ajoute des points de compétence au joueur."""
+    save_data_dict["skill_points"] = save_data_dict.get("skill_points", 0) + amount
+    sd.save(save_data_dict)
+
+
+def get_active_bonuses(save_data_dict):
+    """
+    Calcule tous les bonus actifs du joueur basé sur les compétences aquises.
+    Retourne un dictionnaire de bonus cumulés.
+    """
+    bonuses = {
+        "player_damage": 0,
+        "player_speed": 0,
+        "max_hp": 0,
+        "attack_speed": 0,
+        "defense": 0,
+        "hp_regen": 0,
+        "crit_chance": 0,
+        "crit_damage": 0,
+        "dodge_chance": 0,
+        "tower_damage": 0,
+        "tower_cooldown": 0,
+        "tower_range": 0,
+        "xp_gain": 0,
+        "coin_gain": 0,
+    }
+    
+    unlocked = save_data_dict.get("skills_unlocked", {})
+    for skill_id, is_unlocked in unlocked.items():
+        if is_unlocked and skill_id in sd.SKILLS:
+            skill = sd.SKILLS[skill_id]
+            for bonus_key, bonus_value in skill.get("bonus", {}).items():
+                bonuses[bonus_key] = bonuses.get(bonus_key, 0) + bonus_value
+    
+    return bonuses
+
+
+def apply_skill_bonuses_to_player(save_data_dict, player):
+    """
+    Applique tous les bonus du skill tree et des équipements sur l'objet Player.
+    À appeler après build_initial_state() quand les équipements ont déjà été traités
+    (pour ne pas doubler les bonus d'équipement).
+    Seuls les bonus de compétences pures sont appliqués ici.
+    """
+    bonuses = get_active_bonuses(save_data_dict)
+
+    # Dégâts joueur
+    player.damage += bonuses.get("player_damage", 0)
+
+    # Vitesse de déplacement
+    player.speed += bonuses.get("player_speed", 0)
+
+    # HP max (et HP courants proportionnellement)
+    hp_bonus = bonuses.get("max_hp", 0)
+    if hp_bonus:
+        player.max_hp += hp_bonus
+        player.hp     += hp_bonus  # on donne aussi les HP directement
+
+    # Vitesse d'attaque : bonus = réduction du cooldown en frames
+    atk_spd = bonuses.get("attack_speed", 0)
+    if atk_spd:
+        player.attack_cooldown = max(5, player.attack_cooldown - int(atk_spd))
+
+    # Chance de coup critique (0.0 → 1.0)
+    player.crit_chance  = min(0.95, player.crit_chance + bonuses.get("crit_chance", 0))
+
+    # Multiplicateur de dégâts critiques
+    crit_dmg_bonus = bonuses.get("crit_damage", 0)
+    if crit_dmg_bonus:
+        player.crit_damage += crit_dmg_bonus
+
+    # Esquive (0.0 → max 0.80 pour éviter l'invincibilité)
+    player.dodge_chance = min(0.80, player.dodge_chance + bonuses.get("dodge_chance", 0))
+
+    # Défense (réduction des dégâts reçus, plafonnée à 80%)
+    player.defense = min(0.80, player.defense + bonuses.get("defense", 0))
+
+    # Appliquer aussi les bonus du NOUVEAU skill tree (talents_screen — skill_tree_nodes)
+    apply_skill_tree_node_bonuses(save_data_dict, player)
+
+
+# ─────────────────────────────────────────────────────────────────
+# NOUVEAU SYSTÈME — BONUS NODES DU SKILL TREE (talents_screen.py)
+# ─────────────────────────────────────────────────────────────────
+
+# Mapping des effets de chaque nœud par personnage
+# index du nœud → dict de bonus appliqués au joueur/tours
 _NODE_BONUSES = {
     "eren": [
         {"damage": 3},                                          # 0 Rage
@@ -18,7 +105,7 @@ _NODE_BONUSES = {
         {"speed": 0.5},                                        # 6 Esquive
         {"damage": 4, "attack_cd": -2},                        # 7 Percée
         {"defense": 0.08, "max_hp": 20},                       # 8 Acier
-        {},                                                    # 9 ULTIME
+        {},                                                    # 9 ULTIME (géré séparément)
     ],
     "mikasa": [
         {"speed": 0.5},                                        # 0 Rapidité
@@ -30,7 +117,7 @@ _NODE_BONUSES = {
         {"damage": 3, "speed": 1.0},                           # 6 Fulgurance
         {"attack_cd": -2, "damage": 2},                        # 7 Ombre
         {"max_hp": 20, "defense": 0.05},                       # 8 Résistance
-        {},                                                    # 9 ULTIME
+        {},                                                    # 9 ULTIME (géré séparément)
     ],
     "erwin": [
         {"tower_damage_pct": 0.06},                            # 0 Tactique
@@ -43,23 +130,23 @@ _NODE_BONUSES = {
         {"trap_cd_pct": -0.10, "trap_damage_pct": 0.08},      # 6 Piège++
         {"xp_bonus_pct": 0.15},                               # 7 XP+
         {"max_hp": 25, "defense": 0.08},                       # 8 Forteresse
-        {},                                                    # 9 ULTIME
+        {},                                                    # 9 ULTIME (géré séparément)
     ],
 }
 
 
 def apply_skill_tree_node_bonuses(save_data_dict, player):
     """
-    Lit les nodes débloqués dans skill_tree_nodes et applique les bonus sur le joueur.
-    Les bonus qui concernent les tours sont stockés dans la save pour être
-    lus par game.py au moment où une tour est posée.
+    Lit skill_tree_nodes (nouveau système, talents_screen.py) et applique
+    les bonus correspondants sur l'objet player.
+    Les bonus tours (tower_damage_pct, etc.) sont stockés dans save pour
+    être lus par game.py au moment du placement.
     """
     nodes_by_char = save_data_dict.get("skill_tree_nodes", {})
     if not nodes_by_char:
         return
 
-    # on remet à zéro les bonus de tours à chaque recalcul pour éviter
-    # qu'ils s'accumulent si la fonction est appelée plusieurs fois
+    # Réinitialiser les bonus de tours dans la save pour éviter les doublons
     save_data_dict.setdefault("tree_tower_damage_pct", 0.0)
     save_data_dict.setdefault("tree_tower_range_pct",  0.0)
     save_data_dict.setdefault("tree_tower_cd_pct",     0.0)
@@ -75,7 +162,7 @@ def apply_skill_tree_node_bonuses(save_data_dict, player):
                 continue
             bn = char_bonuses[node_idx]
 
-            # bonus directs sur le joueur
+            # ── Bonus joueur directs ──
             if "damage" in bn:
                 player.damage += bn["damage"]
             if "speed" in bn:
@@ -94,7 +181,7 @@ def apply_skill_tree_node_bonuses(save_data_dict, player):
             if "defense" in bn:
                 player.defense = min(0.80, player.defense + bn["defense"])
 
-            # bonus tours et économie — stockés dans la save, lus plus tard par game.py
+            # ── Bonus tours / économie stockés dans save ──
             if "tower_damage_pct" in bn:
                 save_data_dict["tree_tower_damage_pct"] += bn["tower_damage_pct"]
             if "tower_range_pct" in bn:
@@ -113,8 +200,8 @@ def apply_skill_tree_node_bonuses(save_data_dict, player):
 
 def get_skill_tree_node_bonuses(save_data_dict):
     """
-    Retourne tous les bonus actifs liés aux tours et à l'économie.
-    Appelé par game.py quand une tour est posée ou qu'une vague se termine.
+    Retourne un dict résumant tous les bonus actifs du skill tree (nouveau système).
+    Utilisé par game.py pour les tours et l'économie.
     """
     return {
         "tower_damage_pct": save_data_dict.get("tree_tower_damage_pct", 0.0),
@@ -129,20 +216,21 @@ def get_skill_tree_node_bonuses(save_data_dict):
 
 def get_active_ultimate(save_data_dict):
     """
-    Retourne l'ultime du personnage choisi si le dernier node (index 9) est débloqué.
-    Chaque personnage a son propre ultime avec un cooldown différent.
+    Retourne la competence ultime du personnage choisi.
+    Disponible uniquement si le noeud 10 (index 9) du skill tree est debloque.
     """
     ULTIMATES = {
-        "eren":   {"name": "Titan Assaillant",   "cooldown": 45},
-        "mikasa": {"name": "Lame d'Ackerman",     "cooldown": 40},
-        "erwin":  {"name": "Charge du Bataillon", "cooldown": 50},
+        "eren":   {"name": "Titan Assaillant",     "cooldown": 45},
+        "mikasa": {"name": "Lame d'Ackerman",       "cooldown": 40},
+        "erwin":  {"name": "Charge du Bataillon",   "cooldown": 50},
     }
     locked_char = save_data_dict.get("skill_tree_locked")
     if not locked_char:
         return None
 
+    # Vérifier que le noeud 10 (index 9) est bien débloqué
     nodes_by_char = save_data_dict.get("skill_tree_nodes", {})
-    unlocked      = nodes_by_char.get(locked_char, [])
+    unlocked = nodes_by_char.get(locked_char, [])
     if 9 not in unlocked:
         return None
 
