@@ -1,13 +1,11 @@
 """
 config.py
----------
-Centralise toutes les constantes et paramètres globaux du jeu.
+
+Regroupe toutes les constantes et paramètres globaux du jeu 
 """
+import pygame
 
-# ----------------------------
 # CONFIGURATION DE LA GRILLE
-# ----------------------------
-
 ROWS = 18
 COLS = 20
 GRID_SIZE = 32
@@ -24,16 +22,11 @@ SPAWN_ZONE_HEIGHT = GRID_SIZE * 2
 START = (COLS // 2, 0)
 END   = (COLS // 2, ROWS - 1)
 
-# ----------------------------
-# COULEURS
-# ----------------------------
 
+# COULEURS
 BACKGROUND_COLOR = (30, 30, 40)
 
-# ----------------------------
 # PROGRESSION DU JOUEUR
-# ----------------------------
-
 LEVEL_START            = 1
 XP_START               = 0
 XP_TO_NEXT_LVL_START   = 30
@@ -54,49 +47,34 @@ MUSIC_TRACK_GAME = "Game.mp3"
 PLAYER_HP       = 100
 PLAYER_HP_REGEN = 0.5   # HP récupérés par seconde
 
-# ----------------------------
-# VAGUES D'ENNEMIS
-# ----------------------------
 
+# VAGUES D'ENNEMIS
 WAVE_NUMBER_START        = 1
 MAX_WAVES                = 5
 WAVE_DURATION            = 35
 BOSS_DURATION            = 50
 ENEMY_SPAWN_INTERVAL_BASE = 0.7
 
-# ----------------------------
 # PATHFINDING
-# ----------------------------
-
 DANGER_WEIGHT = 3
 
-# ----------------------------
-# MURS
-# ----------------------------
 
+# MURS
 WALLS_ENABLED    = True
 WALLS_COUNT      = 4
 WALLS_ZONE_START = (2, 4)
 WALLS_ZONE_END   = (COLS - 1, ROWS - 6)
 
-# ----------------------------
-# CONTRÔLES
-# ----------------------------
 
-import pygame
+# CONTRÔLES
 PAUSE_KEY = pygame.K_p
 
-# ----------------------------
 # FENÊTRE
-# ----------------------------
-
 DISPLAY_FLAGS   = pygame.RESIZABLE
 WINDOW_CAPTION  = "Hexahold"
 
-# ----------------------------
-# NIVEAUX DE DIFFICULTÉ
-# ----------------------------
 
+# NIVEAUX DE DIFFICULTÉ
 DIFFICULTY_LEVELS = {
     1: {"name": "Facile",         "waves": 3,  "enemy_hp_mult": 1.0,  "spawn_interval": 1.0, "coins_reward": 50 },
     2: {"name": "Normal",         "waves": 4,  "enemy_hp_mult": 1.5,  "spawn_interval": 0.7, "coins_reward": 100},
@@ -116,10 +94,8 @@ TOWER_RANGE_MULT      = 0.90
 TRAP_DAMAGE_MULT      = 0.75
 TRAP_COOLDOWN_MULT    = 1.20
 
-# ----------------------------
-# GACHA / ÉQUIPEMENTS
-# ----------------------------
 
+# GACHA / ÉQUIPEMENTS
 CHEST_COSTS = {
     "wood":   30,
     "silver": 80,

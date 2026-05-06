@@ -82,8 +82,8 @@ def cells_for_item(item_type, gx, gy):
 
 
 def place_tower_on_grid(grid, towers, cells, item_type, grid_cache,
-                        damage_bonus=0, cooldown_bonus=0, levi_callback=None,
-                        armin_callback=None):
+                        damage_bonus=0, cooldown_bonus=0, tower_level=1,
+                        levi_callback=None, armin_callback=None):
     """
     Place une tour ou un piege sur la grille, ou upgrade si deja present.
     Retourne True si placement/upgrade effectue, False sinon.
@@ -91,35 +91,42 @@ def place_tower_on_grid(grid, towers, cells, item_type, grid_cache,
     target_cells = set(cells)
     for t in towers:
         if _is_matching_upgrade_target(t, item_type, target_cells):
-            if t.level < TOWER_MAX_LEVEL:
-                t.level += 1
+            if t.fusion_level < TOWER_MAX_LEVEL:
+                t.fusion_level += 1
+                t.level = t.fusion_level  # Mettre à jour le niveau affiché
                 t.set_stats(damage_bonus=damage_bonus, cooldown_bonus=cooldown_bonus)
                 if item_type not in ("trap", "mine"):
                     grid.recompute()
                     grid_cache.invalidate()
                 if levi_callback:
                     levi_callback(t)
+                if armin_callback:
+                    armin_callback(towers)
                 return True
             return False
 
     if item_type == "trap":
-        trap = Trap(cells, trap_type="spikes")
-        trap.set_stats()
+        trap = Trap(cells, trap_type="spikes", gacha_level=tower_level)
+        trap.set_stats(damage_bonus=damage_bonus, cooldown_bonus=cooldown_bonus)
         towers.append(trap)
         grid.recompute()
         grid_cache.invalidate()
+        if armin_callback:
+            armin_callback(towers)
         return True
     if item_type == "mine":
-        mine = Trap(cells, trap_type="mine")
-        mine.set_stats()
+        mine = Trap(cells, trap_type="mine", gacha_level=tower_level)
+        mine.set_stats(damage_bonus=damage_bonus, cooldown_bonus=cooldown_bonus)
         towers.append(mine)
         grid.recompute()
         grid_cache.invalidate()
+        if armin_callback:
+            armin_callback(towers)
         return True
 
     for x, y in cells:
         grid.walkable[x][y] = False
-    tower = Tower(cells, item_type)
+    tower = Tower(cells, item_type, gacha_level=tower_level)
     tower.set_stats(damage_bonus=damage_bonus, cooldown_bonus=cooldown_bonus)
     towers.append(tower)
     grid.recompute()

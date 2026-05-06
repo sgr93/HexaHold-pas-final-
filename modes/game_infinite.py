@@ -30,28 +30,33 @@ def _give_infinite_rewards(gs, wave_number, save):
 
     loot["coins"] += 20 + wn * 16
 
-    if wn >= 31:
-        gems = _rnd.randint(25, 100)
-    elif wn >= 21:
-        gems = _rnd.randint(10, 25)
-    elif wn >= 11:
+    if wn >= 20 :
+        gems = _rnd.randint(100, 200)
+    if wn >= 15:
+        gems = _rnd.randint(50, 80)
+    elif wn >= 10:
+        gems = _rnd.randint(25, 40)
+    elif wn >= 6:
+        gems = _rnd.randint(15, 25)
+    elif wn >= 3:
         gems = _rnd.randint(5, 10)
-    elif wn >= 5:
-        gems = _rnd.randint(1, 3)
     else:
         gems = 0
     loot["gems"] += gems
 
-    if wn >= 31:
+    if wn >= 20:
+        rarities = ["Legendaire", "Mythique"]
+        weights = [55, 45]
+    if wn >= 15:
         rarities = ["Epique", "Legendaire", "Mythique"]
         weights = [20, 45, 35]
-    elif wn >= 21:
+    elif wn >= 10:
         rarities = ["Rare", "Epique", "Legendaire"]
         weights = [30, 50, 20]
-    elif wn >= 11:
+    elif wn >= 6:
         rarities = ["Commun", "Rare", "Epique"]
         weights = [20, 55, 25]
-    elif wn >= 6:
+    elif wn >= 3:
         rarities = ["Commun", "Rare"]
         weights = [60, 40]
     else:
@@ -193,9 +198,8 @@ def _draw_infinite_loot_popup(screen, loot, wave_reached, mx, my, clicked):
     gx = pop.x + 20 + W//2 - 20
     if gem_icon:
         screen.blit(gem_icon, (gx, row_y))
-    if gems > 0:
-        g_s = f_lbl.render(f"+{gems} gemmes", True, (180, 140, 255))
-        screen.blit(g_s, (gx + 28, row_y + (22 - g_s.get_height())//2))
+    g_s = f_lbl.render(f"+{gems} gemmes", True, (180, 140, 255) if gems > 0 else (100, 100, 100))
+    screen.blit(g_s, (gx + 28, row_y + (22 - g_s.get_height())//2))
     py += 30
 
     _theme.draw_gold_rule(screen, pop.x + 16, py, W - 32)

@@ -12,37 +12,38 @@ from core.config import ALL_TOWER_TYPES
 
 
 def _apply_eren_passive(gs, towers, player):
-    """Eren : tours dans un rayon de 8 cases autour du joueur = +20% degats."""
+    """Eren : tours et pièges dans un rayon de 8 cases autour du joueur = +20% dégats."""
     if gs.get("selected_hero") != "eren":
         return
     BOOST = 0.10
     radius_px = 3 * GRID_SIZE
     for t in towers:
-        if not hasattr(t, "tower_type"):
+        if not hasattr(t, "tower_type") and not hasattr(t, "trap_type"):
             continue
         dist = math.hypot(t.x - player.x, t.y - player.y)
         in_range = dist <= radius_px
         was_boosted = getattr(t, "_eren_boosted", False)
+        base_dmg = getattr(t, "_base_damage", t.damage)
         if in_range and not was_boosted:
             t._eren_boosted = True
-            t.damage = int(t.damage * (1.0 + BOOST))
+            t.damage = int(base_dmg * (1.0 + BOOST))
         elif not in_range and was_boosted:
             t._eren_boosted = False
-            t.set_stats(damage_bonus=gs.get("tower_damage_bonus", 0),
-                        cooldown_bonus=gs.get("tower_cooldown_bonus", 0))
+            t.damage = base_dmg
 
 
 def _apply_armin_passive_on_build(gs, towers):
-    """Armin : +40% ATK sur toutes les tours a chaque nouvelle tour construite."""
+    """Armin : +40% ATK sur toutes les tours et pièges à chaque nouvelle construction."""
     if gs.get("selected_hero") != "armin":
         return
     gs["armin_buff_stacks"] = gs.get("armin_buff_stacks", 0) + 1
     total_mult = 1.0 + 0.08 * gs["armin_buff_stacks"]
     for t in towers:
-        if not hasattr(t, "tower_type"):
+        if not hasattr(t, "tower_type") and not hasattr(t, "trap_type"):
             continue
+        t._armin_buff_mult = total_mult
+        t._armin_boosted = True
         base_dmg = getattr(t, "_base_damage", t.damage)
-        t._base_damage = base_dmg
         t.damage = int(base_dmg * total_mult)
 
 
