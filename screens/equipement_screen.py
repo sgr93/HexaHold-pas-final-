@@ -217,9 +217,9 @@ class EquipementScreen:
         base   = values.get(rarity, values.get("Commun", 0))
         label  = entry.get("label", stats_key)
         try:
-            val = int(float(base) * mult)
+            val = float(base) * mult
         except Exception:
-            val = 0
+            val = 0.0
         return {label: val}
 
     def _draw_item_popup(self, screen, item, mx, my, clicked):
@@ -291,7 +291,8 @@ class EquipementScreen:
                 screen.blit(title_s, (px + 12, sy))
                 sy += title_s.get_height() + 2
                 for k, v in stats.items():
-                    line = f_tiny.render(f"{k.capitalize()} : {v}", True, theme.CREAM)
+                    v_str = f"{v:.1f}" if isinstance(v, float) else str(v)
+                    line = f_tiny.render(f"{k.capitalize()} : {v_str}", True, theme.CREAM)
                     screen.blit(line, (px + 18, sy))
                     sy += line.get_height() + 1
 

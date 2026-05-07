@@ -16,14 +16,14 @@ from ui.ui import (
 # ============================================================
 
 _pause_confirm_pending = None  # None | "restart" | "menu"
-
+_popup_opened = False  
 
 def draw_pause_screen(screen, big_font, font, mouse_pos=(0,0), clicked=False):
     """
     Overlay de pause avec 3 boutons : Continuer / Recommencer / Menu.
     Retourne : "resume" | "restart" | "menu" | None
     """
-    global _pause_confirm_pending
+    global _pause_confirm_pending, _popup_opened
 
     w, h = screen.get_size()
     overlay = pygame.Surface((w, h), pygame.SRCALPHA)
@@ -63,11 +63,13 @@ def draw_pause_screen(screen, big_font, font, mouse_pos=(0,0), clicked=False):
                 action = key
             else:
                 _pause_confirm_pending = key
+                _popup_opened = True
 
     # ── Popup de confirmation pour Recommencer / Menu ──
     if _pause_confirm_pending is not None:
-        result = _draw_confirm_popup(screen, font, big_font, mouse_pos, clicked,
+        result = _draw_confirm_popup(screen, font, big_font, mouse_pos, False if _popup_opened else clicked,
                                      _pause_confirm_pending)
+        _popup_opened = False
         if result == "ok":
             action = _pause_confirm_pending
             _pause_confirm_pending = None

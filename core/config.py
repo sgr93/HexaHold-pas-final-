@@ -83,16 +83,15 @@ DIFFICULTY_LEVELS = {
     5: {"name": "Cauchemar",      "waves": 7,  "enemy_hp_mult": 3.8,  "spawn_interval": 0.28,"coins_reward": 400},
 }
 
-# ----------------------------
-# NERF TOURS (équilibrage)
-# ----------------------------
-TOWER_MAX_LEVEL       = 3
-TOWER_DAMAGE_MULT     = 0.65
-TOWER_COOLDOWN_MULT   = 1.30
-TOWER_RANGE_MULT      = 0.90
 
-TRAP_DAMAGE_MULT      = 0.75
-TRAP_COOLDOWN_MULT    = 1.20
+# EQUILIBRAGE TOURS
+TOWER_MAX_LEVEL       = 3
+TOWER_DAMAGE_MULT     = 1.35
+TOWER_COOLDOWN_MULT   = 0.9
+TOWER_RANGE_MULT      = 1.15
+
+TRAP_DAMAGE_MULT      = 1.35
+TRAP_COOLDOWN_MULT    = 0.7
 
 
 # GACHA / ÉQUIPEMENTS

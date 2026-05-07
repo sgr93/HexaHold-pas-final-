@@ -55,10 +55,10 @@ _DEFAULT = {
     "towers_level":   {"small": 1, "big": 1, "trap": 1},
     "towers_copies":  {"small": 0, "big": 0, "trap": 0},
     "coin_chest_pulls": 0,
-    "coin_chest_pity_epic":   0,   # pulls depuis dernier Épique+
-    "coin_chest_pity_legend": 0,   # pulls depuis dernier Légendaire
-    "histoire_unlocked": [0],      # chapitres débloqués
-    "histoire_completed": [],      # chapitres terminés
+    "coin_chest_pity_epic":   0,
+    "coin_chest_pity_legend": 0,
+    "histoire_unlocked":  [0],
+    "histoire_completed": [],
     "difficulty_completed": [],
     "quests_notified": []
 }

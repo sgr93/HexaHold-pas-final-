@@ -15,7 +15,7 @@ def _apply_eren_passive(gs, towers, player):
     """Eren : tours et pièges dans un rayon de 8 cases autour du joueur = +20% dégats."""
     if gs.get("selected_hero") != "eren":
         return
-    BOOST = 0.10
+    BOOST = 0.5
     radius_px = 3 * GRID_SIZE
     for t in towers:
         if not hasattr(t, "tower_type") and not hasattr(t, "trap_type"):
@@ -37,7 +37,7 @@ def _apply_armin_passive_on_build(gs, towers):
     if gs.get("selected_hero") != "armin":
         return
     gs["armin_buff_stacks"] = gs.get("armin_buff_stacks", 0) + 1
-    total_mult = 1.0 + 0.08 * gs["armin_buff_stacks"]
+    total_mult = 1.0 + 0.4 * gs["armin_buff_stacks"]
     for t in towers:
         if not hasattr(t, "tower_type") and not hasattr(t, "trap_type"):
             continue
@@ -86,7 +86,7 @@ def _apply_mikasa_passive(gs, screen, player, enemies, offset_x, offset_y):
     if gs.get("selected_hero") != "mikasa":
         return
     RADIUS = 80
-    DPS = 4.0
+    DPS = 8.0
     dt = 1.0 / 60.0
     dmg_per_frame = DPS * dt
 

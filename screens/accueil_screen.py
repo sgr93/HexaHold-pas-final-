@@ -141,7 +141,7 @@ class AccueilScreen:
             bx  = x + i*(bw+4)
             btn = pygame.Rect(bx, y, bw, bh)
             # Verrou : au-delà de Difficile (lvl >= 4) il faut avoir fini la difficulté précédente
-            locked = lvl >= 4 and (lvl - 1) not in diff_done
+            locked = lvl > 1 and (lvl - 1) not in diff_done
             hov = btn.collidepoint(mx, my) and not self._hero_popup and not locked
             dc  = DIFF_COLORS[lvl]
             border_c = (60, 55, 45) if locked else dc
