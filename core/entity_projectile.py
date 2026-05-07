@@ -1,6 +1,6 @@
 """
 entity_projectile.py
---------------------
+
 Classe Projectile — gère le déplacement vers la cible,
 l'animation en vol et l'animation d'impact au moment du hit.
 """
@@ -11,8 +11,6 @@ import pygame
 from core.config import (
     GRID_SIZE, COLS, ROWS, SPAWN_ZONE_X, SPAWN_ZONE_Y,
     SPAWN_ZONE_WIDTH, SPAWN_ZONE_HEIGHT, START, END,
-    PLAYER_HP, TOWER_DAMAGE_MULT, TOWER_COOLDOWN_MULT, TOWER_RANGE_MULT,
-    TRAP_DAMAGE_MULT, TRAP_COOLDOWN_MULT,
 )
 import ui.sprites as spr
 from core.entity_helpers import (
@@ -128,7 +126,7 @@ class Projectile:
             cls._anim_cache[type_key]   = None
             cls._sprite_cache[type_key] = None
 
-        # --- animation d'impact ---
+        # animation d'impact 
         if impact_path:
             try:
                 # l'impact ne boucle pas, il se joue une seule fois puis le projectile disparaît

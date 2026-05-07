@@ -1,6 +1,6 @@
 """
 walls.py
---------
+
 Définition MANUELLE des maps : une map différente par mission (mode histoire)
 ou une map par défaut pour les parties rapides / modes hors histoire.
 

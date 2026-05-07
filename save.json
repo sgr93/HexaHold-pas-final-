@@ -1,9 +1,9 @@
 {
   "level": 1,
-  "xp": 0,
+  "xp": 10,
   "xp_next": 30,
-  "coins": 150,
-  "gems": 0,
+  "coins": 200,
+  "gems": 2,
   "inventory_equipment": [],
   "equipped": {
     "cape": null,
@@ -20,13 +20,15 @@
   "sound_volume": 0.8,
   "fullscreen": false,
   "skill_points": 0,
-  "quests_completed": {},
+  "quests_completed": {
+    "mission_premiere_tour": true
+  },
   "battles_won": 0,
-  "towers_placed": 0,
-  "enemies_killed": 0,
-  "max_wave_reached": 0,
+  "towers_placed": 13,
+  "enemies_killed": 54,
+  "max_wave_reached": 1,
   "daily_quests_completed": {},
-  "last_daily_reset": "",
+  "last_daily_reset": "2026-05-07",
   "events_completed": {},
   "player_icon": "icone0.png",
   "tower_chest_total_pulls": 0,
@@ -51,9 +53,43 @@
   "coin_chest_pity_epic": 0,
   "coin_chest_pity_legend": 0,
   "histoire_unlocked": [
+    0,
+    1
+  ],
+  "histoire_completed": [
     0
   ],
-  "histoire_completed": [],
   "difficulty_completed": [],
-  "quests_notified": []
+  "quests_notified": [
+    "mission_premiere_tour",
+    "mission_10_tours",
+    "event_guerre_1"
+  ],
+  "heroes": {
+    "eren": {
+      "copies": 1,
+      "level": 1
+    },
+    "armin": {
+      "copies": 0,
+      "level": 1
+    },
+    "sasha": {
+      "copies": 0,
+      "level": 1
+    },
+    "levi": {
+      "copies": 0,
+      "level": 1
+    },
+    "mikasa": {
+      "copies": 0,
+      "level": 1
+    }
+  },
+  "selected_hero": "eren",
+  "histoire_towers_placed": 11,
+  "histoire_enemies_killed": 39,
+  "infini_towers_placed": 2,
+  "infini_enemies_killed": 15
 }

@@ -1,16 +1,15 @@
 """
-main_ui.py
-----------
+modes/main_ui.py
+
 Interface principale de HexaHold.
 Gère la navigation entre tous les onglets via la barre du bas.
-
-Retourne :
-  dict ou int  → niveau choisi (partie rapide ou histoire)
-  None         → quitter
+Retourne (chosen_level, save) où chosen_level est None si le joueur quitte
+sans choisir de partie.
 """
 
 import pygame
 import core.save_data as sd
+import core.quetes as qm
 import ui.theme as theme
 import ui.hud as hud
 from modes.histoire import run_histoire
@@ -21,23 +20,20 @@ from screens.equipement_screen import EquipementScreen
 from screens.gacha_screen import GachaScreen
 from screens.talents_screen import TalentsScreen
 from screens.parametres_screen import ParametresScreen
-import core.quetes as qm
 
 
-def run_main_ui(screen: pygame.Surface,
-                clock:  pygame.time.Clock,
-                save:   dict):
+def run_main_ui(screen: pygame.Surface, clock: pygame.time.Clock, save: dict):
     """
     Boucle de l'interface principale.
-    Retourne (chosen_level, save) ou (None, save).
+    Retourne (chosen_level, save) ou (None, save) si le joueur quitte.
     """
     hud.init()
 
     active_tab   = "accueil"
     chosen_level = None
+    skillpoint_anim_timer = 0
 
-    # Imports des écrans onglets
-
+    # Chaque onglet a son propre objet screen — ils gardent leur état entre les visites
     screens = {
         "accueil":    AccueilScreen(save),
         "quetes":     QuetesScreen(save),
@@ -47,13 +43,10 @@ def run_main_ui(screen: pygame.Surface,
         "parametres": ParametresScreen(save),
     }
 
-    running = True
-    _skillpoint_anim_timer = 0
-
-    while running:
-        w, h = screen.get_size()
-        mx, my = pygame.mouse.get_pos()
-        clicked = False
+    while True:
+        w, h      = screen.get_size()
+        mx, my    = pygame.mouse.get_pos()
+        clicked   = False
         scroll_dy = 0
 
         for event in pygame.event.get():
@@ -66,59 +59,55 @@ def run_main_ui(screen: pygame.Surface,
             if event.type == pygame.MOUSEWHEEL:
                 scroll_dy = event.y
 
-        # Fond pierre
         theme.draw_stone_bg(screen)
 
-        # Calculer les badges
-        badges = _compute_badges(save)
-
-        # HUD (header + nav)
-        nav_action = hud.draw(screen, save,
-                               active_tab=active_tab,
-                               badges=badges,
-                               mx=mx, my=my, clicked=clicked)
+        # Badges calculés à chaque frame — léger, pas besoin de cache
+        nav_action = hud.draw(
+            screen, save,
+            active_tab=active_tab,
+            badges=_compute_badges(save),
+            mx=mx, my=my, clicked=clicked
+        )
         if nav_action:
             active_tab = nav_action
 
-        # Zone de contenu
         content = hud.content_rect(screen)
 
-        # ── Onglet Histoire (spécial : appelle run_histoire) ──
+        # Histoire est un cas spécial — elle lance sa propre boucle et bloque jusqu'au retour
         if active_tab == "histoire":
             result = run_histoire(screen, clock, save)
             if isinstance(result, dict):
+                # Niveau choisi depuis l'écran histoire — on sort directement
                 chosen_level = result
-                running = False
-                continue
-            # Retour sans avoir joué → retour accueil
+                break
+            # Retour sans avoir joué — on revient à l'accueil plutôt que de rester bloqué sur "histoire"
             active_tab = "accueil"
             continue
 
-        # ── Onglets normaux ──
+        # Onglets normaux — on passe la save à jour au cas où elle a changé entre les visites
         scr_obj = screens.get(active_tab)
         if scr_obj:
             scr_obj.save = save
             result = scr_obj.draw(screen, content, mx, my, clicked, scroll_dy)
-            if result is not None:
-                if result == "infini":
-                    # Mode infini : difficulte normale, vagues infinies
-                    chosen_level = {"infinite": True, "difficulty": 2}
-                    running = False
-                elif result == "histoire":
-                    active_tab = "histoire"
-                else:
-                    chosen_level = result
-                    running = False
+            if result == "infini":
+                # Mode infini : difficulté normale, vagues sans fin
+                chosen_level = {"infinite": True, "difficulty": 2}
+                break
+            elif result == "histoire":
+                active_tab = "histoire"
+            elif result is not None:
+                chosen_level = result
+                break
 
-        # Overlays (picker icône, etc.) — dessinés EN DERNIER, au-dessus de tout
+        # Overlays (picker icône, etc.) — dessinés en dernier pour passer par-dessus tout
         hud.draw_overlay(screen, save, mx=mx, my=my, clicked=clicked)
 
-        # ── Animation skill point (lancée depuis le menu) ──
-        if _skillpoint_anim_timer > 0:
-            draw_skillpoint_anim(screen, _skillpoint_anim_timer)
-            _skillpoint_anim_timer -= 1
+        # Animation skill point — se déclenche dès qu'un level-up est en attente
+        if skillpoint_anim_timer > 0:
+            draw_skillpoint_anim(screen, skillpoint_anim_timer)
+            skillpoint_anim_timer -= 1
         elif save.get("pending_skillpoint_anim"):
-            _skillpoint_anim_timer = 180
+            skillpoint_anim_timer = 180
             save["pending_skillpoint_anim"] = False
 
         pygame.display.flip()
@@ -128,15 +117,16 @@ def run_main_ui(screen: pygame.Surface,
     return chosen_level, save
 
 
-# ============================================================
 def _compute_badges(save: dict) -> dict:
-    """Calcule les badges de notification pour la nav bar."""
+    """
+    Calcule les badges de notification pour la nav bar.
+    Quêtes réclamables et skill points dispo — les deux choses que le joueur
+    doit voir en un coup d'œil sans rentrer dans chaque onglet.
+    """
     badges = {}
-    # Quêtes disponibles à réclamer
     available = qm.get_available_quests(save)
     if available:
         badges["quetes"] = len(available)
-    # Skill points disponibles
     sp = save.get("skill_points", 0)
     if sp > 0:
         badges["talents"] = sp

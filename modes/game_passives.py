@@ -106,16 +106,6 @@ def _apply_mikasa_passive(gs, screen, player, enemies, offset_x, offset_y):
                 e.is_dead = True
 
 
-def _draw_eren_passive_zone(screen, player, offset_x, offset_y):
-    """Dessine le cercle de portee d'Eren (informatif)."""
-    RADIUS = 3 * GRID_SIZE
-    surf = pygame.Surface((RADIUS * 2 + 4, RADIUS * 2 + 4), pygame.SRCALPHA)
-    pygame.draw.circle(surf, (213, 90, 48, 20), (RADIUS + 2, RADIUS + 2), RADIUS)
-    pygame.draw.circle(surf, (213, 90, 48, 60), (RADIUS + 2, RADIUS + 2), RADIUS, 1)
-    screen.blit(surf, (int(player.x) + offset_x - RADIUS - 2,
-                        int(player.y) + offset_y - RADIUS - 2))
-
-
 def _get_ultimate_duration(char_id):
     """Retourne la duree en secondes de l'effet ultime selon le personnage."""
     return {"eren": 8.0, "mikasa": 10.0, "erwin": 12.0}.get(char_id, 8.0)

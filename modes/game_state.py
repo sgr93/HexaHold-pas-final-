@@ -10,6 +10,7 @@ import random
 
 from core.config import (
     ALL_TOWER_TYPES,
+    AVAILABLE_TOWERS_INIT,
     BOSS_DURATION,
     DANGER_WEIGHT,
     DIFFICULTY_LEVELS,

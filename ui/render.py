@@ -1,50 +1,66 @@
 """
-render.py
----------
+ui/render.py
+
 Initialise pygame et expose les objets globaux (screen, clock, fonts).
-Gère le système de tilesets.
+Gère le système de tilesets et le cache de rendu de la grille.
 
-════════════════════════════════════════════════════════════════
 SYSTÈME DE TILESETS
-════════════════════════════════════════════════════════════════
+Les tiles sont rangés dans assets/sprites/tiles/default/ :
+    floor_grass.png, floor_grass2.png, floor_path.png ...
+    wall_rock_tl/tr/bl/br.png, wall_tree_tl/tr/bl/br.png
 
-Les tiles sont rangés dans :
-    assets/sprites/tiles/
-        default/          ← tileset unique utilisé pour tous les niveaux
-            floor_grass.png
-            floor_grass2.png
-            floor_path.png
-            floor_path2.png
-            floor_stone.png
-            floor_stone2.png
-            wall_rock.png
-            wall_rock_cracked.png
-            wall_tree.png
-
-Chaque tileset peut définir :
-  - floor_*  : tuiles de sol (cases marchables)
-  - wall_*   : tuiles de mur (cases bloquées)
+Le tileset est unique (dossier "default") pour tous les niveaux —
+le paramètre chapter dans load_tileset est conservé pour compatibilité.
 """
 
 import os
 import random
 import pygame
 from core.config import (
-    GRID_WIDTH, GRID_HEIGHT, INTERFACE_WIDTH, COLS, ROWS, GRID_SIZE, DISPLAY_FLAGS, WINDOW_CAPTION, BACKGROUND_COLOR,
+    GRID_WIDTH, GRID_HEIGHT, INTERFACE_WIDTH,
+    COLS, ROWS, GRID_SIZE, DISPLAY_FLAGS, WINDOW_CAPTION, BACKGROUND_COLOR,
 )
 
-# ─────────────────────────────────────────────────────────────────
-# SPRITE MURS (legacy, conservé pour compatibilité)
-# ─────────────────────────────────────────────────────────────────
-_wall_image = None
+
+# GLOBALS — initialisés dans init_pygame(), utilisés partout dans le projet
+screen   = None
+clock    = None
+font     = None
+big_font = None
+
+# Répertoire racine des tilesets — tout part de là
+_TILES_DIR = os.path.join(os.path.dirname(__file__), "..", "assets", "sprites", "tiles")
+
+# Tileset actif — chargé par load_tileset(), réinitialisé à chaque nouvelle partie
+_tileset = {
+    "floor":         [],  # tuiles de sol
+    "wall":          [],  # pool complet de murs (fallback)
+    "wall_rock_tl":  [],  # coins rock — auto-tiling 4 coins
+    "wall_rock_tr":  [],
+    "wall_rock_bl":  [],
+    "wall_rock_br":  [],
+    "wall_tree_tl":  [],  # coins arbre — même système
+    "wall_tree_tr":  [],
+    "wall_tree_bl":  [],
+    "wall_tree_br":  [],
+    "floor_map":     {},  # {(x,y): surface} — assignation pré-calculée si besoin
+}
+
+_wall_image   = None  # sprite legacy wall.png
+_goal_image   = None  # sprite de la base à défendre
+_grid_bg_image = None  # fond PNG derrière la grille
+_font_cache   = {}    # cache des objets font — évite de les recréer à chaque frame
+
+
+# SPRITE MURS LEGACY
 
 def load_wall_image():
     """
-    Charge assets/sprites/tiles/wall.png si présent (fallback legacy).
-    Appelé après init_pygame(). Sans ce fichier le jeu continue normalement.
+    Charge wall.png si présent — fallback legacy conservé pour compatibilité.
+    Sans ce fichier le jeu continue normalement avec le système de tilesets.
     """
     global _wall_image
-    path = os.path.join(os.path.dirname(__file__), "..", "assets", "sprites", "tiles", "wall.png")
+    path = os.path.join(_TILES_DIR, "wall.png")
     if os.path.isfile(path):
         try:
             img = pygame.image.load(path).convert_alpha()
@@ -53,72 +69,49 @@ def load_wall_image():
             print(f"[render] Impossible de charger wall.png : {e}")
 
 
-# ─────────────────────────────────────────────────────────────────
-# SYSTÈME DE TILESETS PAR CHAPITRE
-# ─────────────────────────────────────────────────────────────────
-
-# Tileset actif (chargé par load_tileset)
-_tileset = {
-    "floor":      [],   # liste de surfaces sol
-    "wall":       [],   # toutes les surfaces mur (fallback)
-    "wall_rock":  [],   # tuiles wall_rock_* uniquement
-    "wall_tree":  [],   # tuiles wall_tree_* uniquement
-    "floor_map":  {},   # {(x,y): surface} — assignation pré-calculée par case
-}
-
-# Répertoire racine des tilesets
-_TILES_DIR = os.path.join(os.path.dirname(__file__), "..", "assets", "sprites", "tiles")
-
-# Sprite du goal (base à défendre) — assets/sprites/tiles/goal.png
-_goal_image = None
+# GOAL
 
 def load_goal_image():
-    """Charge assets/sprites/tiles/goal.png si présent."""
+    """Charge goal.png — le sprite de la base que le joueur doit défendre."""
     global _goal_image
     path = os.path.join(_TILES_DIR, "goal.png")
     if os.path.isfile(path):
         try:
             img = pygame.image.load(path).convert_alpha()
             _goal_image = pygame.transform.scale(img, (GRID_SIZE, GRID_SIZE))
-            print("[render] goal.png chargé.")
         except Exception as e:
             print(f"[render] Impossible de charger goal.png : {e}")
 
+
 def get_goal_image():
-    """Retourne le sprite du goal, ou None si absent."""
     return _goal_image
 
-# Table de correspondance chapitre → dossier de tileset
-CHAPTER_TILESET = {
-    None: "ch1",   # parties rapides - tileset du Chapitre 1
-    0:    "ch1",   # Ouverture
-    1:    "ch1",   # Chapitre 1 - tileset de reference
-    2:    "ch2",   # Chapitre 2 - Chap 1 modifié
-    3:    "ch3",   # Chapitre 3 - Chap 1 modifié
-    4:    "ch4",   # Chapitre 4 - Chap 1 modifié
-    5:    "ch5",   # Chapitre 5 - Chap 1 modifié
-}
 
-# Fond PNG derrière la grille (grid_bg.png ou bg_ch<N>.png)
-_grid_bg_image = None
+# FOND DE GRILLE
 
 def load_grid_bg():
-    """Charge le fond PNG de la grille : toujours grid_bg.png, même fond pour tous les modes."""
+    """
+    Charge grid_bg.png comme fond derrière la grille.
+    Même fond pour tous les modes — pas de variation par chapitre pour l'instant.
+    """
     global _grid_bg_image
     path = os.path.join(_TILES_DIR, "grid_bg.png")
     if os.path.isfile(path):
         try:
             img = pygame.image.load(path).convert_alpha()
             _grid_bg_image = pygame.transform.scale(img, (GRID_WIDTH, GRID_HEIGHT))
-            print("[render] Fond grille chargé : grid_bg.png")
-            return
         except Exception as e:
             print(f"[render] Impossible de charger grid_bg.png : {e}")
-    _grid_bg_image = None
+            _grid_bg_image = None
+    else:
+        _grid_bg_image = None
+
 
 def get_grid_bg():
-    """Retourne le fond de la grille, ou None si absent."""
     return _grid_bg_image
+
+
+# CHARGEMENT DES TILESETS
 
 def _load_images_from_dir(folder, prefix):
     """
@@ -130,11 +123,9 @@ def _load_images_from_dir(folder, prefix):
         return results
     for fname in sorted(os.listdir(folder)):
         if fname.startswith(prefix) and fname.endswith(".png"):
-            path = os.path.join(folder, fname)
             try:
-                img = pygame.image.load(path).convert_alpha()
-                img = pygame.transform.scale(img, (GRID_SIZE, GRID_SIZE))
-                results.append(img)
+                img = pygame.image.load(os.path.join(folder, fname)).convert_alpha()
+                results.append(pygame.transform.scale(img, (GRID_SIZE, GRID_SIZE)))
             except Exception as e:
                 print(f"[render] Impossible de charger {fname} : {e}")
     return results
@@ -142,59 +133,47 @@ def _load_images_from_dir(folder, prefix):
 
 def load_tileset(chapter=None):
     """
-    Charge le tileset depuis le dossier default (identique pour tous les niveaux).
-    Le paramètre chapter est conservé pour compatibilité mais ignoré.
+    Charge le tileset depuis assets/sprites/tiles/default/.
+    Le paramètre chapter est ignoré — tileset unique pour tous les niveaux,
+    mais conservé dans la signature pour ne pas casser les appels existants.
     """
     global _tileset
 
     folder = os.path.join(_TILES_DIR, "default")
 
-    floor_imgs      = _load_images_from_dir(folder, "floor_")
-    # ── ROCK (coins) ──
+    floor_imgs   = _load_images_from_dir(folder, "floor_")
     wall_rock_tl = _load_images_from_dir(folder, "wall_rock_tl")
     wall_rock_tr = _load_images_from_dir(folder, "wall_rock_tr")
     wall_rock_bl = _load_images_from_dir(folder, "wall_rock_bl")
     wall_rock_br = _load_images_from_dir(folder, "wall_rock_br")
-
-    # ── TREE (coins) ── 
     wall_tree_tl = _load_images_from_dir(folder, "wall_tree_tl")
     wall_tree_tr = _load_images_from_dir(folder, "wall_tree_tr")
     wall_tree_bl = _load_images_from_dir(folder, "wall_tree_bl")
     wall_tree_br = _load_images_from_dir(folder, "wall_tree_br")
 
-    # Fallback
-    wall_rock_imgs = (
-        wall_rock_tl + wall_rock_tr +
-        wall_rock_bl + wall_rock_br
-    )
-    wall_tree_imgs = (
-        wall_tree_tl + wall_tree_tr +
-        wall_tree_bl + wall_tree_br
-    )
-
-    wall_imgs = wall_rock_imgs + wall_tree_imgs
-    wall_imgs       = wall_rock_imgs + wall_tree_imgs  # pool complet (fallback)
+    wall_rock_imgs = wall_rock_tl + wall_rock_tr + wall_rock_bl + wall_rock_br
+    wall_tree_imgs = wall_tree_tl + wall_tree_tr + wall_tree_bl + wall_tree_br
 
     if not floor_imgs:
-        print(f"[render] Tileset 'default' : aucun floor_ trouvé, mode couleur.")
+        print("[render] Tileset 'default' : aucun floor_ trouvé, mode couleur.")
     if not wall_rock_imgs:
-        print(f"[render] Tileset 'default' : aucun wall_rock* trouvé.")
+        print("[render] Tileset 'default' : aucun wall_rock* trouvé.")
     if not wall_tree_imgs:
-        print(f"[render] Tileset 'default' : aucun wall_tree* trouvé.")
+        print("[render] Tileset 'default' : aucun wall_tree* trouvé.")
 
-    _tileset["floor"]      = floor_imgs
-    _tileset["wall"]       = wall_imgs
-    _tileset["wall_rock_tl"] = wall_rock_tl
-    _tileset["wall_rock_tr"] = wall_rock_tr
-    _tileset["wall_rock_bl"] = wall_rock_bl
-    _tileset["wall_rock_br"] = wall_rock_br
-
-    _tileset["wall_tree_tl"] = wall_tree_tl
-    _tileset["wall_tree_tr"] = wall_tree_tr
-    _tileset["wall_tree_bl"] = wall_tree_bl
-    _tileset["wall_tree_br"] = wall_tree_br
-
-    _tileset["floor_map"] = {}
+    _tileset.update({
+        "floor":         floor_imgs,
+        "wall":          wall_rock_imgs + wall_tree_imgs,
+        "wall_rock_tl":  wall_rock_tl,
+        "wall_rock_tr":  wall_rock_tr,
+        "wall_rock_bl":  wall_rock_bl,
+        "wall_rock_br":  wall_rock_br,
+        "wall_tree_tl":  wall_tree_tl,
+        "wall_tree_tr":  wall_tree_tr,
+        "wall_tree_bl":  wall_tree_bl,
+        "wall_tree_br":  wall_tree_br,
+        "floor_map":     {},
+    })
 
     print(f"[render] Tileset 'default' : {len(floor_imgs)} floor, "
           f"{len(wall_rock_imgs)} wall_rock, {len(wall_tree_imgs)} wall_tree.")
@@ -204,9 +183,8 @@ def load_tileset(chapter=None):
 def _get_floor_tile(x, y):
     """
     Retourne le tile de sol pour la case (x, y).
-    Le premier floor (floor_grass.png) reste majoritaire ; les variantes
-    (floor_grass2, floor_grass3, …) ponctuent la map sur ~1 case sur 8
-    via un hash déterministe (pas de scintillement entre frames).
+    Le premier floor reste majoritaire — les variantes apparaissent sur ~1/8 des cases
+    via un hash déterministe pour éviter le scintillement entre frames.
     """
     floors = _tileset["floor"]
     if not floors:
@@ -220,23 +198,18 @@ def _get_floor_tile(x, y):
 
 
 def _get_wall_tile(x, y, wall_type="rock", grid=None, wall_cells=None):
-    """Retourne la tuile de mur appropriée pour la case (x, y)
-    en utilisant un système de découpe en 4 coins (auto-tiling simplifié).
-
-    Chaque mur est composé de 4 types de tuiles :
-        * tl (top-left)     → coin haut-gauche
-        * tr (top-right)    → coin haut-droit
-        * bl (bottom-left)  → coin bas-gauche
-        * br (bottom-right) → coin bas-droit"""
-
+    """
+    Auto-tiling simplifié en 4 coins : chaque mur choisit son coin selon
+    la présence de voisins à droite et en bas. Ça donne des jonctions propres
+    sans avoir à gérer les 16 cas d'un auto-tiling complet.
+    """
     if not grid:
         return None
 
-    # Détecter voisins
-    right = (x + 1 < COLS and (x+1, y) in wall_cells)
-    down  = (y + 1 < ROWS and (x, y+1) in wall_cells)
+    right = x + 1 < COLS and (x + 1, y) in wall_cells
+    down  = y + 1 < ROWS and (x, y + 1) in wall_cells
 
-    # Choix du coin
+    # tl si voisins des deux côtés, tr si seulement en bas, bl si seulement à droite, br sinon
     if right and down:
         suffix = "tl"
     elif not right and down:
@@ -246,36 +219,29 @@ def _get_wall_tile(x, y, wall_type="rock", grid=None, wall_cells=None):
     else:
         suffix = "br"
 
-    # Charger bon pool
-    key = f"wall_{wall_type}_{suffix}"
-    pool = _tileset.get(key, [])
+    pool = _tileset.get(f"wall_{wall_type}_{suffix}", [])
+    return pool[0] if pool else None
 
-    if not pool:
-        return None
 
-    return pool[0]
-# ─────────────────────────────────────────────────────────────────
 # FONTS
-# ─────────────────────────────────────────────────────────────────
-
-_font_cache = {}
 
 def get_font(size_key="md", bold=False):
-    """Retourne une font en cache."""
+    """Cache de fonts — on évite de recréer les objets à chaque frame."""
     sizes = {"xs": 14, "sm": 18, "md": 22, "lg": 30, "xl": 48}
-    size = sizes.get(size_key, 22)
-    key = (size, bold)
+    key   = (sizes.get(size_key, 22), bold)
     if key not in _font_cache:
-        _font_cache[key] = pygame.font.SysFont("arial", size, bold=bold)
+        _font_cache[key] = pygame.font.SysFont("arial", key[0], bold=bold)
     return _font_cache[key]
 
 
-# ─────────────────────────────────────────────────────────────────
 # INITIALISATION PYGAME
-# ─────────────────────────────────────────────────────────────────
 
 def init_pygame():
-    """Initialise pygame, crée la fenêtre adaptée à la résolution de l'écran."""
+    """
+    Initialise pygame et crée la fenêtre en s'adaptant à la résolution de l'écran.
+    On essaie d'ouvrir en taille idéale avec une marge de sécurité, et on clamp
+    à un minimum de 600×480 pour les petits écrans.
+    """
     pygame.init()
     try:
         pygame.mixer.init()
@@ -285,18 +251,10 @@ def init_pygame():
 
     ideal_w = GRID_WIDTH + INTERFACE_WIDTH + 220
     ideal_h = GRID_HEIGHT + 160
+    info    = pygame.display.Info()
 
-    info  = pygame.display.Info()
-    scr_w = info.current_w
-    scr_h = info.current_h
-
-    MARGIN_W = 40
-    MARGIN_H = 80
-
-    win_w = min(ideal_w, scr_w - MARGIN_W)
-    win_h = min(ideal_h, scr_h - MARGIN_H)
-    win_w = max(win_w, 600)
-    win_h = max(win_h, 480)
+    win_w = max(600, min(ideal_w, info.current_w - 40))
+    win_h = max(480, min(ideal_h, info.current_h - 80))
 
     global screen, clock, font, big_font
     screen   = pygame.display.set_mode((win_w, win_h), DISPLAY_FLAGS)
@@ -305,20 +263,13 @@ def init_pygame():
     big_font = get_font("xl", bold=True)
 
 
-screen   = None
-clock    = None
-font     = None
-big_font = None
-
-
-# ─────────────────────────────────────────────────────────────────
 # GRIDCACHE — pré-rendu de la grille avec tilesets
-# ─────────────────────────────────────────────────────────────────
 
 class GridCache:
     """
-    Pré-rend la grille (sol + murs + grille) sur une Surface
-    et la restitue en un seul blit chaque frame.
+    Pré-rend la grille (sol + murs) sur une Surface et la restitue en un seul blit.
+    On ne reconstruit que si invalidate() a été appelé — typiquement après un placement
+    de tour ou un changement de tileset. Ça évite de re-dessiner ~500 tiles à chaque frame.
 
     Utilisation :
         cache = GridCache()
@@ -331,7 +282,6 @@ class GridCache:
         self._dirty   = True
 
     def invalidate(self):
-        """Marque le cache comme obsolète."""
         self._dirty = True
 
     def draw(self, screen, grid, offset_x, offset_y, towers=None):
@@ -340,19 +290,18 @@ class GridCache:
         screen.blit(self._surface, (offset_x, offset_y))
 
     def _rebuild(self, grid, towers=None):
-        """Reconstruit la surface avec tiles de sol et de mur."""
+        """Reconstruit la surface complète de la grille."""
         surf = pygame.Surface((GRID_WIDTH, GRID_HEIGHT), pygame.SRCALPHA)
         surf.fill((0, 0, 0, 0))
+
+        # On collecte les cellules de mur pour l'auto-tiling
         wall_cells = set()
-
         if hasattr(grid, "wall_types"):
-            for (x, y), wall_type in grid.wall_types.items():
-                wall_cells.add((x, y))
+            wall_cells = set(grid.wall_types.keys())
 
-        # Fond PNG de la grille
-        _bg = get_grid_bg()
-        if _bg:
-            surf.blit(_bg, (0, 0))
+        bg = get_grid_bg()
+        if bg:
+            surf.blit(bg, (0, 0))
 
         tower_cells = set()
         if towers:
@@ -361,46 +310,34 @@ class GridCache:
 
         for x in range(COLS):
             for y in range(ROWS):
-                px = x * GRID_SIZE
-                py = y * GRID_SIZE
+                px        = x * GRID_SIZE
+                py        = y * GRID_SIZE
                 cell_rect = pygame.Rect(px, py, GRID_SIZE, GRID_SIZE)
 
                 if grid.walkable[x][y]:
-                    # ── Case marchable : tile de sol ──
                     floor_tile = _get_floor_tile(x, y)
-                    if floor_tile:
-                        surf.blit(floor_tile, (px, py))
-                    else:
-                        # Fallback couleur (vert foncé)
-                        pygame.draw.rect(surf, (34, 45, 34), cell_rect)
+                    surf.blit(floor_tile, (px, py)) if floor_tile else pygame.draw.rect(surf, (34, 45, 34), cell_rect)
+
+                elif (x, y) in tower_cells:
+                    # Case de tour : on dessine le sol en dessous, la tour s'affichera par-dessus
+                    floor_tile = _get_floor_tile(x, y)
+                    surf.blit(floor_tile, (px, py)) if floor_tile else pygame.draw.rect(surf, (34, 45, 34), cell_rect)
 
                 else:
-                    # ── Case bloquée ──
-                    if (x, y) in tower_cells:
-                        # Case occupée par une tour : sol en dessous seulement
-                        # (le sprite de la tour sera dessiné par-dessus après)
-                        floor_tile = _get_floor_tile(x, y)
+                    # Mur : sol + tuile de mur par-dessus pour que le mur ait un fond cohérent
+                    wall_type = "rock"
+                    if hasattr(grid, "wall_types"):
+                        wall_type = grid.wall_types.get((x, y), "rock")
+                    wall_tile  = _get_wall_tile(x, y, wall_type, grid, wall_cells)
+                    floor_tile = _get_floor_tile(x, y)
+                    if wall_tile:
                         if floor_tile:
                             surf.blit(floor_tile, (px, py))
-                        else:
-                            pygame.draw.rect(surf, (34, 45, 34), cell_rect)
+                        surf.blit(wall_tile, (px, py))
                     else:
-                        # ── Case bloquée par un mur ──
-                        wall_type = "rock"
-                        if hasattr(grid, "wall_types"):
-                            wall_type = grid.wall_types.get((x, y), "rock")
-                        wall_tile = _get_wall_tile(x, y, wall_type, grid, wall_cells)
-                        if wall_tile:
-                            floor_tile = _get_floor_tile(x, y)
-                            if floor_tile:
-                                surf.blit(floor_tile, (px, py))
-                            surf.blit(wall_tile, (px, py))
-                        else:
-                            # Fallback couleur (gris pierre)
-                            pygame.draw.rect(surf, (80, 75, 70), cell_rect)
+                        pygame.draw.rect(surf, (80, 75, 70), cell_rect)
 
-                # Grille invisible (les tiles donnent la lecture spatiale)
-                # Décommenter la ligne suivante pour déboguer le placement de tours :
+                # Ligne de debug désactivée — décommenter pour visualiser les cellules :
                 # pygame.draw.rect(surf, (0, 0, 0, 25), cell_rect, 1)
 
         self._surface = surf
