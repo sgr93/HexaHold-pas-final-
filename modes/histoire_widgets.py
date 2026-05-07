@@ -10,6 +10,16 @@ from modes.histoire_data import (
 )
 from modes.histoire_data import is_mission_unlocked, get_mission_best_stars
 from ui.ui import draw_star
+import os
+_LOCK_ICON = None
+
+def _get_lock_icon(size=14):
+    global _LOCK_ICON
+    if _LOCK_ICON is None:
+        path = os.path.join(os.path.dirname(__file__), "..", "assets", "sprites", "cadenas.png")
+        img = pygame.image.load(path).convert_alpha()
+        _LOCK_ICON = pygame.transform.scale(img, (size, size))
+    return _LOCK_ICON
 
 
 def _is_mission_unlocked(save, chapter_idx, mission_idx):
@@ -197,7 +207,10 @@ class Popup:
                 num = f_xs.render(f"{i+1}.", True, C_GOLD)
                 clip_surf.blit(num, (row.x+6, row.y+6))
                 name_col = C_MUTED if locked else C_PARCHMENT
-                nm = f_xs.render(m["name"] + (" \U0001f512" if locked else ""), True, name_col)
+                nm = f_xs.render(m["name"], True, name_col)
+                clip_surf.blit(nm, (row.x+22, row.y+6))
+                if locked:
+                    clip_surf.blit(_get_lock_icon(14), (row.x + 22 + nm.get_width() + 4, row.y + 6))
                 clip_surf.blit(nm, (row.x+22, row.y+6))
 
                 # Étoiles de progression : UNIQUEMENT à gauche des objectifs (pas en haut)
@@ -309,7 +322,7 @@ class ChapterPoint:
         pygame.draw.circle(surf, ch["color_in"],  (self.cx, self.cy), r-1, 2)
 
         # Texte ou étoile si complété
-        fnt = pygame.font.SysFont("arial", 10, bold=True)
+        fnt = pygame.font.SysFont("georgia", 10, bold=True)
         if completed:
             star_sz = max(10, r * 2 - 4)
             draw_star(surf, self.cx - star_sz // 2, self.cy - star_sz // 2, star_sz, True)

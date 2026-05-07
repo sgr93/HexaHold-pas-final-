@@ -1,6 +1,6 @@
 """
 entity_goal.py
---------------
+
 Classe Goal.
 """
 import math
@@ -15,18 +15,25 @@ from core.entity_helpers import (
     _crop_alpha_surface, _direction_from_delta, _ASSETS_BASE, _SCALED_FRAME_CACHE_MAX,
 )
 
-
 class Goal:
-    """Base à défendre. HP → 0 = Game Over."""
+    """Base à défendre. Si ses HP tombent à 0 → partie perdue."""
 
     def __init__(self, x, y):
+        # Position centrée sur la case de la grille pour rester aligné avec le gameplay
         self.x      = x * GRID_SIZE + GRID_SIZE // 2
         self.y      = y * GRID_SIZE + GRID_SIZE // 2
+
+        # Taille de la base : sert aussi de zone de collision avec les ennemis
         self.radius = 15
+
+        # Vie de la base : c’est l’objectif principal à protéger
         self.hp     = 100
 
+        # Animation optionnelle : permet de donner un peu de vie à la base
         path = os.path.join(_ASSETS_BASE, "tiles", "goal.png")
         self._animator = None
+
+        # Si l’asset existe, on active une animation sinon fallback simple
         if os.path.isfile(path):
             try:
                 self._animator = spr.SpritesheetAnimator(
@@ -36,24 +43,26 @@ class Goal:
                 print(f"[entities] Impossible de charger goal.png : {e}")
 
     def update(self):
+        # Animation de la base (pure cosmétique)
         if self._animator:
             self._animator.update()
 
     def draw(self, screen, offset_x, offset_y):
         cx = int(self.x) + offset_x
         cy = int(self.y) + offset_y
+
+        # Affichage principal : sprite si dispo, sinon fallback simple
         if self._animator:
             frame = self._animator.get_frame()
             if frame:
                 w, h = frame.get_size()
                 screen.blit(frame, (cx - w // 2, cy - h // 2))
         else:
+            # fallback visuel minimal si les assets ne sont pas chargés
             pygame.draw.circle(screen, (255, 255, 255), (cx, cy), self.radius)
+
+        # Barre de vie : lecture immédiate de l’état de la base
+        # rouge = perdu / vert = restant
         pygame.draw.rect(screen, (200, 0, 0), (cx - 20, cy - 25, 40, 5))
         cur_w = int(40 * max(0, self.hp) / 100)
         pygame.draw.rect(screen, (0, 200, 0), (cx - 20, cy - 25, cur_w, 5))
-
-
-# ============================================================
-# CLASSE ENEMY
-# ============================================================

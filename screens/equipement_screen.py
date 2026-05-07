@@ -13,7 +13,7 @@ import os
 import pygame
 import ui.theme as theme
 import core.save_data as sd
-from core.config import ALL_TOWER_TYPES, TOWER_SLOT_COUNT, EQUIPMENT_STATS
+from core.config import ALL_TOWER_TYPES, AVAILABLE_TOWERS_INIT, TOWER_SLOT_COUNT, EQUIPMENT_STATS
 from ui.ui import ITEM_LABELS
 
 # Slots autour du perso
@@ -378,9 +378,9 @@ class EquipementScreen:
         """Place une tour dans le slot du loadout indiqué."""
         if not tower_type or not (0 <= slot_idx < TOWER_SLOT_COUNT):
             return
-        tl = self.save.get("tower_loadout", list(ALL_TOWER_TYPES[:TOWER_SLOT_COUNT]))
+        tl = self.save.get("tower_loadout", list(AVAILABLE_TOWERS_INIT[:TOWER_SLOT_COUNT]))
         if not isinstance(tl, list):
-            tl = list(ALL_TOWER_TYPES[:TOWER_SLOT_COUNT])
+            tl = list(AVAILABLE_TOWERS_INIT[:TOWER_SLOT_COUNT])
         while len(tl) < TOWER_SLOT_COUNT:
             tl.append(None)
         tl = tl[:TOWER_SLOT_COUNT]
@@ -479,9 +479,9 @@ class EquipementScreen:
                 self.popup_item_source = "inv"
 
         # ── Tours (loadout) en bas ────────────────
-        tower_loadout = save.get("tower_loadout", ALL_TOWER_TYPES[:TOWER_SLOT_COUNT])
+        tower_loadout = save.get("tower_loadout", AVAILABLE_TOWERS_INIT[:TOWER_SLOT_COUNT])
         if not isinstance(tower_loadout, list):
-            tower_loadout = list(ALL_TOWER_TYPES[:TOWER_SLOT_COUNT])
+            tower_loadout = list(AVAILABLE_TOWERS_INIT[:TOWER_SLOT_COUNT])
         while len(tower_loadout) < TOWER_SLOT_COUNT:
             tower_loadout.append(None)
         tower_loadout = tower_loadout[:TOWER_SLOT_COUNT]

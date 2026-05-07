@@ -8,8 +8,12 @@ from modes.histoire_data import (
     C_BG, C_BG2, C_WALL, C_WALL_LT, C_GOLD, C_GOLD2, C_GOLD3, C_PARCHMENT, C_PARCHMENT2, C_RED, C_RED2, C_GREEN_D, C_GREEN_L, C_BROWN_D, C_BROWN_L, C_PURPLE_D, C_PURPLE_L, C_LOCKED, C_LOCKED_B, C_OVERLAY, C_PANEL, C_PANEL_B, C_TEXT, C_MUTED, C_STAR_ON, C_STAR_OFF, C_NOTIF_BG, C_NOTIF_B,
 )
 
+_FONT_PIXEL = "assets/fonts/PIXELCRASH.otf"
+
 def _font(size, bold=False):
-    return pygame.font.SysFont("arial", size, bold=bold)
+    if bold:
+        return pygame.font.Font(_FONT_PIXEL, size)
+    return pygame.font.SysFont("georgia", size, bold=bold)
 
 def _draw_text_centered(surf, text, font, color, cx, cy, shadow=True):
     if shadow:

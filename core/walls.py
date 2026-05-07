@@ -4,53 +4,34 @@ walls.py
 Définition MANUELLE des maps : une map différente par mission (mode histoire)
 ou une map par défaut pour les parties rapides / modes hors histoire.
 
-════════════════════════════════════════════════════════════════
-COMMENT CRÉER / MODIFIER UNE MAP
-════════════════════════════════════════════════════════════════
-
 La grille fait COLS=14 colonnes (x) et ROWS=18 lignes (y).
-  - (0, 0)   = coin haut-gauche
-  - (13, 17) = coin bas-droit
-  - Ligne 0  = entrée des ennemis (haut)
-  - Ligne 17 = base à défendre   (bas)
-
-  Colonne :  0  1  2  3  4  5  6  7  8  9 10 11 12 13
-  Ligne 0  : ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·   ← ennemis
-  Ligne 17 : ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·   ← base
-
 Utilise rect(x, y, w, h) pour des blocs rectangulaires.
 Utilise col(x, y_start, y_end) pour une colonne verticale.
 
-════════════════════════════════════════════════════════════════
-ATTRIBUER UNE MAP À UNE MISSION
-════════════════════════════════════════════════════════════════
+|ATTRIBUER UNE MAP À UNE MISSION| :
 
 Dans le dictionnaire MISSION_MAPS :
-  - La clé (chapter, mission) pointe sur une liste de cases bloquées.
-  - La clé None  → map utilisée pour toutes les parties rapides / hors histoire.
+  - La clé (chapter, mission) -> map utilise pour chapitre mission
+  - La clé None  -> map utilisée pour toutes les parties rapides / hors histoire.
 
 Exemple :
-    MISSION_MAPS = {
+MISSION_MAPS = {
         None:   MAP_DEFAULT,          # parties rapides
         (1, 0): MAP_CH1_M1,           # Chapitre 1, Mission 1
         (1, 1): MAP_CH1_M2,           # Chapitre 1, Mission 2
         (2, 0): MAP_CH2_M1,           # Chapitre 2, Mission 1
-    }
+}
 
 Si une mission n'a pas de clé dans MISSION_MAPS, la map None (défaut) est utilisée.
 """
 
 from core.config import COLS, ROWS, END
 
-
-# ════════════════════════════════════════════════════════════════
 # UTILITAIRES DE CONSTRUCTION
-# ════════════════════════════════════════════════════════════════
-#
 # Chaque case est un triplet (x, y, wall_type) où wall_type est :
-#   "rock"  → tuiles wall_rock_*   (rochers)
-#   "tree"  → tuile  wall_tree_*   (arbres)
-#
+#   "rock"  : tuiles wall_rock_*   (rochers)
+#   "tree"  : tuile  wall_tree_*   (arbres)
+
 # Toutes les cases d'un même appel partagent le même wall_type.
 # Un mur ne peut pas être un mélange des deux.
 
@@ -70,7 +51,6 @@ def row(y, x_start, x_end, wall_type=WALL_ROCK):
     return [(x, y, wall_type) for x in range(x_start, x_end + 1)]
 
 
-# ════════════════════════════════════════════════════════════════
 # MAP PAR DÉFAUT  (parties rapides, modes hors histoire)
 
 MAP_DEFAULT = [
@@ -92,12 +72,7 @@ MAP_DEFAULT = [
 ]
 
 
-# ════════════════════════════════════════════════════════════════
 # MAP MODE INFINI
-# ════════════════════════════════════════════════════════════════
-
-
-
 MAP_INFINITE = [
 
     *rect(1, 1, 2, 2, WALL_ROCK),
@@ -118,19 +93,6 @@ MAP_INFINITE = [
 ]
 
 
-# ════════════════════════════════════════════════════════════════
-# CHAPITRE 1 — LA BATAILLE DE TROST
-# ════════════════════════════════════════════════════════════════
-#
-# Ambiance : village, herbe, rochers, arbres
-# Tileset  : MYSTIC BLUE VILLAGE (grass + rocks + trees)
-#
-#   Colonne :  0  1  2  3  4  5  6  7  8  9 10 11 12 13
-#   Ligne 0  : ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·   ← ennemis
-#   Ligne 17 : ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·   ← base
-
-# Mission 1 — Tenir le Fort
-# Disposition : couloir central ouvert, blocs latéraux symétriques
 
 MAP_A = [
     *rect(2, 2, 2, 2, WALL_ROCK),
@@ -176,47 +138,37 @@ MAP_C = [
     *rect(14, 14, 2, 2, WALL_TREE),
 ]
 
-# ════════════════════════════════════════════════════════════════
-# TABLE DE ROUTAGE  ← MODIFIE ICI POUR AJOUTER UNE MAP
-# ════════════════════════════════════════════════════════════════
-#
-# Format : (chapter_idx, mission_idx) → liste de cases bloquées
-# chapter_idx et mission_idx sont ceux de histoire.py (commencent à 0 et 1)
-#
-# chapter 1 = "La Bataille de Trost"
-#   mission 0 = "Tenir le Fort"
-#   mission 1 = "La Contre-Attaque"
-#   mission 2 = "Le Titan de Trost"
 
+#J'ai la flemme de faire une map par mission donc
+#j'ai fait 3 map qui se repete a chaque chapitre
 
 
 MISSION_MAPS = {
     None: MAP_A, #Partie rapide ou mode infni
     # Chapitre 1
-    (1, 0): MAP_A,
-    (1, 1): MAP_B,
-    (1, 2): MAP_C,
+    (1, 0): MAP_A, #Mission 1
+    (1, 1): MAP_B, #Mission 2
+    (1, 2): MAP_C, #Mission 3 
     # Chapitre 2
-    (2, 0): MAP_A,
+    (2, 0): MAP_A, #Idem
     (2, 1): MAP_B,
     (2, 2): MAP_C,
     # Chapitre 3
-    (3, 0): MAP_A,
+    (3, 0): MAP_A, #Idem
     (3, 1): MAP_B,
     (3, 2): MAP_C,
     # Chapitre 4
-    (4, 0): MAP_A,
+    (4, 0): MAP_A, #idem
     (4, 1): MAP_B,
     (4, 2): MAP_C,
     # Chapitre 5
-    (5, 0): MAP_A,
+    (5, 0): MAP_A, # Idem
     (5, 1): MAP_B,
     (5, 2): MAP_C,
 }
 
-# ════════════════════════════════════════════════════════════════
-# MOTEUR D'APPLICATION — ne pas modifier
-# ════════════════════════════════════════════════════════════════
+
+# MOTEUR D'APPLICATION 
 
 def _path_exists_from_row0(grid):
     """Vérifie qu'un chemin existe de la rangée 0 jusqu'à END."""
@@ -309,5 +261,5 @@ def apply_map_walls(grid, chapter=None, mission=None, infinite=False):
 
 # Alias de compatibilité
 def spawn_random_walls(grid, *args, **kwargs):
-    """Alias conservé pour compatibilité — appelle apply_map_walls."""
+    """ appelle apply_map_walls """
     apply_map_walls(grid)

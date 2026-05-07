@@ -12,53 +12,6 @@ def add_skill_points(save_data_dict, amount):
     sd.save(save_data_dict)
 
 
-def can_unlock_skill(save_data_dict, skill_id):
-    """
-    Vérifie si une compétence peut être acquise.
-    Retourne (can_unlock, error_message).
-    """
-    if skill_id not in sd.SKILLS:
-        return False, "Compétence inexistante"
-    
-    skill = sd.SKILLS[skill_id]
-    
-    # Vérifier si déjà acquise
-    if save_data_dict.get("skills_unlocked", {}).get(skill_id, False):
-        return False, "Compétence déjà acquise"
-    
-    # Vérifier les points de skill
-    if save_data_dict.get("skill_points", 0) < skill["cost"]:
-        return False, f"Pas assez de points ({save_data_dict.get('skill_points', 0)}/{skill['cost']})"
-    
-    # Vérifier les dépendances
-    for req_id in skill.get("requires", []):
-        if not save_data_dict.get("skills_unlocked", {}).get(req_id, False):
-            req_skill = sd.SKILLS.get(req_id, {})
-            return False, f"Requis : {req_skill.get('name', req_id)}"
-    
-    return True, ""
-
-
-def unlock_skill(save_data_dict, skill_id):
-    """
-    Déverrouille une compétence et déduit les points de skill.
-    Retourne (success, message).
-    """
-    can_unlock, msg = can_unlock_skill(save_data_dict, skill_id)
-    if not can_unlock:
-        return False, msg
-    
-    skill = sd.SKILLS[skill_id]
-    save_data_dict["skill_points"] -= skill["cost"]
-    
-    if "skills_unlocked" not in save_data_dict:
-        save_data_dict["skills_unlocked"] = {}
-    
-    save_data_dict["skills_unlocked"][skill_id] = True
-    sd.save(save_data_dict)
-    return True, f"Compétence acquise : {skill['name']}!"
-
-
 def get_active_bonuses(save_data_dict):
     """
     Calcule tous les bonus actifs du joueur basé sur les compétences aquises.

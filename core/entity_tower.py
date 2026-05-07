@@ -132,10 +132,12 @@ class Tower:
     # Frames d'anticipation : l'animation de l'arme démarre avant le tir
     WINDUP_FRAMES = 30
 
-    def __init__(self, cells, tower_type, level=1):
+    def __init__(self, cells, tower_type, gacha_level=1, fusion_level=1):
         self.cells      = cells
         self.tower_type = tower_type
-        self.level      = level
+        self.gacha_level = gacha_level
+        self.fusion_level = fusion_level
+        self.level = fusion_level  # Pour l'affichage visuel
         self.timer      = 0
         self.x = sum(c[0] for c in cells) / len(cells) * GRID_SIZE + GRID_SIZE / 2
         self.y = sum(c[1] for c in cells) / len(cells) * GRID_SIZE + GRID_SIZE / 2
@@ -165,7 +167,7 @@ class Tower:
         self.set_stats()
 
     def _refresh_weapon_anim(self):
-        """Instancie (ou met à jour) l'animateur de l'arme selon self.level."""
+        """Instancie (ou met à jour) l'animateur de l'arme selon self.level (niveau fusion/visuel)."""
         weapons = Tower._weapon_cache.get(self.tower_type)
         if not weapons:
             self._weapon_anim = None
@@ -181,49 +183,68 @@ class Tower:
         self._weapon_anim = None
 
     def set_stats(self, damage_bonus=0, cooldown_bonus=0):
+        # Multiplicateur basé sur le niveau fusion (1.0 pour niveau 1, +10% par niveau fusion)
+        fusion_mult = 1.0 + (self.fusion_level - 1) * 0.1
+        
         if self.tower_type == "small":
-            self.damage   = 5 * self.level + damage_bonus
-            self.range    = 3 * GRID_SIZE + (self.level - 1) * 8
-            self.cooldown = max(38 - (self.level - 1) * 4 - cooldown_bonus, 8)
+            base_damage = 5 * self.gacha_level
+            raw_damage   = base_damage * fusion_mult + damage_bonus
+            self.range    = (3 * GRID_SIZE + (self.gacha_level - 1) * 8) * fusion_mult
+            self.cooldown = max(38 - (self.gacha_level - 1) * 4 - cooldown_bonus, 8)
         elif self.tower_type == "big":
-            self.damage   = 8 * self.level + damage_bonus
-            self.range    = 5 * GRID_SIZE + (self.level - 1) * 12
-            self.cooldown = max(72 - (self.level - 1) * 9 - cooldown_bonus, 14)
+            base_damage = 8 * self.gacha_level
+            raw_damage   = base_damage * fusion_mult + damage_bonus
+            self.range    = (5 * GRID_SIZE + (self.gacha_level - 1) * 12) * fusion_mult
+            self.cooldown = max(72 - (self.gacha_level - 1) * 9 - cooldown_bonus, 14)
         elif self.tower_type == "sniper":
-            self.damage   = 10 * self.level + damage_bonus
-            self.range    = 7 * GRID_SIZE + (self.level - 1) * 10
-            self.cooldown = max(110 - (self.level - 1) * 12 - cooldown_bonus, 15)
+            base_damage = 10 * self.gacha_level
+            raw_damage   = base_damage * fusion_mult + damage_bonus
+            self.range    = (7 * GRID_SIZE + (self.gacha_level - 1) * 10) * fusion_mult
+            self.cooldown = max(110 - (self.gacha_level - 1) * 12 - cooldown_bonus, 15)
         elif self.tower_type == "mortar":
-            self.damage   = 9 * self.level + damage_bonus
-            self.range    = 6 * GRID_SIZE + (self.level - 1) * 10
-            self.cooldown = max(90 - (self.level - 1) * 11 - cooldown_bonus, 14)
+            base_damage = 9 * self.gacha_level
+            raw_damage   = base_damage * fusion_mult + damage_bonus
+            self.range    = (6 * GRID_SIZE + (self.gacha_level - 1) * 10) * fusion_mult
+            self.cooldown = max(90 - (self.gacha_level - 1) * 11 - cooldown_bonus, 14)
         elif self.tower_type == "frost":
-            self.damage   = 4 * self.level + damage_bonus
-            self.range    = 4 * GRID_SIZE + (self.level - 1) * 7
-            self.cooldown = max(78 - (self.level - 1) * 9 - cooldown_bonus, 12)
+            base_damage = 4 * self.gacha_level
+            raw_damage   = base_damage * fusion_mult + damage_bonus
+            self.range    = (4 * GRID_SIZE + (self.gacha_level - 1) * 7) * fusion_mult
+            self.cooldown = max(78 - (self.gacha_level - 1) * 9 - cooldown_bonus, 12)
         elif self.tower_type == "tesla":
-            self.damage   = 7 * self.level + damage_bonus
-            self.range    = 5 * GRID_SIZE + (self.level - 1) * 7
-            self.cooldown = max(58 - (self.level - 1) * 8 - cooldown_bonus, 12)
+            base_damage = 7 * self.gacha_level
+            raw_damage   = base_damage * fusion_mult + damage_bonus
+            self.range    = (5 * GRID_SIZE + (self.gacha_level - 1) * 7) * fusion_mult
+            self.cooldown = max(58 - (self.gacha_level - 1) * 8 - cooldown_bonus, 12)
         elif self.tower_type == "cannon":
-            self.damage   = 9 * self.level + damage_bonus
-            self.range    = 5 * GRID_SIZE + (self.level - 1) * 8
-            self.cooldown = max(82 - (self.level - 1) * 10 - cooldown_bonus, 14)
+            base_damage = 9 * self.gacha_level
+            raw_damage   = base_damage * fusion_mult + damage_bonus
+            self.range    = (5 * GRID_SIZE + (self.gacha_level - 1) * 8) * fusion_mult
+            self.cooldown = max(82 - (self.gacha_level - 1) * 10 - cooldown_bonus, 14)
         elif self.tower_type == "laser":
-            self.damage   = 12 * self.level + damage_bonus
-            self.range    = 6 * GRID_SIZE + (self.level - 1) * 9
-            self.cooldown = max(102 - (self.level - 1) * 13 - cooldown_bonus, 14)
+            base_damage = 12 * self.gacha_level
+            raw_damage   = base_damage * fusion_mult + damage_bonus
+            self.range    = (6 * GRID_SIZE + (self.gacha_level - 1) * 9) * fusion_mult
+            self.cooldown = max(102 - (self.gacha_level - 1) * 13 - cooldown_bonus, 14)
         else:
-            self.damage   = 4 * self.level + damage_bonus
-            self.range    = 4 * GRID_SIZE + (self.level - 1) * 7
-            self.cooldown = max(44 - (self.level - 1) * 7 - cooldown_bonus, 10)
+            base_damage = 4 * self.gacha_level
+            raw_damage   = base_damage * fusion_mult + damage_bonus
+            self.range    = (4 * GRID_SIZE + (self.gacha_level - 1) * 7) * fusion_mult
+            self.cooldown = max(44 - (self.gacha_level - 1) * 7 - cooldown_bonus, 10)
 
-        self.damage   = max(1, int(self.damage * TOWER_DAMAGE_MULT))
+        self.damage   = max(1, int(raw_damage * TOWER_DAMAGE_MULT))
+        self._base_damage = self.damage
+        self._eren_boosted = False
+        self._armin_boosted = False
         self.range    = max(1, int(self.range * TOWER_RANGE_MULT))
         self.cooldown = max(1, int(self.cooldown * TOWER_COOLDOWN_MULT))
         # Mettre à jour l'arme si le niveau a changé
         if hasattr(self, '_weapon_anim'):
             self._refresh_weapon_anim()
+
+        # Appliquer les buffs persistants
+        if hasattr(self, '_armin_buff_mult') and self._armin_boosted:
+            self.damage = int(self._base_damage * self._armin_buff_mult)
 
     def update(self, enemies, projectiles):
         if self._animator:

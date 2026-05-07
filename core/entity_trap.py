@@ -82,10 +82,12 @@ class Trap:
             cls._level_font = pygame.font.SysFont(None, 16)
         return cls._level_font
 
-    def __init__(self, cells, trap_type="spikes", level=1):
+    def __init__(self, cells, trap_type="spikes", gacha_level=1, fusion_level=1):
         self.cells     = cells
         self.trap_type = trap_type
-        self.level     = level
+        self.gacha_level = gacha_level
+        self.fusion_level = fusion_level
+        self.level = fusion_level  # Pour l'affichage visuel
         self.timer     = 0
         self._attacking = False
         self.x = sum(c[0] for c in cells) / len(cells) * GRID_SIZE + GRID_SIZE / 2
@@ -105,18 +107,31 @@ class Trap:
         self.set_stats()
 
     def set_stats(self, damage_bonus=0, cooldown_bonus=0):
+        # Multiplicateur basé sur le niveau fusion (1.0 pour niveau 1, +10% par niveau fusion)
+        fusion_mult = 1.0 + (self.fusion_level - 1) * 0.1
+        
         if self.trap_type == "spikes":
-            self.damage   = 5 + (self.level - 1) * 10 + damage_bonus
-            self.cooldown = max(60 - (self.level - 1) * 15 - cooldown_bonus, 20)
+            base_damage = 5 + (self.gacha_level - 1) * 10
+            raw_damage   = base_damage * fusion_mult + damage_bonus
+            self.cooldown = max(60 - (self.gacha_level - 1) * 15 - cooldown_bonus, 20)
         elif self.trap_type == "mine":
-            self.damage   = 30 + (self.level - 1) * 20 + damage_bonus
-            self.cooldown = max(200 - (self.level - 1) * 40 - cooldown_bonus, 60)
+            base_damage = 30 + (self.gacha_level - 1) * 20
+            raw_damage   = base_damage * fusion_mult + damage_bonus
+            self.cooldown = max(200 - (self.gacha_level - 1) * 40 - cooldown_bonus, 60)
         else:
-            self.damage   = 10 * self.level + damage_bonus
-            self.cooldown = max(50 - (self.level - 1) * 10 - cooldown_bonus, 15)
+            base_damage = 10 * self.gacha_level
+            raw_damage   = base_damage * fusion_mult + damage_bonus
+            self.cooldown = max(50 - (self.gacha_level - 1) * 10 - cooldown_bonus, 15)
 
-        self.damage   = max(1, int(self.damage * TRAP_DAMAGE_MULT))
+        self.damage   = max(1, int(raw_damage * TRAP_DAMAGE_MULT))
+        self._base_damage = self.damage
+        self._eren_boosted = False
+        self._armin_boosted = False
         self.cooldown = max(1, int(self.cooldown * TRAP_COOLDOWN_MULT))
+
+        # Appliquer les buffs persistants
+        if hasattr(self, '_armin_buff_mult') and self._armin_boosted:
+            self.damage = int(self._base_damage * self._armin_buff_mult)
 
     def update(self, enemies, projectiles):
         # Avancer les animations UNE SEULE FOIS par frame (pas dans draw)

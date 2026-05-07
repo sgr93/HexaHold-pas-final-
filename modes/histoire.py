@@ -37,17 +37,18 @@ def run_histoire(screen, clock, save):
     save.setdefault("histoire_completed", [])
 
     sw, sh = screen.get_size()
-
+    FONT_PIXEL = "assets/fonts/PIXELCRASH.otf"
     # ── Fonts ──
     fonts = {
-        "xs":   pygame.font.SysFont("arial", 13),
-        "sm":   pygame.font.SysFont("arial", 16),
-        "md":   pygame.font.SysFont("arial", 20, bold=True),
-        "lg":   pygame.font.SysFont("arial", 26, bold=True),
-        "cine": pygame.font.SysFont("arial", 18, italic=True),
-        "map_sm": pygame.font.SysFont("arial", 16),
-        "map_xs": pygame.font.SysFont("arial", 14),
-        "wall":   pygame.font.SysFont("arial", 17, bold=True),
+        "xs":   pygame.font.SysFont("georgia", 13),
+        "xs_title": pygame.font.Font(FONT_PIXEL, 13),
+        "sm":   pygame.font.Font(FONT_PIXEL, 16),
+        "md":   pygame.font.Font(FONT_PIXEL, 20),
+        "lg":   pygame.font.Font(FONT_PIXEL, 26),
+        "cine": pygame.font.SysFont("georgia", 18),
+        "map_sm": pygame.font.SysFont("georgia", 16),
+        "map_xs": pygame.font.SysFont("georgia", 14),
+        "wall":   pygame.font.Font(FONT_PIXEL, 17),
     }
 
     # ── Zone carte ──
