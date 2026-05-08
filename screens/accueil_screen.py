@@ -10,7 +10,7 @@ import pygame
 import ui.theme as theme
 import core.heroes as hm
 import core.save_data as sd
-from core.config import DIFFICULTY_LEVELS
+from core.config import DIFFICULTY_LEVELS, XP_MULTS
 
 
 DIFF_COLORS = {
@@ -27,8 +27,7 @@ DIFF_SHORT = {
     4: "T.Diff.",
     5: "Cauchemar",
 }
-# XP multiplies selon la difficulte — plus c'est dur, plus ca rapporte
-XP_MULTS = {1: 1.0, 2: 1.5, 3: 2.0, 4: 3.0, 5: 5.0}
+# XP_MULTS importé depuis core/config.py
 
 
 def _rarity_color(rarity):

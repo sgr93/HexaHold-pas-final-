@@ -83,6 +83,9 @@ DIFFICULTY_LEVELS = {
     5: {"name": "Cauchemar",      "waves": 7,  "enemy_hp_mult": 3.8,  "spawn_interval": 0.28,"coins_reward": 400},
 }
 
+# Multiplicateurs d'XP de compte par difficulté (partie rapide)
+XP_MULTS = {1: 1.0, 2: 1.5, 3: 2.0, 4: 3.0, 5: 5.0}
+
 
 # EQUILIBRAGE TOURS
 TOWER_MAX_LEVEL       = 3

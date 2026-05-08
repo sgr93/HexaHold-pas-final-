@@ -14,6 +14,7 @@ from core.config import (
     BOSS_DURATION,
     DANGER_WEIGHT,
     DIFFICULTY_LEVELS,
+    XP_MULTS,
     END,
     GRID_SIZE,
     LEVEL_START,
@@ -251,6 +252,7 @@ def build_initial_state(difficulty=2, save=None):
         "regen_accumulator":         0.0,
         "last_regen_time":           time.time(),
         "difficulty":                difficulty,
+        "xp_mult":                   XP_MULTS.get(difficulty, 1.0),
         "coins_reward":              diff_info["coins_reward"],
         "reward_collected":          False,
         "goal_max_hp":               goal_hp,
@@ -378,7 +380,7 @@ def collect_win_reward(gs):
 
     gs["reward_collected"] = True
 
-    xp_gain    = gs["coins_reward"] // 2
+    xp_gain    = int((gs["coins_reward"] // 2) * gs.get("xp_mult", 1.0))
     save["xp"] = save.get("xp", 0) + xp_gain
     xp_next    = save.get("xp_next", 30)
     while save["xp"] >= xp_next:
