@@ -36,11 +36,11 @@ def update_waves(gs, current_time):
     if not gs["boss_active"]:
         gs["wave_timer"] = max(0, WAVE_DURATION - (current_time - gs["last_wave_time"]))
 
-    # L'intervalle de spawn se réduit au fil des vagues — ça devient de plus en plus tendu
+    # L'intervalle de spawn se réduit au fil des vagues
     if gs["game_started"] and gs["wave_number"] <= gs["max_waves"]:
         wn = gs["wave_number"]
         if gs.get("infinite_mode"):
-            # En infini on accélère plus vite pour garder la pression
+            # accélération plus rapide en mode infini
             gs["enemy_spawn_interval"] = max(0.1, 0.8 - 0.02 * (wn - 1))
         else:
             gs["enemy_spawn_interval"] = max(
@@ -56,7 +56,7 @@ def update_waves(gs, current_time):
         is_fast = random.random() < 0.15  # 15% de chance d'avoir un ennemi rapide
         wn = gs["wave_number"]
         if gs.get("infinite_mode"):
-            # Scaling exponentiel en infini — les HP grimpent vraiment vite passé la vague 10
+            # augmentation de plus en plus rapides des HP en mode infini
             base_hp = int((15 + wn * 6) * (1.0 + wn * 0.08))
         else:
             base_hp = 15 + (wn - 1) * 4
@@ -68,7 +68,7 @@ def update_waves(gs, current_time):
     alive_enemies = [e for e in gs_enemies if not e.is_dead and not e._dying]
     has_boss      = any(e.is_boss for e in alive_enemies)
 
-    # Tous les ennemis normaux sont morts — c'est le moment de faire apparaître le boss
+    # Tous les ennemis normaux sont morts —-> apparition du boss
     if (not gs["boss_active"]
             and gs["enemies_spawned_this_wave"] >= gs["max_enemies_this_wave"]
             and not alive_enemies):
@@ -126,12 +126,12 @@ def _spawn_boss(gs, current_time):
         if gs.get("infinite_mode"):
             # En infini : boss de plus en plus variés selon la vague
             if wn % 5 == 0:
-                # Titan Colossal tous les 5 vagues — HP qui s'accumulent avec les apparitions
+                # Titan Colossal tous les 5 vagues les HP s'accumulent avec les apparitions
                 colossal_count = wn // 5
                 boss_hp = int((500 + 200 * wn + wn * wn * 10) * gs["enemy_hp_mult"] * colossal_count)
                 gs["enemies"].append(Enemy(hp=boss_hp, speed=0.2, radius=80, is_final_boss=True))
             if wn % 10 == 0:
-                # Titan Féminin tous les 10 vagues — s'ajoute au Colossal ces vagues-là
+                # Titan Féminin tous les 10 vagues il s'ajoute au Colossal ces vagues-là
                 boss_hp = int((300 + 150 * wn + wn * wn * 5) * gs["enemy_hp_mult"])
                 gs["enemies"].append(Enemy(hp=boss_hp, speed=0.3, radius=60, is_chapter_boss=True, chapter_idx=0))
             else:
@@ -168,7 +168,7 @@ def _on_boss_defeated(gs):
         return
 
     # On passe les clés de vague à start_new_wave via un sous-dict pour éviter
-    # de lui passer tout gs — plus propre et plus facile à tester
+    # de lui passer tout gs c'est plus propre et plus facile à tester
     sl = {
         "wave_number":               gs["wave_number"],
         "last_wave_time":            gs["last_wave_time"],
@@ -242,13 +242,13 @@ def _update_ultimate(gs):
     """
     if not gs.get("ultimate_info"):
         return
-    dt = 1.0 / 60.0  # On suppose 60 FPS — à remplacer par un vrai delta si besoin
+    dt = 1.0 / 60.0
 
     if gs["ultimate_active"]:
         gs["ultimate_timer"] = max(0, gs["ultimate_timer"] - dt)
         if gs["ultimate_timer"] <= 0:
             _apply_ultimate_end(gs)
-        # Slow appliqué une seule fois par ennemi grâce au flag _ult_slowed
+        # Slow appliqué une seule fois par ennemi
         if gs.get("_ult_slow_enemies"):
             for e in gs["enemies"]:
                 if not getattr(e, "_ult_slowed", False):
@@ -286,7 +286,7 @@ def _update_enemies(gs, gs_enemies, gs_grid, gs_goal, gs_player):
             kills_this_frame += 1
             gs_enemies.remove(e)
 
-    # Un seul sd.save() pour tous les kills de la frame — évite de marcher le disque inutilement
+    # Un seul sd.save() pour tous les kills de la frame
     if kills_this_frame > 0 and gs.get("save") is not None:
         gs["save"]["enemies_killed"] = gs["save"].get("enemies_killed", 0) + kills_this_frame
         mode_key = "infini" if gs.get("infinite_mode") else "histoire"

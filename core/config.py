@@ -32,7 +32,7 @@ XP_START               = 0
 XP_TO_NEXT_LVL_START   = 30
 XP_GROWTH_FACTOR       = 2.0
 XP_REWARD_NORMAL       = 5   # XP gagnée par un ennemi normal
-XP_REWARD_BOSS         = 15   # XP gagnée par un boss (y compris boss final)
+XP_REWARD_BOSS         = 15   # XP gagnée par un boss
 AVAILABLE_TOWERS_INIT  = ["small", "big", "trap"]
 TOWER_SLOT_COUNT       = 3
 ALL_TOWER_TYPES = [
@@ -44,7 +44,7 @@ MUSIC_TRACK_TITLE = "TitleScreen.mp3"
 MUSIC_TRACK_MENU = "Menu.mp3"
 MUSIC_TRACK_GAME = "Game.mp3"
 
-PLAYER_HP       = 100
+PLAYER_HP = 100
 PLAYER_HP_REGEN = 0.5   # HP récupérés par seconde
 
 
@@ -74,7 +74,7 @@ DISPLAY_FLAGS   = pygame.RESIZABLE
 WINDOW_CAPTION  = "Hexahold"
 
 
-# NIVEAUX DE DIFFICULTÉ
+# NIVEAUX DE DIFFICULTÉ (partie rapide)
 DIFFICULTY_LEVELS = {
     1: {"name": "Facile",         "waves": 3,  "enemy_hp_mult": 1.0,  "spawn_interval": 1.0, "coins_reward": 50 },
     2: {"name": "Normal",         "waves": 4,  "enemy_hp_mult": 1.5,  "spawn_interval": 0.7, "coins_reward": 100},
@@ -113,7 +113,7 @@ RARITY_COLORS = {
     "Mythique":  (255, 0,   255),
 }
 RARITY_WEIGHTS = {
-    "wood":   [70, 20, 8,   1,  1  ],  # Diminué les chances rares/épiques/légendaires
+    "wood":   [70, 20, 8,   1,  1  ],  # Diminue les chances rares/épiques/légendaires
     "silver": [45, 35, 15,  4,  1  ],
     "gold":   [20, 25, 30,  20, 5  ],
     "gem_common": [5, 15, 30, 35, 15],    # Coffre commun en gemmes : beaucoup de rares

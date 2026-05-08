@@ -35,7 +35,7 @@ class Player:
         self.x     = float(x)
         self.y     = float(y)
         self.speed = 3
-        self.radius = 12
+        self.taille = 12
 
         # Stats d'attaque de base - peuvent être boostées par le skill tree
         self.damage          = 5
@@ -44,22 +44,22 @@ class Player:
         self.attack_timer    = 0
         self.attack_anim_timer = 0
 
-        self.hp     = PLAYER_HP
+        self.vie     = PLAYER_HP
         self.max_hp = PLAYER_HP
         self.alive  = True
 
         # Stats avancées (tout est à 0 par défaut, le skill tree s'occupe du reste)
         self.crit_chance  = 0.0   # entre 0 et 1
-        self.crit_damage  = 1.5   # x1.5 sur un crit, classique
+        self.crit_damage  = 2.0   # x2 sur un crit, classique
         self.dodge_chance = 0.0   # chance d'esquiver complètement un coup
         self.defense      = 0.0   # % de réduction des dégâts reçus (plafonné à 80%)
 
         # État interne pour l'animation
         self._anim_state = 'idle'
         self._anim_dir   = 'down'
-        self._hurt_timer = 0   # fait clignoter le perso quand il prend un coup
+        self._hurt_timer = 0   
 
-        # Chargement du spriteset - pas de panique si ça rate, on a le fallback
+        # Chargement du spriteset
         self.spriteset = spr.load_spriteset('player', _ASSETS_BASE)
         if self.spriteset:
             self.spriteset.set_state('idle', 'down')
@@ -74,7 +74,6 @@ class Player:
             hdef  = _hm.HEROES.get(hero_id, {})
             fname = hdef.get("sprite_ingame", "")
             if not fname:
-                # pas de sprite défini pour ce héros, on laisse tomber
                 return
 
             # ordre de priorité : nom simplifié > nom original dans la config
@@ -102,28 +101,28 @@ class Player:
             print(f"[entities] load_hero_sprite({hero_id}) a planté : {e}")
             traceback.print_exc()
 
-    # Limites de déplacement en pixels - dépendent de la taille de la grille
+    # Limites de déplacement en pixels
     @property
-    def _x_min(self): return self.radius
+    def _x_min(self): return self.taille
 
     @property
-    def _x_max(self): return COLS * GRID_SIZE - self.radius
+    def _x_max(self): return COLS * GRID_SIZE - self.taille
 
     @property
-    def _y_min(self): return self.radius
+    def _y_min(self): return self.taille
 
     @property
-    def _y_max(self): return ROWS * GRID_SIZE - self.radius
+    def _y_max(self): return ROWS * GRID_SIZE - self.taille
 
     def _can_move_to(self, x, y, walkable):
         """Vérifie qu'aucune tuile non-walkable ne bloque le déplacement."""
         # on calcule les cases couvertes par le cercle du joueur
-        min_cx = max(0, int((x - self.radius) // GRID_SIZE))
-        max_cx = min(COLS - 1, int((x + self.radius) // GRID_SIZE))
-        min_cy = max(0, int((y - self.radius) // GRID_SIZE))
-        max_cy = min(ROWS - 1, int((y + self.radius) // GRID_SIZE))
+        min_cx = max(0, int((x - self.taille) // GRID_SIZE))
+        max_cx = min(COLS - 1, int((x + self.taille) // GRID_SIZE))
+        min_cy = max(0, int((y - self.taille) // GRID_SIZE))
+        max_cy = min(ROWS - 1, int((y + self.taille) // GRID_SIZE))
 
-        r_sq = self.radius * self.radius  # comparaison en distance² pour éviter sqrt
+        r_sq = self.taille * self.taille  # comparaison en distance² pour éviter sqrt
         for cx in range(min_cx, max_cx + 1):
             for cy in range(min_cy, max_cy + 1):
                 if not walkable[cx][cy]:
@@ -135,11 +134,11 @@ class Player:
                     dx = x - nearest_x
                     dy = y - nearest_y
                     if dx*dx + dy*dy < r_sq:
-                        return False  # collision détectée
+                        return False 
         return True
 
     def update(self, keys_pressed, enemies, projectiles, waiting_for_tower, grid=None):
-        # si le joueur est mort on met quand même l'anim à jour (animation de mort)
+        # animation de mort
         if not self.alive:
             if self.spriteset:
                 self.spriteset.update()
@@ -149,7 +148,7 @@ class Player:
         moving    = False
         attacking = False
 
-        # Déplacement - bloqué si on est en train de poser une tour
+        # Déplacement
         if not waiting_for_tower:
             dx = 0.0
             dy = 0.0
@@ -167,7 +166,7 @@ class Player:
                 dy += self.speed
                 moving = True
 
-            # déplacement horizontal avec détection de collision si grid dispo
+            # déplacement horizontal avec détection de collision
             if dx != 0 and grid is not None:
                 new_x = max(self._x_min, min(self._x_max, self.x + dx))
                 if self._can_move_to(new_x, self.y, grid.walkable):
@@ -184,7 +183,7 @@ class Player:
                 self.y = max(self._y_min, min(self._y_max, self.y + dy))
 
         # --- Attaque automatique ---
-        # on cherche l'ennemi le plus proche dans le range et on lui envoie un projectile
+        # cherche l'ennemi le plus proche dans la range 
         if self.attack_timer > 0:
             self.attack_timer -= 1
         else:
@@ -204,7 +203,7 @@ class Player:
 
             if target:
                 damage = self.damage
-                # crit ? on lance le dé
+                # chance de critique
                 if self.crit_chance > 0 and random.random() < self.crit_chance:
                     damage = int(damage * self.crit_damage)
 
@@ -213,7 +212,7 @@ class Player:
                 self.attack_anim_timer = 5
                 attacking = True
 
-        # petit timer pour garder l'anim d'attaque quelques frames
+        # timer pour garder l'anim d'attaque quelques frames
         if self.attack_anim_timer > 0:
             self.attack_anim_timer -= 1
             attacking = True
@@ -226,7 +225,6 @@ class Player:
             dx = self.x - prev_x
             dy = self.y - prev_y
 
-            # on met à jour la direction si le joueur s'est déplacé
             if abs(dx) > 0.1 or abs(dy) > 0.1:
                 self._anim_dir = _direction_from_delta(dx, dy)
 
@@ -242,7 +240,6 @@ class Player:
                 self._anim_state = new_state
                 self.spriteset.set_state(new_state, self._anim_dir)
             elif self._anim_dir != self.spriteset._dir:
-                # même état mais direction changée
                 self.spriteset.set_state(new_state, self._anim_dir)
 
             if new_state == 'walk':
@@ -255,22 +252,21 @@ class Player:
         Applique des dégâts au joueur.
         Retourne True si le joueur vient de mourir, False sinon.
         """
-        # tentative d'esquive - si ça passe, juste un petit clignotement
+        # tentative d'esquive
         if self.dodge_chance > 0 and random.random() < self.dodge_chance:
             self._hurt_timer = 3
             return False
 
-        # la défense réduit les dégâts, mais on garantit au moins 1 de dégât
+        # la défense réduit les dégâts mais au moins 1 dégat garantit
         effective = max(1, int(amount * (1.0 - min(self.defense, 0.80))))
-        self.hp = max(0, self.hp - effective)
+        self.vie = max(0, self.vie - effective)
         self._hurt_timer = 8
 
         if self.spriteset and self._anim_state not in ('death', 'hurt'):
             self.spriteset.set_state('hurt', self._anim_dir)
             self._anim_state = 'hurt'
 
-        # mort ?
-        if self.hp <= 0 and self.alive:
+        if self.vie <= 0 and self.alive:
             self.alive = False
             if self.spriteset:
                 self.spriteset.set_state('death', self._anim_dir)
@@ -280,7 +276,6 @@ class Player:
         return False
 
     def draw(self, screen, offset_x, offset_y):
-        # on n'affiche plus rien une fois l'animation de mort terminée
         if not self.alive and (not self.spriteset or self.spriteset.is_finished()):
             return
 
@@ -293,8 +288,8 @@ class Player:
                 fw, fh = frame.get_size()
                 screen.blit(frame, (px - fw//2, py - fh//2))
         else:
-            # fallback visuel si pas de sprite - cercle vert basique
-            pygame.draw.circle(screen, (0, 255, 0), (px, py), self.radius)
+            # fallback visuel si pas de sprite
+            pygame.draw.circle(screen, (0, 255, 0), (px, py), self.taille)
             pygame.draw.circle(screen, (0, 255, 0), (px, py), self.range, 1)
             if self.attack_anim_timer > 0:
                 sq = 15
@@ -304,7 +299,7 @@ class Player:
         # barre de vie au-dessus du perso
         bar_w, bar_h = 30, 4
         bx = px - bar_w // 2
-        by = py - self.radius - 8
+        by = py - self.taille - 8
         pygame.draw.rect(screen, (200, 0, 0), (bx, by, bar_w, bar_h))
-        fill_w = int(bar_w * max(0, self.hp) / max(1, self.max_hp))
+        fill_w = int(bar_w * max(0, self.vie) / max(1, self.max_hp))
         pygame.draw.rect(screen, (0, 200, 0), (bx, by, fill_w, bar_h))

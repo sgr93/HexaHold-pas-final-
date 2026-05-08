@@ -182,7 +182,7 @@ def build_initial_state(difficulty=2, save=None):
                 val  = item["value"]
                 if stat == "max_hp":
                     player.max_hp += val
-                    player.hp     += val
+                    player.vie     += val
                 elif stat == "attack_speed":
                     player.attack_cooldown = max(5, player.attack_cooldown - val)
                 elif stat == "speed":
@@ -203,14 +203,14 @@ def build_initial_state(difficulty=2, save=None):
         hero_stats     = _hm.get_hero_ingame_stats(save, selected_hero)
         player.damage  = hero_stats["atk"]
         player.max_hp  = hero_stats["hp"]
-        player.hp      = hero_stats["hp"]
+        player.vie      = hero_stats["hp"]
         sd.apply_skill_bonuses_to_player(save, player)
 
     player.load_hero_sprite(selected_hero)
 
     ultimate_info = sd.get_active_ultimate(save) if save else None
     goal_hp = 100
-    goal.hp = goal_hp
+    goal.vie = goal_hp
 
     return {
         "level":                     LEVEL_START,

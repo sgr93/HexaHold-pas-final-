@@ -23,7 +23,7 @@ def get_tower_preview(tower_type, width_px, height_px):
     la frame courante du sprite de la tour demandée.
     Retourne None si le type de tour n'est pas dans le cache d'animation.
     """
-    # on récupère le spriteset depuis le cache, None si la tour n'existe pas
+    # on récupère le spriteset depuis le cache
     master = Tower._anim_cache.get(tower_type)
     if master is None:
         return None
@@ -32,10 +32,10 @@ def get_tower_preview(tower_type, width_px, height_px):
     if frame is None:
         return None
 
-    # supprime les zones transparentes autour du sprite avant de scaler
+    # supprime les zones transparentes autour du sprite
     cropped = _crop_alpha_surface(frame)
 
-    # légère réduction (94%) pour garder une petite marge visuelle autour
+    # légère réduction (94%)
     preview_w = max(1, int(width_px*0.94))
     preview_h = max(1, int(height_px*0.94))
     scaled = pygame.transform.scale(cropped, (preview_w, preview_h))

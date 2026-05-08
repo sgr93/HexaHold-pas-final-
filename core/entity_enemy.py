@@ -70,7 +70,6 @@ class Enemy:
         self._dying      = False
 
         # Choix du set d’assets : ici on transforme les flags gameplay en identité visuelle
-        # (important pour que le joueur comprenne instantanément le danger)
         if is_chapter_boss:
             if chapter_idx == 5:
                 asset_type = 'boss_final'   # boss ultime du chapitre final
@@ -96,7 +95,6 @@ class Enemy:
 
     def push_out_of_block(self, grid):
         # Corrige les cas où l’ennemi se retrouve dans une case invalide
-        # (bug possible ou transition de flow field)
         gx, gy = self.get_cell()
 
         if grid.in_bounds(gx, gy) and grid.walkable[gx][gy]:
@@ -112,7 +110,7 @@ class Enemy:
                     return
 
     def _set_anim(self, state, direction=None):
-        # Évite de recharger la même animation en boucle (perf + stabilité visuelle)
+        # Évite de recharger la même animation en boucle
         direction = direction or self._anim_dir
         if self.spriteset and (state != self._anim_state or direction != self._anim_dir):
             self._anim_state = state
@@ -136,7 +134,6 @@ class Enemy:
         prev_x, prev_y = self.x, self.y
 
         # --- L’ennemi entre sur la map ---
-        # On évite qu’il commence directement dans le flow field pour garder un effet "spawn propre"
         if not self.reached_grid:
             dx   = self.target_x - self.x
             dy   = self.target_y - self.y
@@ -159,8 +156,7 @@ class Enemy:
             if grid.in_bounds(gx, gy):
                 dirs = grid.flow_field[gx][gy]
 
-                # Plusieurs directions = légère variation entre ennemis
-                # pour éviter les mouvements trop mécaniques
+                # Plusieurs directions = légère variation entre ennemis évite une file indienne d'ennemis
                 if isinstance(dirs, list):
                     if dirs:
                         idx = (self.seed + gx * 73 + gy * 31) % len(dirs)
@@ -180,7 +176,7 @@ class Enemy:
             if self.attack_timer <= 0:
                 goal.hp = max(0, goal.hp - 5)
                 self.attack_timer = self.attack_cooldown
-                self.attack_anim_timer = 20  # petit feedback visuel d’impact
+                self.attack_anim_timer = 20 
 
         if self.attack_timer > 0:
             self.attack_timer -= 1
@@ -191,7 +187,7 @@ class Enemy:
 
             if dist_p <= self.radius + player.radius:
                 if self.player_attack_timer <= 0:
-                    # Les boss punissent plus fort pour forcer le positionnement
+                    # Les boss frappent plus fort pour forcer le positionnement
                     player.take_damage(3 if not self.is_boss else 8)
                     self.player_attack_timer = self.player_attack_cooldown
                     self.attack_anim_timer = 20
@@ -199,7 +195,7 @@ class Enemy:
             if self.player_attack_timer > 0:
                 self.player_attack_timer -= 1
 
-        # --- Gestion des animations (lecture du mouvement réel) ---
+        # --- Gestion des animations ---
         if self.spriteset:
             ddx = self.x - prev_x
             ddy = self.y - prev_y
@@ -224,13 +220,13 @@ class Enemy:
             self.spriteset.update()
 
     def receive_damage(self, amount):
-        # Impact immédiat + petit feedback visuel pour renforcer le hit feeling
+        # Impact immédiat
         self.hp -= amount
         self._hurt_timer = 6
         self._set_anim('hurt', self._anim_dir)
 
     def mark_dead(self):
-        # On différencie mort instantanée et mort animée (plus satisfaisant visuellement)
+        # On différencie mort instantanée et mort animée
         self.hp = 0
         if self.spriteset:
             self._dying = True
@@ -265,7 +261,7 @@ class Enemy:
 
             pygame.draw.circle(screen, color, (ex, ey), self.radius)
 
-            # petit repère visuel pour que le joueur identifie immédiatement un boss de chapitre
+            # repère visuel pour que le joueur identifie immédiatement un boss de chapitre
             if self.is_chapter_boss:
                 pygame.draw.circle(screen, (180, 60, 255), (ex, ey), self.radius, 3)
 
@@ -280,7 +276,7 @@ class Enemy:
 
         bar_y_off = self.radius + bar_h + 4
 
-        # fond rouge = vie perdue (lecture immédiate du danger)
+        # fond rouge = vie perdue
         pygame.draw.rect(screen, (200, 0, 0),
                          (ex - bar_w // 2, ey - bar_y_off, bar_w, bar_h))
 
