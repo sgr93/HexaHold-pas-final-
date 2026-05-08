@@ -127,9 +127,9 @@ class GachaScreen:
 
         content_y = y
 
-        # ────────────────────────────────────────────
+
         # COFFRE PIÈCES (gauche)
-        # ────────────────────────────────────────────
+
         coin_card = pygame.Rect(x, content_y, col_w, 310)
         _rr(screen, theme.DARK_2, coin_card, radius=14, bw=2, bc=theme.GOLD)
 
@@ -232,9 +232,9 @@ class GachaScreen:
         if clicked and hov_pct_c:
             self.gacha_info_popup = None if self.gacha_info_popup == "wood" else "wood"
 
-        # ────────────────────────────────────────────
+
         # COFFRE TOURS (droite)
-        # ────────────────────────────────────────────
+
         gem_card = pygame.Rect(x + col_w + pad, content_y, col_w, 310)
         _rr(screen, theme.DARK_2, gem_card, radius=14, bw=2, bc=(120, 80, 200))
 
@@ -324,15 +324,15 @@ class GachaScreen:
         if clicked and hov_pct_g:
             self.show_rates = not self.show_rates
 
-        # ────────────────────────────────────────────
+
         # RÉSULTAT TOURS
-        # ────────────────────────────────────────────
+
         if self.tower_anim > 0:
             self.tower_anim -= 1
 
-        # ────────────────────────────────────────────
+
         # MESSAGE / ITEM CARD coffre pièces
-        # ────────────────────────────────────────────
+
         if self.gacha_msg_timer > 0:
             self.gacha_msg_timer -= 1
             cx3 = x + full_w//2
@@ -340,9 +340,8 @@ class GachaScreen:
             ms = f_sm.render(self.gacha_msg, True, col3)
             screen.blit(ms, (cx3 - ms.get_width()//2, content_y + 328))
 
-        # ────────────────────────────────────────────
         # COLLECTION TOURS (scrollable)
-        # ────────────────────────────────────────────
+
         coll_y = content_y + (438 if self.gacha_msg_timer > 0 else 326)
         coll_h = area.bottom - coll_y - 6
         if coll_h > 60:
@@ -401,12 +400,12 @@ class GachaScreen:
                             up_b = pygame.Rect(cell_r.x+5, cell_r.y+62, cell_r.w-10, 14)
                             hupc = up_b.collidepoint(mx, my)
                             _rr(screen, (60,210,85) if hupc else (40,160,60), up_b, radius=4, bw=1, bc=(100,255,130))
-                            ul2 = f_ti.render("▲ Niv. sup.", True, (10,10,10) if hupc else (200,255,200))
+                            ul2 = f_ti.render("Niv. sup.", True, (10,10,10) if hupc else (200,255,200))
                             screen.blit(ul2, (up_b.centerx-ul2.get_width()//2, up_b.centery-ul2.get_height()//2))
                             if clicked and hupc:
                                 sd.upgrade_tower(save, tid)
                     else:
-                        ml = f_ti.render("✦ MAX", True, G_GOLD)
+                        ml = f_ti.render("MAX", True, G_GOLD)
                         screen.blit(ml, (cell_r.centerx - ml.get_width()//2, cell_r.y+44))
                 else:
                     lk = f_sm.render("?", True, (60,60,70))
@@ -415,9 +414,8 @@ class GachaScreen:
                     screen.blit(rs, (cell_r.x+4, cell_r.y+4))
 
 
-        # ────────────────────────────────────────────
         # POPUP TAUX COFFRE TOURS
-        # ────────────────────────────────────────────
+
         if self.show_rates:
             RARS = ["Commun","Rare","Épique","Légendaire"]
             BAR_W, ROW_H, PAD = 90, 20, 10
@@ -449,7 +447,7 @@ class GachaScreen:
                 if lv == tower_lv:
                     _rr(screen, (40,28,70), pygame.Rect(pr.x+4, row_y, pr.w-8, ROW_H), radius=4, bw=1, bc=(130,80,210))
                 lvc = G_GOLD if lv == tower_lv else theme.GOLD_DIM
-                lvt = f_ti.render(f"{'▶' if lv==tower_lv else ' '}{lv}", True, lvc)
+                lvt = f_ti.render(f"{'>' if lv==tower_lv else ' '}{lv}", True, lvc)
                 screen.blit(lvt, (pr.x+PAD, row_y+2))
                 weights = sd.TOWER_CHEST_WEIGHTS_BY_LEVEL[lv]
                 total_w = sum(weights.values()) or 1
@@ -473,9 +471,8 @@ class GachaScreen:
             if clicked and not pr.collidepoint(mx, my):
                 self.show_rates = False
 
-        # ────────────────────────────────────────────
         # POPUP TAUX COFFRE PIÈCES
-        # ────────────────────────────────────────────
+
         if self.gacha_info_popup == "wood":
             RARS_C = ["Commun","Rare","Épique","Légendaire","Mythique"]
             BAR_WC, ROW_HC, PAD_C = 70, 20, 10
@@ -526,12 +523,11 @@ class GachaScreen:
             if clicked and not pi.collidepoint(mx, my) and not pct_btn_c.collidepoint(mx, my):
                 self.gacha_info_popup = None
 
-        # ────────────────────────────────────────────
         # OVERLAY RÉSULTATS (coffre pièces + tours)
         # Fond gris sur tout l'écran
         # 1 item  → 1 grande carte centrée
         # 5 items → 5 cartes côte à côte
-        # ────────────────────────────────────────────
+
         overlay_items = []  # liste de dicts {name, rarity, img_name, rcol}
 
         # Coffre pièces

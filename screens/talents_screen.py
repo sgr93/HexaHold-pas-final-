@@ -1,6 +1,6 @@
 """
 screens/talents_screen.py
---------------------------
+
 Skill Tree SNK — Eren, Mikasa, Erwin
 - Débloqué au niveau 2 (skill_points >= 1)
 - Popup de confirmation au premier accès
@@ -16,10 +16,8 @@ import pygame
 import ui.theme as theme
 import core.save_data as sd
 
-# ============================================================
+
 # COÛTS CROISSANTS — 15 points pour finir un arbre
-# nœud 0→1pt, 1→1pt, 2→1pt, 3→1pt, 4→2pt, 5→2pt, 6→2pt, 7→2pt, 8→3pt, 9→3pt = 18pts
-# On ajuste : 1,1,1,1,1,1,2,2,2,3 = 15pts
 NODE_COSTS = [1, 1, 1, 1, 1, 1, 2, 2, 2, 3]
 
 RESET_COST_PER_PT = 10
@@ -205,11 +203,11 @@ class TalentsScreen:
 
         sp = save.get("skill_points", 0)
 
-        # ── Verrouillé si pas encore niveau 2 ────────────────
+        # Verrouillé si pas encore niveau 2 
         if sp == 0 and not save.get("skill_tree_nodes"):
             return None
 
-        # ── Popup confirmation premier accès ─────────────────
+        # Popup confirmation premier accès 
         if self.show_confirm == "pending":
             self._draw_confirm(screen, area, mx, my, clicked, f_lbl, f_sm, f_ti)
             return None
@@ -252,7 +250,7 @@ class TalentsScreen:
                                  save, mx, my, clicked, f_sm, f_ti)
             rect_y += RECT_H + RECT_GAP
 
-        # ── Bouton Reset en bas à droite ──────────────────────
+        # Bouton Reset en bas à droite 
         spent      = self._total_spent(save)
         reset_cost = spent * RESET_COST_PER_PT
         coins      = save.get("coins", 0)
@@ -401,7 +399,7 @@ class TalentsScreen:
                 )
             can_buy = not node_on and adj and sp >= cost and not is_locked
 
-            # ── Nœud final : double anneau doré ──
+            # Nœud final : double anneau doré 
             if is_final:
                 pulse = int(20 + 15 * math.sin(tick * 0.003)) if node_on else 0
                 pygame.draw.circle(screen,
@@ -411,7 +409,7 @@ class TalentsScreen:
                                    color if node_on else (40, 33, 26),
                                    (nx, ny_), r + 6, 1)
 
-            # ── Premier nœud : halo pulsant ──
+            # Premier nœud : halo pulsant
             if is_first and not node_on and not is_locked:
                 pulse = int(40 + 30 * math.sin(tick * 0.004))
                 theme.draw_rect_alpha(screen,

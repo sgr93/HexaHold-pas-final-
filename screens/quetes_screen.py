@@ -1,6 +1,7 @@
 """
 screens/quetes_screen.py
-------------------------
+
+class quetes_screen :
 Écran Quêtes — grille de cartes style RPG avec barre de progression.
 Sections : Quotidiennes | Missions | Événements
 """
