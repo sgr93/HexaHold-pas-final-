@@ -30,6 +30,7 @@ class Enemy:
         self.hp            = hp
         self.max_hp        = hp
         self.speed         = speed
+        self.base_speed    = speed
         self.radius        = radius
 
         # Flags de gameplay : servent à adapter comportement + difficulté + visuel
@@ -172,9 +173,9 @@ class Enemy:
         # --- Interaction avec la base ---
         # L’ennemi devient agressif uniquement s’il touche la zone cible
         dist_goal = math.hypot(self.x - goal.x, self.y - goal.y)
-        if dist_goal <= self.radius + goal.radius:
+        if dist_goal <= self.radius + goal.taille:
             if self.attack_timer <= 0:
-                goal.hp = max(0, goal.hp - 5)
+                goal.vie = max(0, goal.vie - 5)
                 self.attack_timer = self.attack_cooldown
                 self.attack_anim_timer = 20 
 

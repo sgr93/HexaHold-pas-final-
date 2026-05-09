@@ -144,7 +144,7 @@ def main():
 
         # ÉTAT GLOBAL — game_over peut être déclenché par la base ou par la mort du joueur
         if not gs["game_over"]:
-            gs["game_over"] = gs["goal"].hp <= 0
+            gs["game_over"] = gs["goal"].vie <= 0
         if not gs["game_over"] and not gs["player"].alive:
             gs["game_over"] = True
 

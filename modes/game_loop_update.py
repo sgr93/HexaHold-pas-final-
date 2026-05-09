@@ -230,7 +230,7 @@ def _update_regen(gs, player, current_time):
     gs["regen_accumulator"] += total_regen * regen_dt
     if gs["regen_accumulator"] >= 1.0:
         heal = int(gs["regen_accumulator"])
-        player.hp = min(player.max_hp, player.hp + heal)
+        player.vie = min(player.max_hp, player.vie + heal)
         gs["regen_accumulator"] -= heal
 
 
@@ -344,7 +344,7 @@ def apply_levelup_choice(gs, chosen, known_towers, buff_defs):
         player.attack_cooldown = max(5, player.attack_cooldown - 2)
     elif key == "player_hp":
         player.max_hp += 20
-        player.hp = min(player.max_hp, player.hp + 20)
+        player.vie = min(player.max_hp, player.vie + 20)
     elif key == "tower_damage":
         gs["tower_damage_bonus"] += 1
         apply_all_tower_bonuses(gs_towers, gs["tower_damage_bonus"], gs["tower_cooldown_bonus"])

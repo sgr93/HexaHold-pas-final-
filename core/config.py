@@ -50,10 +50,8 @@ PLAYER_HP_REGEN = 0.5   # HP récupérés par seconde
 
 # VAGUES D'ENNEMIS
 WAVE_NUMBER_START        = 1
-MAX_WAVES                = 5
 WAVE_DURATION            = 35
 BOSS_DURATION            = 50
-ENEMY_SPAWN_INTERVAL_BASE = 0.7
 
 # PATHFINDING
 DANGER_WEIGHT = 3

@@ -78,7 +78,7 @@ def render_hud(screen, gs, offset_x, offset_y, mx, my, mouse_clicked_left):
         gs["mobs_killed_this_wave"], gs["max_enemies_this_wave"],
         gs["boss_active"], gs["boss_timer"], gs["wave_timer"],
         offset_x, offset_y,
-        player_hp=player.hp, player_max_hp=player.max_hp,
+        player_hp=player.vie, player_max_hp=player.max_hp,
     )
     # Le bouton pause n'a rien à faire pendant un level-up ou sur les écrans de fin —
     # ça évite des états bizarres si le joueur clique au mauvais moment
@@ -186,6 +186,7 @@ def handle_tower_placement(screen, gs, grid_cache, gx, gy, mx, my,
     )
 
     if placed:
+        gs["player"].push_out_of_block(gs["grid"])
         gs["toasts"].append({"text": "Tour placée", "ttl": 140, "max_ttl": 140, "color": (120, 235, 140)})
         gs["game_started"] = True
         if gs.get("save") is not None:

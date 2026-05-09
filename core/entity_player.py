@@ -64,6 +64,11 @@ class Player:
         if self.spriteset:
             self.spriteset.set_state('idle', 'down')
 
+    @property
+    def radius(self):
+        """Alias de compatibilite avec le reste du gameplay."""
+        return self.taille
+
     def load_hero_sprite(self, hero_id):
         """
         Charge le sprite RPG Maker du héros choisi.
@@ -113,6 +118,40 @@ class Player:
 
     @property
     def _y_max(self): return ROWS * GRID_SIZE - self.taille
+
+    def push_out_of_block(self, grid):
+        """
+        Repositionne le joueur sur la case libre la plus proche s'il se retrouve
+        dans une zone devenue bloquante apres un placement de tour.
+        """
+        if grid is None:
+            return
+        if self._can_move_to(self.x, self.y, grid.walkable):
+            return
+
+        gx = int(self.x // GRID_SIZE)
+        gy = int(self.y // GRID_SIZE)
+        best_pos = None
+        best_dist_sq = None
+
+        for radius in range(0, 4):
+            found = False
+            for nx in range(max(0, gx - radius), min(COLS - 1, gx + radius) + 1):
+                for ny in range(max(0, gy - radius), min(ROWS - 1, gy + radius) + 1):
+                    cx = nx * GRID_SIZE + GRID_SIZE // 2
+                    cy = ny * GRID_SIZE + GRID_SIZE // 2
+                    if not self._can_move_to(cx, cy, grid.walkable):
+                        continue
+                    dist_sq = (cx - self.x) ** 2 + (cy - self.y) ** 2
+                    if best_dist_sq is None or dist_sq < best_dist_sq:
+                        best_dist_sq = dist_sq
+                        best_pos = (cx, cy)
+                        found = True
+            if found:
+                break
+
+        if best_pos is not None:
+            self.x, self.y = best_pos
 
     def _can_move_to(self, x, y, walkable):
         """Vérifie qu'aucune tuile non-walkable ne bloque le déplacement."""

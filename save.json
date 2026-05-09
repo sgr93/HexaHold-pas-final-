@@ -1,9 +1,9 @@
 {
   "level": 3,
-  "xp": 20,
+  "xp": 60,
   "xp_next": 120,
-  "coins": 60,
-  "gems": 2,
+  "coins": 20,
+  "gems": 4,
   "inventory_equipment": [
     {
       "slot": "veste",
@@ -242,6 +242,62 @@
         180,
         180
       ]
+    },
+    {
+      "slot": "arme",
+      "rarity": "Commun",
+      "stat": "damage",
+      "value": 3,
+      "label": "Puissance att.",
+      "name": "Lames jumelles",
+      "image": "lames.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "bottes",
+      "rarity": "Commun",
+      "stat": "speed",
+      "value": 0.3,
+      "label": "Vitesse",
+      "name": "Bottes tactique",
+      "image": "bottes.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Commun",
+      "stat": "max_hp",
+      "value": 10,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        180,
+        180,
+        180
+      ]
+    },
+    {
+      "slot": "cape",
+      "rarity": "Rare",
+      "stat": "max_hp",
+      "value": 20,
+      "label": "Vie max",
+      "name": "Cape du bataillon",
+      "image": "cape.png",
+      "color": [
+        60,
+        120,
+        255
+      ]
     }
   ],
   "equipped": {
@@ -258,18 +314,21 @@
   "music_volume": 0.8,
   "sound_volume": 0.8,
   "fullscreen": false,
-  "skill_points": 2,
+  "skill_points": 0,
   "quests_completed": {
     "mission_premiere_tour": true,
     "event_guerre_1": true,
-    "mission_10_tours": true
+    "mission_10_tours": true,
+    "quotidienne_combat_1": true
   },
-  "battles_won": 0,
-  "towers_placed": 14,
-  "enemies_killed": 54,
+  "battles_won": 1,
+  "towers_placed": 23,
+  "enemies_killed": 97,
   "max_wave_reached": 1,
-  "daily_quests_completed": {},
-  "last_daily_reset": "2026-05-08",
+  "daily_quests_completed": {
+    "quotidienne_combat_1": true
+  },
+  "last_daily_reset": "2026-05-09",
   "events_completed": {},
   "player_icon": "icone0.png",
   "tower_chest_total_pulls": 6,
@@ -293,9 +352,9 @@
     "trap": 1,
     "mine": 0
   },
-  "coin_chest_pulls": 19,
-  "coin_chest_pity_epic": 2,
-  "coin_chest_pity_legend": 19,
+  "coin_chest_pulls": 23,
+  "coin_chest_pity_epic": 6,
+  "coin_chest_pity_legend": 23,
   "histoire_unlocked": [
     0,
     1
@@ -303,11 +362,14 @@
   "histoire_completed": [
     0
   ],
-  "difficulty_completed": [],
+  "difficulty_completed": [
+    1
+  ],
   "quests_notified": [
     "mission_premiere_tour",
     "mission_10_tours",
-    "event_guerre_1"
+    "event_guerre_1",
+    "quotidienne_combat_1"
   ],
   "heroes": {
     "eren": {
@@ -332,12 +394,18 @@
     }
   },
   "selected_hero": "eren",
-  "histoire_towers_placed": 12,
-  "histoire_enemies_killed": 39,
+  "histoire_towers_placed": 21,
+  "histoire_enemies_killed": 82,
   "infini_towers_placed": 2,
   "infini_enemies_killed": 15,
   "pending_skillpoint_anim": false,
   "skill_tree_seen": true,
-  "skill_tree_nodes": {},
-  "skill_tree_locked": null
+  "skill_tree_nodes": {
+    "erwin": [
+      0,
+      1
+    ]
+  },
+  "skill_tree_locked": "erwin",
+  "histoire_battles_won": 1
 }

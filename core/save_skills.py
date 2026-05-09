@@ -63,7 +63,7 @@ def apply_skill_bonuses_to_player(save_data_dict, player):
     hp_bonus = bonuses.get("max_hp", 0)
     if hp_bonus:
         player.max_hp += hp_bonus
-        player.hp     += hp_bonus  # on donne aussi les HP directement
+        player.vie     += hp_bonus  # on donne aussi les HP directement
 
     # Vitesse d'attaque : bonus = réduction du cooldown en frames
     atk_spd = bonuses.get("attack_speed", 0)
@@ -169,7 +169,7 @@ def apply_skill_tree_node_bonuses(save_data_dict, player):
                 player.speed += bn["speed"]
             if "max_hp" in bn:
                 player.max_hp += bn["max_hp"]
-                player.hp     += bn["max_hp"]
+                player.vie     += bn["max_hp"]
             if "hp_regen" in bn:
                 player.hp_regen = getattr(player, "hp_regen", 0) + bn["hp_regen"]
             if "attack_cd" in bn:

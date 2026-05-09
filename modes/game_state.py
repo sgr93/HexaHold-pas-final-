@@ -299,12 +299,12 @@ def evaluate_mission_objectives(gs):
         elif "ne pas perdre" in text and "pv" in text:
             m = re.search(r"(\d+)", text)
             player = gs.get("player")
-            if m and player and player.max_hp - player.hp <= int(m.group(1)):
+            if m and player and player.max_hp - player.vie <= int(m.group(1)):
                 obj["done"] = True
 
         elif "tous ses pv" in text or "tous les pv" in text:
             player = gs.get("player")
-            if player and gs.get("game_win") and player.hp >= player.max_hp:
+            if player and gs.get("game_win") and player.vie >= player.max_hp:
                 obj["done"] = True
 
         elif "placer" in text and "tour" in text:
