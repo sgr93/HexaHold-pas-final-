@@ -49,7 +49,7 @@ QUETES = {
     },
 
     # missions permanentes — se débloquent naturellement en jouant
-    # elles poussent le joueur à essayer les différentes mécaniques sans le forcer
+    # elles poussent le joueur à essayer les différentes mécaniques
 
     "mission_niveau_5": {
         "nom": "Guerrier confirmé",

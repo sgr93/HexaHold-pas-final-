@@ -54,28 +54,28 @@ def row(y, x_start, x_end, wall_type=WALL_ROCK):
 # MAP PAR DÉFAUT  (parties rapides, modes hors histoire)
 
 MAP_DEFAULT = [
-    *rect(2,  4, 2, 2, WALL_ROCK),
-    *rect(8,  4, 2, 2, WALL_ROCK),
-    *rect(14, 4, 2, 2, WALL_ROCK),
+    *rect(2,  4, 2, 2),
+    *rect(8,  4, 2, 2),
+    *rect(14, 4, 2, 2),
 
     *rect(4,  8, 2, 2, WALL_TREE),
     *rect(12, 8, 2, 2, WALL_TREE),
 
-    *rect(8, 10, 2, 2, WALL_ROCK),
+    *rect(8, 10, 2, 2),
 
     *rect(2,  13, 2, 2, WALL_TREE),
     *rect(7,  13, 2, 2, WALL_TREE),
     *rect(14, 13, 2, 2, WALL_TREE),
 
-    *rect(4,  15, 2, 2, WALL_ROCK),
-    *rect(12, 15, 2, 2, WALL_ROCK),
+    *rect(4,  15, 2, 2),
+    *rect(12, 15, 2, 2),
 ]
 
 
 # MAP MODE INFINI
 MAP_INFINITE = [
 
-    *rect(1, 1, 2, 2, WALL_ROCK),
+    *rect(1, 1, 2, 2),
     *rect(6, 1, 2, 2, WALL_TREE),
     *rect(11, 1, 2, 2, WALL_ROCK),
     *rect(15, 1, 2, 2, WALL_TREE),
@@ -108,16 +108,16 @@ MAP_A = [
 ]
 
 MAP_B = [
-    *rect(2, 2, 2, 2, WALL_ROCK),
+    *rect(2, 2, 2, 2),
     *rect(8, 3, 2, 2, WALL_TREE),
-    *rect(14, 2, 2, 2, WALL_ROCK),
+    *rect(14, 2, 2, 2),
     *rect(5, 5, 2, 2, WALL_TREE),
-    *rect(11, 6, 2, 2, WALL_ROCK),
-    *rect(3, 8, 2, 2, WALL_ROCK),
+    *rect(11, 6, 2, 2),
+    *rect(3, 8, 2, 2),
     *rect(9, 9, 2, 2, WALL_TREE),
-    *rect(15, 10, 2, 2, WALL_ROCK),
+    *rect(15, 10, 2, 2),
     *rect(6, 12, 2, 2, WALL_TREE),
-    *rect(12, 13, 2, 2, WALL_ROCK),
+    *rect(12, 13, 2, 2),
 ]
 
 MAP_C = [
@@ -127,10 +127,10 @@ MAP_C = [
     *rect(14, 2, 2, 2, WALL_TREE),
     *rect(4, 5, 2, 2, WALL_TREE),
     *rect(12, 5, 2, 2, WALL_TREE),
-    *rect(2, 8, 2, 2, WALL_ROCK),
+    *rect(2, 8, 2, 2),
     *rect(6, 8, 2, 2, WALL_TREE),
     *rect(10, 8, 2, 2, WALL_TREE),
-    *rect(14, 8, 2, 2, WALL_ROCK),
+    *rect(14, 8, 2, 2),
     *rect(4, 11, 2, 2, WALL_TREE),
     *rect(12, 11, 2, 2, WALL_TREE),
     *rect(2, 14, 2, 2, WALL_TREE),
