@@ -36,7 +36,7 @@ XP_REWARD_BOSS         = 15   # XP gagnée par un boss
 AVAILABLE_TOWERS_INIT  = ["small", "big", "trap"]
 TOWER_SLOT_COUNT       = 3
 ALL_TOWER_TYPES = [
-    "small", "big", "sniper", "mortar", "frost", "tesla", "cannon", "laser", "trap"
+    "small", "big", "sniper", "mortar", "frost", "tesla", "cannon", "laser", "trap", "mine"
 ]
 
 MUSIC_PATH = "assets/music"
